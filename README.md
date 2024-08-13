@@ -14,3 +14,13 @@ Have fun programming in LISP.
 LISP supports numbers of any size, so bits can be represented with a single integer GE zero, intsead of
 a vector of integers as in Rust.
 
+LISP does not check function argument types, or result, as RUST does.  But you can code checks.
+
+LISP allows keywords for arguments.  My favorite use is in a function like: (defun is-subset-of (&key sub sup) ...
+so its hard to mix up multiple arguments that have the same type.
+
+To run: gcl
+
+Then: (load #p "main.lisp")
+
+Its still in the early develepment stage.
