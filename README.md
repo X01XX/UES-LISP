@@ -23,4 +23,4 @@ To run: gcl
 
 Then: (load #p "main.lisp")
 
-This is still in the early develepment stage.
+This is still in the early development stage.
