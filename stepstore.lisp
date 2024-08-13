@@ -1,0 +1,111 @@
+; Implement a store of steps.
+
+(defvar true t)
+(defvar false nil)
+
+; Implement a store of steps.
+(defstruct stepstore
+  steps  ; A list of zero, or more, non-duplicate, same number bits, steps.
+)
+; Functions automatically created by defstruct:
+;
+; Most used:
+;   (stepstore-<field name> <instance>) -> struct field.
+;   (stepstore-p <instance>) -> bool
+;
+; Least used:
+;   (type-of <instance>) -> stepstore
+;   (typep <instance> 'stepstore) -> bool
+;
+; Probably shouldn't use:
+;   (make-stepstore [:<field-name> <field-stepstore>]*), use stepstore-new instead.
+;   (copy-stepstore <instance>) copies a stepstore instance.
+(defun stepstore-new (steps) ; -> stepstore instance.
+  ;(format t "~&steps ~A" steps)
+  (assert (step-list-p steps))
+
+  (let ((ret (make-stepstore :steps nil)))
+    (loop for stpx in steps do 
+      (if (not (stepstore-contains ret stpx))
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+; Push a new step into a stepstore, suppress dups, subsets.
+; Return true if the step has been added.
+(defun stepstore-push(storex stpx) ; -> bool.
+  (assert (stepstore-p storex))
+  (assert (step-p stpx))
+
+  (let ((ret (stepstore-push-na storex stpx)))
+     (cond ((err-p ret) (error (err-str ret)))
+           ((bool-p ret) ret)
+            (t (error "Result is not a bool"))))
+)
+
+(defun stepstore-push-na(storex stpx) ; -> bool, or err.
+  ; Check for equal steps.
+  (loop for acty in (stepstore-steps storex) do
+    (if (= (step-act-id acty) (step-act-id stpx))
+      (return-from stepstore-push-na (err-new "duplicate step id")))
+  )
+
+  ; Add the new step to the end of the steps list.
+  (if (null (stepstore-steps storex))
+    (push stpx (stepstore-steps storex))
+    (push stpx (cdr (last (stepstore-steps storex))))) 
+
+  true
+)
+
+; Return the number of steps in a stepstore.
+(defun stepstore-length (storex) ; -> number.
+  (assert (stepstore-p storex))
+
+  (length (stepstore-steps storex))
+)
+
+; Return true if a stepstore is empty.
+(defun stepstore-is-empty (storex) ; -> bool
+  (zerop (stepstore-length storex))
+)
+
+; Return true if a stepstore is not empty.
+(defun stepstore-is-not-empty (storex) ; -> bool
+  (plusp (stepstore-length storex))
+)
+
+; Return a string representing a stepstore.
+(defun stepstore-str (storex) ; -> string.
+  (assert (stepstore-p storex))
+
+  (let ((ret "#S(STEPSTORE ") (start t))
+
+    (loop for stpx in (stepstore-steps storex) do
+      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+
+      (setf ret (concatenate 'string ret (format nil " ~&  ~A" (step-str stpx))))
+    )
+
+    ret
+  )
+)
+
+; Return true if a stepstore contains a given step.
+(defun stepstore-contains (storex stpx) ; -> bool
+  (assert (stepstore-p storex))
+  (assert (step-p stpx))
+
+  (if (member stpx (stepstore-steps storex) :test #'step-eq) true false)
+)
+
+(defun stepstore-first-step (storex) ; -> step
+  (assert (stepstore-p storex))
+  (assert (stepstore-is-not-empty storex))
+
+  (car (stepstore-steps storex))
+)
+
+

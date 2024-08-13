@@ -1,0 +1,3 @@
+(defvar true t)
+(defvar false nil)
+
