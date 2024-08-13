@@ -5,7 +5,7 @@ Rewrite the UES in LISP (gcl).
 
 Try new ideas.
 
-Compare and contrast with the UES in written in Rust.
+Compare and contrast with the UES written in Rust.
 
 Develop smaller, less complicated, more testable functions.
 
