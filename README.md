@@ -23,4 +23,6 @@ To run: gcl
 
 Then: (load #p "main.lisp")
 
+Then: (main) or (all-tests)
+
 This is still in the early development stage.
