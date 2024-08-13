@@ -17,7 +17,7 @@ a vector of integers as in Rust.
 LISP does not check function argument types, or result, as RUST does.  But you can code checks.
 
 LISP allows keywords for arguments.  My favorite use is in a function like: (defun is-subset-of (&key sub sup) ...
-so its hard to mix up multiple arguments that have the same type.
+so its hard to mix up the order of arguments.
 
 To run: gcl
 
