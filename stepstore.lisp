@@ -49,7 +49,8 @@
   ; Check for equal steps.
   (loop for acty in (stepstore-steps storex) do
     (if (= (step-act-id acty) (step-act-id stpx))
-      (return-from stepstore-push-na (err-new "duplicate step id")))
+      (if (rule-eq (step-rule acty) (step-rule stpx))
+        (return-from stepstore-push-na (err-new "duplicate step"))))
   )
 
   ; Add the new step to the end of the steps list.

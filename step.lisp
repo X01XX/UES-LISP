@@ -23,11 +23,11 @@
 ;   (copy-step <instance>) copies a step instance.
 
 ;;; Return an step instance
-(defun step-new (&key id rule)
+(defun step-new (&key act-id rule)
   (assert (rule-p rule))
-  (assert (>= id 0))
+  (assert (>= act-id 0))
 
-  (make-step :act-id id :rule rule)
+  (make-step :act-id act-id :rule rule)
 )
 
 ;;; Print a step.
@@ -66,6 +66,6 @@
   (assert (step-p stp2))
 
   (and (= (step-act-id stp1) (step-act-id stp2))
-       (= (step-rule stp1) (step-rul stp2)))
+       (rule-eq (step-rule stp1) (step-rule stp2)))
 )
 

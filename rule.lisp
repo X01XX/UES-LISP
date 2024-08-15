@@ -305,7 +305,7 @@
   true
 )
 
-;;; Return a rule to translate from one region to another.
+;;; Return a rule that has the minimun changes, to translate from one region to intersect another.
 (defun rule-new-region-to-region (reg1 reg2) ; -> region instance.
   (assert (region-p reg1))
   (assert (region-p reg2))
@@ -313,6 +313,7 @@
 
   (let (b00 b0x bxx bx0 b01 bx1 b11 b1x b10)
 
+    ; Make masks for each possible bit position, (0, 1, X) to (0, 1, X), 3 X 3 = 9 possibilities.
     (setf b00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
     (setf b0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
     (setf bxx (mask-and (region-x-mask reg1) (region-x-mask reg2)))
@@ -324,9 +325,9 @@
     (setf b10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
 
     (make-rule :b00 (mask-new (value-or b00 b0x bxx bx0))
-               :b01 (mask-new (value-or b01 bx1))
+               :b01 (mask-new b01)
                :b11 (mask-new (value-or b11 b1x bxx bx1))
-               :b10 (mask-new (value-or b10 bx0)))
+               :b10 (mask-new b10))
   )
 )
 

@@ -275,8 +275,8 @@
 	 (region-from-str "000_111_xxx")
 	 (region-from-str "01x_01x_01x"))
 	 )
-    ;(format t "~&rul1 ~A" rul1)
-    (assert (rule-eq rul1 (rule-from-str "[00/01/00_10/11/11_x0/x1/xx]")))
+    (format t "~&rul1 ~A" rul1)
+    (assert (rule-eq rul1 (rule-from-str "[00/01/00_10/11/11_00/11/xx]")))
 
     (format t "~&  rule-new-region-to-region OK")
   )

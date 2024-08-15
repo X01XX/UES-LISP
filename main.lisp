@@ -51,27 +51,34 @@
 (defvar false nil)
 
 (defun main ()
-  (let (domx rule-needed steps)
+  (let (domx rule-needed steps from-reg to-reg)
     (setf domx (domain-new :id 0 :actions 
 		 (actionstore-new (list
 		    (action-new :id 0 :groups
 		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[XX/XX/XX/Xx]")))))))
+		     	(rulestore-new (list (rule-from-str "[00/XX/01/XX]")))))))
 		    (action-new :id 1 :groups
 		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[XX/XX/Xx/XX]")))))))
+		     	(rulestore-new (list (rule-from-str "[01/XX/11/XX]")))))))
 		    (action-new :id 2 :groups
 		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[XX/Xx/XX/XX]")))))))
+		     	(rulestore-new (list (rule-from-str "[11/XX/10/XX]")))))))
 		    (action-new :id 3 :groups
 		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[Xx/XX/XX/XX]")))))))
+		     	(rulestore-new (list (rule-from-str "[Xx/Xx/11/XX]")))))))
 		    ))))
 
-    (setf rule-needed (rule-new-region-to-region (region-from-str "01X1") (region-from-str "10X1")))
+    (setf from-reg (region-from-str "0X00"))
+    (format t "~&from ~A" from-reg)
+
+    (setf to-reg (region-from-str "100X"))
+    (format t "~&to   ~A" to-reg)
+
+    (setf rule-needed (rule-new-region-to-region from-reg to-reg))
     (format t "~&rule-needed ~A" rule-needed)
-    (setf steps (domain-get-steps domx rule-needed))
+    (setf steps (domain-get-steps domx rule-needed from-reg to-reg))
     (format t "~&steps ~A" steps)
+    true
   )
 )
 

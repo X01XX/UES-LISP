@@ -179,7 +179,7 @@
   (if (< (statestore-length storex) 3)
     (return-from statestore-remove-unneeded storex))
 
-  (let (options (targ-x (statestore-x-mask storex)))
+  (let (options (targ-x (statestore-x-mask storex)) opt-x storey)
 
     (loop for num from 2 below (statestore-length storex) do
 

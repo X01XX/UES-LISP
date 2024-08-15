@@ -42,6 +42,18 @@
   (assert (plusp (rulestore-length rules)))
   (assert (< (rulestore-length rules) 3))
 
+  (let ((ret (group-new-na :rules rules)))
+    (cond ((err-p ret) (error (err-str ret)))
+          ((group-p ret) ret)
+           (t (error "Result is not a group"))))
+)
+;;; group-new no abort (na).
+(defun group-new-na (&key rules) ; -> group or err.
+  (when (= (rulestore-length rules) 2)
+    (if (region-neq (rule-initial-region (rulestore-first rules))
+		    (rule-initial-region (rulestore-second rules)))
+      (return-from group-new-na (err-new "Rulestore initial regions do not match")))
+  )
   (make-group :region (rulestore-initial-region rules) :rules rules)
 )
 
@@ -82,13 +94,14 @@
 )
 
 ; Return possible steps, given a rule.
-(defun group-get-steps (grpx rulx) ; -> stepstore.
+(defun group-get-steps (grpx rulx from-reg to-reg) ; -> stepstore.
   ;(format t "~&group-get-steps")
   ;(format t "~&group-get-steps group ~A rule ~A" grpx rulx)
   (assert (group-p grpx))
   (assert (rule-p rulx))
+  (assert (not (region-intersects from-reg to-reg)))
 
-  (let ((ret-steps (stepstore-new nil)) msk01 msk10 rulz stpx)
+  (let ((ret-steps (stepstore-new nil)) msk01 msk10 rul-found x-not-x rulz to-zeros to-ones stpz)
 
     ;(format t "~&rules ~A" (rulestore-rules (group-rules grpx)))
 
@@ -96,26 +109,50 @@
 
       ;(format t "~&ruly ~A" ruly)
 
-      (setf msk01 (mask-new (mask-and (rule-b01 ruly) (rule-b01 rulx))))
-      (setf msk10 (mask-new (mask-and (rule-b10 ruly) (rule-b10 rulx))))
+      (setf rul-found false)
 
-      (when (mask-is-not-low msk01)
-        ;(format t "~&found group 01 mask ~A in ~A for rule ~A" msk01 ruly rulx)
-	; Mask out 1X bits to isolate b01.
-	(setf rulz (rule-mask-off-ones ruly msk01))
-	(setf stpx (step-new :id 0 :rule rulz))
-
-	(stepstore-push ret-steps stpx)
+      ;; Restrict rule that intersects the from region.
+      (when (region-intersects from-reg (rule-initial-region ruly)) 
+        (setf rul-found true)
+	(setf stpz (step-new :act-id 0 :rule (rule-restrict-initial-region ruly from-reg)))
+        (stepstore-push ret-steps stpz)
       )
-      (when (mask-is-not-low msk10)
-        ;(format t "~&found group 10 mask ~A in ~A for rule ~A" msk10 ruly rulx)
-	; Mask out 0X bits to isolate b10.
-	(setf rulz (rule-mask-off-zeros ruly msk10))
-	(setf stpx (step-new :id 0 :rule rulz))
 
-	(stepstore-push ret-steps stpx)
+      ;; Restrict rule that intersects the to region.
+      (when (region-intersects to-reg (rule-result-region ruly)) 
+        (setf rul-found true)
+        (setf stpz (step-new :act-id 0 :rule (rule-restrict-result-region ruly to-reg)))
+	(if (not (stepstore-contains ret-steps stpz))
+          (stepstore-push ret-steps stpz)
+	)
       )
-    )
+
+      (when (not rul-found)
+	;; Where wanted changes are at a position where the rule is X->x,
+	;; remove the unneeded part.
+	;; Leave X->0, X->1 alone.
+        (setf msk01 (mask-new (mask-and (rule-b01 ruly) (rule-b01 rulx))))
+        (setf msk10 (mask-new (mask-and (rule-b10 ruly) (rule-b10 rulx))))
+
+	(setf x-not-x (mask-new (mask-and (rule-b01 ruly) (rule-b10 ruly)))) ; Get mask of X->x.
+
+	(setf rulz ruly)
+
+	(when (mask-is-not-low msk01)
+	  (setf to-zeros (mask-new (mask-and x-not-x msk01)))
+	  (if (mask-is-not-low to-zeros)
+	    (setf rulz (rule-mask-off-ones rulz to-zeros))) ; Change Xx to 0->1.
+	)
+
+	(when (mask-is-not-low msk10)
+	  (setf to-ones (mask-new (mask-and x-not-x msk10)))
+	  (if (mask-is-not-low to-ones)
+	    (setf rulz (rule-mask-off-zeros rulz to-ones))) ; Change Xx to 1->0.
+	)
+        (setf stpz (step-new :act-id 0 :rule rulz))
+        (stepstore-push ret-steps stpz)
+      )
+    ) ; end-loop
     ret-steps
   )
 )

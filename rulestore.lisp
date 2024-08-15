@@ -34,20 +34,31 @@
 )
 (defun rulestore-new-na (rules) ; -> rulestore instance, or err.
   (let (rulx ruly)
+    ;; Check type of each list item.
+
+    (loop for rulx in rules do
+      (if (not (rule-p rulx))
+        (return-from rulestore-new-na (err-new "List item is not a rule?")))
+    )
+
     ; Check each rule pair for equality or subset.
     (loop for inx from 0 below (1- (length rules)) do
 	(setf rulx (nth inx rules))
+
         (loop for iny from (1+ inx) below (length rules) do
 	  (setf ruly (nth iny rules))
 	
+	  (if (/= (rule-num-bits rulx) (rule-num-bits ruly))
+	    (return-from rulestore-new-na (err-new "Rules use a different number of bits?")))
+
 	  (if (rule-eq rulx ruly)
 	    (return-from rulestore-new-na (err-new "Duplicate rules?")))
 	
 	  (if (rule-subset-of :sub-rule rulx :sup-rule ruly)
-	    (return-from rulestore-new-na (err-new "subset rules?")))
+	    (return-from rulestore-new-na (err-new "Subset rules?")))
 	
 	  (if (rule-subset-of :sub-rule ruly :sup-rule rulx)
-	    (return-from rulestore-new-na (err-new "subset rules?")))
+	    (return-from rulestore-new-na (err-new "Subset rules?")))
 	)
     )
     (make-rulestore :rules rules)
@@ -125,5 +136,21 @@
     )
     true
   )
+)
+
+;;; Return the first rule of a non-empty rulestore.
+(defun rulestore-first (storex) ; -> rule.
+  (assert (rulestore-p storex))
+  (assert (> (rulestore-length storex) 0))
+
+  (car (rulestore-rules storex))
+)
+
+;;; Return the second rule of a rulestore that has at least two rules.
+(defun rulestore-second (storex) ; -> rule.
+  (assert (rulestore-p storex))
+  (assert (> (rulestore-length storex) 1))
+
+  (second (rulestore-rules storex))
 )
 

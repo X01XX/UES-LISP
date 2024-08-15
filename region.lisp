@@ -222,6 +222,11 @@
   true
 )
 
+;;; Return true if two regions are not equal.
+(defun region-neq (reg1 reg2) ; -> bool
+  (not (region-eq reg1 reg2))
+)
+
 ;;; Return the intersection of two regions.
 (defun region-intersection (reg1 reg2) ; -> region, or nil?
   (assert (region-p reg1))
