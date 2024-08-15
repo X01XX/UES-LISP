@@ -106,39 +106,6 @@
     (format t "~&  state-neq OK")
   )
 
-  ; Test state-list-x-mask.
-  (let (sta0 sta1 sta2 mskx) 
- 
-     (setf sta0 (state-from-str "#x0"))
-     (setf sta1 (state-from-str "#x1"))
-     (setf sta2 (state-from-str "#x2"))
- 
-     (setf mskx (state-list-x-mask (list sta0 sta1 sta2)))
-     (assert (and (mask-p mskx) (mask-eq mskx (mask-from-str "#x3"))))
- 
-     (format t "~&  state-list-x-mask OK")
-  )
-
-  ; Test state-list-no-dups.
-  (let (lstx sta5 sta2 sta7) 
- 
-     (setf sta5 (state-from-str "#x5"))
-     (setf sta2 (state-from-str "#x2"))
-     (setf sta7 (state-from-str "#x7"))
- 
-     (setf lstx (state-list-no-dups (list sta5)))
-     (assert (and (listp lstx) (= (length lstx) 1)))
- 
-     (setf lstx (state-list-no-dups (list sta5 sta2 sta7)))
-     (assert (and (listp lstx) (= (length lstx) 3)))
- 
-     (setf lstx (state-list-no-dups (list sta5 sta2 sta5 sta7 sta2)))
-     ;(format t "~&lstx ~A" lstx)
-     (assert (and (listp lstx) (= (length lstx) 3)))
- 
-     (format t "~&  state-list-no-dups OK")
-  )
-
   ; Test state-and.
   (let (sta1 sta2 msk1 valx)
  

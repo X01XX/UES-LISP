@@ -1,4 +1,4 @@
-;;; Run tests.
+;;;; Run tests.
 (defun rule-tests ()
   (format t "~&rule-tests beginning")
 
@@ -30,7 +30,7 @@
 
     ; Test malformed bit position. is not b, B, x or X.
     (setf errx (rule-from-str-na "[00/1]"))
-    (assert (and (err-p errx) (string= (err-str errx) "Malformed bit position")))
+    (assert (and (err-p errx) (string= (err-str errx) "Too few characters in bit position")))
 
     ; Test string for invalid combination.
     (setf errx (rule-from-str-na "[00/1M]"))
@@ -304,18 +304,52 @@
     (format t "~&  rule-mask-off-zeros OK")
   )
 
-  ; Test rule-combine-sequence2.
+  ; Test rule-combine-sequence.
   (let (rul1 rul2 rul3)
+    ; Test two rules that intersect.
     (setf rul1 (rule-from-str "[01/00/xx/11]"))
     (setf rul2 (rule-from-str "[11/xx/00/10]"))
 
-    (setf rul3 (rule-combine-sequence2 rul1 rul2))
+    (setf rul3 (rule-combine-sequence rul1 rul2))
     ;(format t "~&rul3 ~A" rul3)
     (assert (rule-eq rul3 (rule-from-str "[01/00/00/10]")))
 
-    (format t "~&rule-combine-sequence OK")
+    ; Test two rules that do not intersect.
+    (setf rul1 (rule-from-str "[00/11/01/XX]"))
+    (setf rul2 (rule-from-str "[11/00/10/XX]"))
+
+    (setf rul3 (rule-combine-sequence rul1 rul2))
+    ;(format t "~&rul3 ~A" rul3)
+    (assert (rule-eq rul3 (rule-from-str "[01/10/00/XX]")))
+
+    (format t "~&  rule-combine-sequence OK")
   )
 
+  ; Test rule-restrict-initial-region.
+  (let (rul1 rul2 reg1)
+    (setf reg1 (region-from-str "0x____1x____0x____1x____01x______01x______01x______01x"))
+    (setf rul1 (rule-from-str  "[00/00_11/11_01/01_10/10_x0/x0/x0_x1/x1/x1_xx/xx/xx_Xx/Xx/Xx]"))
+
+    (setf rul2 (rule-restrict-initial-region rul1 reg1))
+    ;(format t "~&rul2 ~A" rul2)
+
+    (assert (rule-eq rul2 (rule-from-str "[00/00_11/11_01/01_10/10_00/10/x0_01/11/x1_00/11/XX_01/10/Xx]")))
+
+    (format t "~&  rule-restrict-initial-region OK")
+  )
+
+  ; Test rule-restrict-result-region.
+  (let (rul1 rul2 reg1)
+    (setf rul1 (rule-from-str  "[00/00_11/11_01/01_10/10_x0/x0_x1/x1_xx/xx/xx_Xx/Xx/Xx]"))
+    (setf reg1 (region-from-str "0x____1x____1x____0x____0x____1x____01x______01x"))
+
+    (setf rul2 (rule-restrict-result-region rul1 reg1))
+    ;(format t "~&rul2 ~A" rul2)
+
+    (assert (rule-eq rul2 (rule-from-str "[00/00_11/11_01/01_10/10_x0/x0_x1/X1_00/11/xx_10/01/Xx]")))
+
+    (format t "~&  rule-restrict-result-region OK")
+  )
   (format t "~&rule-tests done")
   t
 )

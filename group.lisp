@@ -88,7 +88,7 @@
   (assert (group-p grpx))
   (assert (rule-p rulx))
 
-  (let ((ret-steps (stepstore-new nil)) msk01 msk10 msk-not rulz stpx)
+  (let ((ret-steps (stepstore-new nil)) msk01 msk10 rulz stpx)
 
     ;(format t "~&rules ~A" (rulestore-rules (group-rules grpx)))
 

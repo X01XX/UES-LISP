@@ -1,6 +1,6 @@
 ; Implement an error struct.
 (defstruct err
-  message  ; Text message.
+  str  ; Text message.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -19,12 +19,6 @@
   (assert (stringp msg))
   (assert (> (length msg) 0))
 
-  (make-err :message msg)
+  (make-err :str msg)
 )
 
-; Return the err message string.
-(defun err-str (errx) ; -> string.
-  (assert (err-p errx))
-
-  (err-message errx)
-)

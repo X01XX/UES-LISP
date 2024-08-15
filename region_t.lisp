@@ -134,7 +134,7 @@
    ; Test three-state region.
    (setf regx (region-new (statestore-new (list (state-from-str "#b0001")
                                                 (state-from-str "#b0010")
-                                                (state-from-str "#b0101")))))
+                                                (state-from-str "#b0111")))))
    (setf stax (region-second-state regx))
    (assert (and (state-p stax) (state-eq stax (state-from-str "#b0110"))))
 

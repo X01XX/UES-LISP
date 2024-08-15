@@ -1,5 +1,7 @@
-;;;; Implement the value struct.
-;;;; It holds a given number of bits.
+;;;; Implement the value struct and functions.
+
+;;; The value struct.
+;;; It holds a given number of bits.
 (defstruct (value (:print-function value-print))
   num-bits  ; Number of bits used.
   bits      ; Bits value, zero to 2^num-bits - 1.
@@ -17,6 +19,8 @@
 ; Probably shouldn't use:
 ;   (make-value [:<field-name> <field-value>]*), use value-new instead.
 ;   (copy-value <instance>) copies a value instance.
+
+;;; Return a new value instasnce.
 (defun value-new (&key num-bits bits) ; -> value instance.
   (assert (integerp num-bits))
   (assert (plusp num-bits))
@@ -27,8 +31,8 @@
   (make-value :num-bits num-bits :bits bits)
 )
 
-;;;; Given a string like "#x123", "#b1100", return a valid value.
-;;;; Underscore characters, which can be used as spacers, are ignored.
+;;; Given a string like "#x123", "#b1100", return a valid value.
+;;; Underscore characters, which can be used as spacers, are ignored.
 (defun value-from-str (str) ; -> value instance.
   (assert (stringp str))
   (assert (> (length str) 2))
@@ -38,6 +42,7 @@
           ((value-p ret) ret)
            (t (error "Result is not a value"))))
 )
+;;; value-from-str no-abort (na).
 (defun value-from-str-na (str) ; -> value instance, or err.
   ;(format t "~&value-from-str-na: ~A" str)
 
@@ -50,10 +55,10 @@
       )
       (return-from value-from-str-na (err-new "String does not begin with the # character"))
     )
-    ; Init second string.
+    ;; Init second string.
     (setf str2 (subseq str 0 2))
 
-    ; Count digits, skip underscores.
+    ;; Count digits, skip underscores.
     (loop for chr across (subseq str 2) do
       (cond ((char= chr #\_) nil)
              (t (incf digit-num)
@@ -70,18 +75,18 @@
       )
     ) ; end loop
 
-    ; Calc number bits.
+    ;; Calc number bits.
     (if bin (setf num-bits digit-num) (setf num-bits (* digit-num 4)))
 
-    ; Translate string to integer.
+    ;; Translate string to integer.
     (setf valx (read-from-string str2))
 
-    ; Create value instance to return.
+    ;; Create value instance to return.
     (value-new :num-bits num-bits :bits valx)
   )
 )
 
-;;;; Add underscores for each 4 characters of a string, from right to left.
+;;; Add underscores for each 4 characters of a string, from right to left.
 (defun string-add-underscores (str) ; -> string.
   (assert (stringp str))
 
@@ -90,6 +95,7 @@
 	  ((stringp ret) ret)
 	  (t (error "Result is not a string"))))
 )
+;;; Add underscores no-abort (na).
 (defun string-add-underscores-na (str) ; -> string, or err.
 
   (let ((str2 "") cnt (str-len (length str)))
@@ -108,8 +114,8 @@
   )
 )
 
-; Return a string representation of a value.
-; Use hexadecimal in preference to binary, if possible.
+;;; Return a string representation of a value.
+;;; Use hexadecimal in preference to binary, if possible.
 (defun value-str (val) ; -> string.
   (assert (value-p val))
 
@@ -119,7 +125,7 @@
   )
 )
 
-; Print a value.
+;;; Print a value.
 (defun value-print (instance stream depth)
   ;(assert (zerop depth))
   (format stream (value-str instance))
@@ -191,6 +197,7 @@
 	  ((bool-p ret) ret)
 	  (t (error "Result is not a bool"))))
 )
+;;; value-is-adjacent no-abort (na).
 (defun value-is-adjacent-na (val1 val2) ; -> bool, or err.
   (if (not (value-p val1))
     (return-from value-is-adjacent-na (err-new "Argument 1 is not a value")))
@@ -293,7 +300,7 @@
   )
 )
 
-;;;; Given a value, and two others, return true if the first value is between the other two.
+;;; Given a value, and two others, return true if the first value is between the other two.
 (defun value-between (&key target from to) ; -> bool
   (assert (value-p target))
   (assert (value-p from))
@@ -304,16 +311,16 @@
   (value-zerop (value-and (value-xor target from) (value-xor target to)))
 )
 
-; Return a value with the most significant bit set to one.
+;;; Return a value with the most significant bit set to one.
 (defun value-msb (val) ; -> value instance
   (assert (value-p val))
 
   (value-new :num-bits (value-num-bits val) :bits (expt 2 (1- (value-num-bits val))))
 )
 
-; Return a value with bits shifted by a given value.
-; A positive integer shifts left.
-; A negative integer shifts right.
+;;; Return a value with bits shifted by a given value.
+;;; A positive integer shifts left.
+;;; A negative integer shifts right.
 (defun value-shift (val num) ; -> value instance
   (assert (value-p val))
   (assert (integerp num))
