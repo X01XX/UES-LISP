@@ -1,7 +1,6 @@
 # UES-LISP
-Unorthodox-expert-system-lisp
 
-Rewrite the UES in LISP (gcl).
+A rewrite the Unorthodox-expert-system-lisp (UES) project in LISP (gcl).
 
 Try new ideas.
 
