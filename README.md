@@ -1,6 +1,6 @@
 # UES-LISP
 
-A rewrite the Unorthodox-Expert-System (UES) project in Rust, to LISP (gcl).
+A rewrite of the Unorthodox-Expert-System (UES) project in Rust, to LISP (gcl).
 
 Try new ideas.
 
