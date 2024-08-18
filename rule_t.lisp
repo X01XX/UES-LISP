@@ -195,6 +195,39 @@
     (format t "~&  rule-eq OK")
   )
 
+  ; Test rule-num-bits.
+  (let (rul1 num1)
+    (setf rul1 (rule-from-str "[00/01/11/10_x0/x1/Xx/XX]"))
+    (setf num1 (rule-num-bits rul1))
+    ;(format t "~&num1 ~A" num1)
+
+    (assert (= num1 8))
+
+    (format t "~&  rule-num-bits OK")
+  )
+
+  ; Test rule-initial-region.
+  (let (rul1 reg1)
+    (setf rul1 (rule-from-str "[00/01/11/10_x0/x1/Xx/XX]"))
+    (setf reg1 (rule-initial-region rul1))
+    ;(format t "~&reg1 ~A" reg1)
+
+    (assert (region-eq reg1 (region-from-str "0011_xxxx")))
+
+    (format t "~&  rule-initial-region OK")
+  )
+
+  ; Test rule-result-region.
+  (let (rul1 reg1)
+    (setf rul1 (rule-from-str "[00/01/11/10_x0/x1/Xx/XX]"))
+    (setf reg1 (rule-result-region rul1))
+    ;(format t "~&reg1 ~A" reg1)
+
+    (assert (region-eq reg1 (region-from-str "0110_01xx")))
+
+    (format t "~&  rule-result-region OK")
+  )
+
   ; Test rule-subset-of
   (let (boolx rul1 rul2)
     ; Init rules.
@@ -275,8 +308,8 @@
 	 (region-from-str "000_111_xxx")
 	 (region-from-str "01x_01x_01x"))
 	 )
-    (format t "~&rul1 ~A" rul1)
-    (assert (rule-eq rul1 (rule-from-str "[00/01/00_10/11/11_00/11/xx]")))
+    ;(format t "~&rul1 ~A" rul1)
+    (assert (rule-eq rul1 (rule-from-str "[00/01/00_10/11/11_x0/x1/xx]")))
 
     (format t "~&  rule-new-region-to-region OK")
   )

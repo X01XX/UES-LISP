@@ -111,17 +111,36 @@
     (setf msk6 (mask-from-str "#x6"))
     (setf sta6 (state-from-str "#x6"))
 
-    ; Test or of two masks.
+    ; Test and of two masks.
     (setf valx (mask-and msk3 msk6))
     ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from-str "#x2"))))
 
-    ; Test or of a mask and a state.
+    ; Test and of a mask and a state.
     (setf valx (mask-and msk3 sta6))
     ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from-str "#x2"))))
 
     (format t "~&  mask-and OK")
+  )
+
+  ; Test mask-and-not.
+  (let (valx msk3 msk6 sta6)
+    (setf msk3 (mask-from-str "#x3"))
+    (setf msk6 (mask-from-str "#x6"))
+    (setf sta6 (state-from-str "#x6"))
+
+    ; Test and-not of two masks.
+    (setf valx (mask-and-not msk3 msk6))
+    ;(format t "~& msk: ~A" msk)
+    (assert (and (value-p valx) (value-eq valx (value-from-str "#x1"))))
+
+    ; Test and-not of a mask and a state.
+    (setf valx (mask-and-not msk3 sta6))
+    ;(format t "~& msk: ~A" msk)
+    (assert (and (value-p valx) (value-eq valx (value-from-str "#x1"))))
+
+    (format t "~&  mask-and-not OK")
   )
 
   ; Test mask-or.

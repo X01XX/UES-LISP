@@ -7,6 +7,10 @@
 (defstruct (step (:print-function step-print))
   act-id	; An stp2ion ID, GE zero.
   rule		; A rule.
+  kind		; 'a = Asymmetrical.
+                ; 'b = Backward chaining.
+                ; 'f = Forward chaining.
+		; 's = Spans gap.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -23,11 +27,12 @@
 ;   (copy-step <instance>) copies a step instance.
 
 ;;; Return an step instance
-(defun step-new (&key act-id rule)
+(defun step-new (&key act-id rule kind)
   (assert (rule-p rule))
   (assert (>= act-id 0))
+  (assert (or (eq kind 'a) (eq kind 'b) (eq kind 'f) (eq kind 's)))
 
-  (make-step :act-id act-id :rule rule)
+  (make-step :act-id act-id :rule rule :kind kind)
 )
 
 ;;; Print a step.
@@ -42,6 +47,7 @@
     (let ((str "#S(STEP "))
         (setf str (concatenate 'string str (format nil "act-id ~D" (step-act-id stpx))))
         (setf str (concatenate 'string str (format nil " rule ~A" (rule-str (step-rule stpx)))))
+        (setf str (concatenate 'string str (format nil " kind ~A" (step-kind stpx))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -66,6 +72,7 @@
   (assert (step-p stp2))
 
   (and (= (step-act-id stp1) (step-act-id stp2))
-       (rule-eq (step-rule stp1) (step-rule stp2)))
+       (rule-eq (step-rule stp1) (step-rule stp2))
+       (eq (step-kind stp1) (step-kind stp2)))
 )
 

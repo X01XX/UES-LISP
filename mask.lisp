@@ -102,6 +102,22 @@
   (value-and (mask-value msk1) (mask-value other))
 )
 
+;;; Return the "and" bit mask of the "not" of a mask or a state.
+(defun mask-and-not (msk1 other) ; -> value instance.
+  (assert (mask-p msk1))
+  (assert (or (mask-p other) (state-p other)))
+
+  (when (state-p other)
+    (assert (= (mask-num-bits msk1) (state-num-bits other)))
+
+    (return-from mask-and-not (value-and (mask-value msk1) (state-not other)))
+  )
+
+  (assert (= (mask-num-bits msk1) (mask-num-bits other)))
+
+  (value-and (mask-value msk1) (mask-not other))
+)
+
 ;;; Return the Boolean "or" of two masks.
 (defun mask-or(msk1 msk2) ; -> value instance.
   (assert (mask-p msk1))

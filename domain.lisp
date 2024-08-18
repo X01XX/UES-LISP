@@ -48,11 +48,11 @@
 )
 
 ; Return possible steps, given a rule.
-(defun domain-get-steps (domx rule from-reg to-reg) ; -> stepstore.
+(defun domain-get-steps (domx rule) ; -> stepstore.
   (assert (domain-p domx))
   (assert (rule-p rule))
 
-  (actionstore-get-steps (domain-actions domx) rule from-reg to-reg)
+  (actionstore-get-steps (domain-actions domx) rule)
 )
 
 

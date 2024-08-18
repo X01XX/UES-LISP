@@ -76,7 +76,7 @@
 
     (setf rule-needed (rule-new-region-to-region from-reg to-reg))
     (format t "~&rule-needed ~A" rule-needed)
-    (setf steps (domain-get-steps domx rule-needed from-reg to-reg))
+    (setf steps (domain-get-steps domx rule-needed))
     (format t "~&steps ~A" steps)
     true
   )

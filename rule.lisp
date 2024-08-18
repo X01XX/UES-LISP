@@ -306,6 +306,8 @@
 )
 
 ;;; Return a rule that has the minimun changes, to translate from one region to intersect another.
+;;; A rule made this way will never have a X->x (0->1, 1->0) bit position.
+;;; The X->x bit position can result from the union of two rules.
 (defun rule-new-region-to-region (reg1 reg2) ; -> region instance.
   (assert (region-p reg1))
   (assert (region-p reg2))
@@ -325,25 +327,25 @@
     (setf b10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
 
     (make-rule :b00 (mask-new (value-or b00 b0x bxx bx0))
-               :b01 (mask-new b01)
+               :b01 (mask-new (value-or b01 bx1))
                :b11 (mask-new (value-or b11 b1x bxx bx1))
-               :b10 (mask-new b10))
+               :b10 (mask-new (value-or b10 bx0)))
   )
 )
 
 ;;; Mask off one positions in a rule, that has 0->0, or 0->1, in the same positions.
-(defun rule-mask-off-ones (rulex maskx) ; -> rule instance.
+(defun rule-mask-off-ones (rulex msk-out) ; -> rule instance.
   (assert (rule-p rulex))
-  (assert (mask-p maskx))
-  (assert (= (rule-num-bits rulex) (mask-num-bits maskx)))
+  (assert (mask-p msk-out))
+  (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
-  (let (msk-not rulz)
-    (setf msk-not (mask-new (mask-not maskx)))
+  (let (msk-in rulz)
+    (setf msk-in (mask-new (mask-not msk-out)))
  
     (setf rulz (make-rule :b00 (rule-b00 rulex)
                           :b01 (rule-b01 rulex)
-                          :b11 (mask-new (mask-and (rule-b11 rulex) msk-not))
-                          :b10 (mask-new (mask-and (rule-b10 rulex) msk-not))))
+                          :b11 (mask-new (mask-and (rule-b11 rulex) msk-in))
+                          :b10 (mask-new (mask-and (rule-b10 rulex) msk-in))))
 
     (assert (rule-is-valid-intersection rulz))
     rulz
@@ -351,16 +353,16 @@
 )
 
 ;;; Mask off zero positions in a rule, that has 1->1, or 1->0, in the same positions.
-(defun rule-mask-off-zeros (rulex maskx) ; -> rule instance.
+(defun rule-mask-off-zeros (rulex msk-out) ; -> rule instance.
   (assert (rule-p rulex))
-  (assert (mask-p maskx))
-  (assert (= (rule-num-bits rulex) (mask-num-bits maskx)))
+  (assert (mask-p msk-out))
+  (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
-  (let (msk-not rulz)
-    (setf msk-not (mask-new (mask-not maskx)))
+  (let (msk-in rulz)
+    (setf msk-in (mask-new (mask-not msk-out)))
  
-    (setf rulz (make-rule :b00 (mask-new (mask-and (rule-b00 rulex) msk-not))
-                          :b01 (mask-new (mask-and (rule-b01 rulex) msk-not))
+    (setf rulz (make-rule :b00 (mask-new (mask-and (rule-b00 rulex) msk-in))
+                          :b01 (mask-new (mask-and (rule-b01 rulex) msk-in))
                           :b11 (rule-b11 rulex)
                           :b10 (rule-b10 rulex)))
 
@@ -394,7 +396,7 @@
     (return-from rule-combine-sequence (rule-combine-sequence2 rul1 rul2)))
 
   (let ((rule-between (rule-new-region-to-region (rule-result-region rul1) (rule-initial-region rul2))))
-    (rule-combine-sequence (rule-combine-sequence rul1 rule-between) rul2)
+    (rule-combine-sequence2 (rule-combine-sequence2 rul1 rule-between) rul2)
   )
 )
 

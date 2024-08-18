@@ -22,12 +22,14 @@
 ;   (copy-groupstore <instance>) copies a groupstore instance.
 (defun groupstore-new (groups) ; -> groupstore instance.
   ;(format t "~&groups ~A" groups)
-  (assert (group-list-p groups))
+  (loop for grpx in groups do 
+    (assert (group-p grpx))
+  )
 
   (let ((ret (make-groupstore :groups nil)))
-    (loop for stax in (reverse groups) do ; preserve order of groups. 
-      (if (not (groupstore-contains ret stax))
-        (groupstore-push ret stax))
+    (loop for grpx in (reverse groups) do ; preserve order of groups. 
+      (if (not (groupstore-contains ret grpx))
+        (groupstore-push ret grpx))
     )
     ret
   )
@@ -112,11 +114,11 @@
 )
 
 ; Return possible steps to satisfy a rule.
-(defun groupstore-get-steps (storex rule from-reg to-reg) ; -> stepstore.
+(defun groupstore-get-steps (storex rule) ; -> stepstore.
   ;(format t "~&groupstore-get-steps")
   (let ((ret-steps (stepstore-new nil)) steps)
     (loop for grpx in (groupstore-groups storex) do
-        (setf steps (group-get-steps grpx rule from-reg to-reg))
+        (setf steps (group-get-steps grpx rule))
 	(loop for stpx in (stepstore-steps steps) do
 	  (if (not (stepstore-contains ret-steps stpx))
 	    (stepstore-push ret-steps stpx)

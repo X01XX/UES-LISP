@@ -98,7 +98,6 @@
 (defun stepstore-contains (storex stpx) ; -> bool
   (assert (stepstore-p storex))
   (assert (step-p stpx))
-
   (if (member stpx (stepstore-steps storex) :test #'step-eq) true false)
 )
 
