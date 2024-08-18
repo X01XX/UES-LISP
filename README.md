@@ -2,6 +2,8 @@
 
 A rewrite of the Unorthodox-Expert-System (UES) project in Rust, to LISP (gcl).
 
+See theory.html in the Rust project.
+
 Try new ideas.
 
 Compare and contrast with the UES written in Rust.
