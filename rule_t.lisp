@@ -303,13 +303,15 @@
   )
 
   ; Test rule-new-region-to-region.
-  (let (rul1)
-    (setf rul1 (rule-new-region-to-region
-	 (region-from-str "000_111_xxx")
-	 (region-from-str "01x_01x_01x"))
-	 )
+  (let (rul1 reg1 reg2)
+    (setf reg1 (region-from-str "000_111_xxx"))
+    (setf reg2 (region-from-str "01x_01x_01x"))
+
+    (setf rul1 (rule-new-region-to-region reg1 reg2))
+
     ;(format t "~&rul1 ~A" rul1)
-    (assert (rule-eq rul1 (rule-from-str "[00/01/00_10/11/11_x0/x1/xx]")))
+    (assert (region-eq (rule-initial-region rul1) reg1))
+    (assert (region-eq (rule-result-region rul1) reg2))
 
     (format t "~&  rule-new-region-to-region OK")
   )
@@ -338,7 +340,7 @@
   )
 
   ; Test rule-combine-sequence.
-  (let (rul1 rul2 rul3)
+  (let (rul1 rul2 rul3 reg1 reg2)
     ; Test two rules that intersect.
     (setf rul1 (rule-from-str "[01/00/xx/11]"))
     (setf rul2 (rule-from-str "[11/xx/00/10]"))
@@ -354,6 +356,30 @@
     (setf rul3 (rule-combine-sequence rul1 rul2))
     ;(format t "~&rul3 ~A" rul3)
     (assert (rule-eq rul3 (rule-from-str "[01/10/00/XX]")))
+
+    ; Test 1->X
+    (setf reg1 (region-from-str "1111_1111"))
+    (setf reg2 (region-from-str "XXXX_XXXX"))
+    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    (setf rul2 (rule-from-str "[11/10/00/01_X0/X1/XX/Xx]"))
+
+    (setf rul3 (rule-combine-sequence rul1 rul2))
+    ;(format t "~&rul3 ~A" rul3)
+
+    (assert (region-eq (rule-initial-region rul3) (region-from-str "1111_1111")))
+    (assert (region-eq (rule-result-region rul3)  (region-from-str "1001_01XX")))
+
+    ; Test 0->X
+    (setf reg1 (region-from-str "0000_0000"))
+    (setf reg2 (region-from-str "XXXX_XXXX"))
+    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    (setf rul2 (rule-from-str "[11/10/00/01_X0/X1/XX/Xx]"))
+
+    (setf rul3 (rule-combine-sequence rul1 rul2))
+    ;(format t "~&rul3 ~A" rul3)
+
+    (assert (region-eq (rule-initial-region rul3) (region-from-str "0000_0000")))
+    (assert (region-eq (rule-result-region rul3)  (region-from-str "1001_01XX")))
 
     (format t "~&  rule-combine-sequence OK")
   )
@@ -383,6 +409,61 @@
 
     (format t "~&  rule-restrict-result-region OK")
   )
+
+  ; Test rule-change-care-mask.
+  (let (rul1 reg1 reg2 care)
+    (setf reg1 (region-from-str "000_111_xxx"))
+    (setf reg2 (region-from-str "01x_01x_01x"))
+
+    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    ;(format t "~&rul1       ~A" rul1)
+
+    (setf care (rule-change-care-mask rul1))
+    ;(format t "~& care mask ~A" care)
+
+    (assert (mask-eq care (mask-from-str "#b1_1011_0110")))
+
+    (format t "~&  rule-change-care-mask OK")
+  )
+
+  ; Test rule-wanted-changes.
+  (let (rul1 reg1 reg2 wanted)
+    (setf reg1 (region-from-str "000_111_xxx"))
+    (setf reg2 (region-from-str "01x_01x_01x"))
+
+    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    ;(format t "~&rul1       ~A" rul1)
+
+    (setf wanted (rule-wanted-changes rul1))
+    ;(format t "~& wanted ~A" wanted)
+
+    ;                                                     "000_111_xxx"
+    ;                                                     "01x_01x_01x"
+    (assert (mask-eq (change-b01 wanted) (mask-from-str "#b010_000_010")))
+    (assert (mask-eq (change-b10 wanted) (mask-from-str "#b000_100_100")))
+
+    (format t "~&  rule-wanted-changes OK")
+  )
+
+  ; Test rule-unwanted-changes.
+  (let (rul1 reg1 reg2 unwanted)
+    (setf reg1 (region-from-str "000_111_xxx"))
+    (setf reg2 (region-from-str "01x_01x_01x"))
+
+    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    ;(format t "~&rul1       ~A" rul1)
+
+    (setf unwanted (rule-unwanted-changes rul1))
+    ;(format t "~& unwanted ~A" unwanted)
+
+    ;                                                       "000_111_xxx"
+    ;                                                       "01x_01x_01x"
+    (assert (mask-eq (change-b01 unwanted) (mask-from-str "#b100_000_100")))
+    (assert (mask-eq (change-b10 unwanted) (mask-from-str "#b000_010_010")))
+
+    (format t "~&  rule-unwanted-changes OK")
+  )
+
   (format t "~&rule-tests done")
   t
 )

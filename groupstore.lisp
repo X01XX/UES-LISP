@@ -22,14 +22,9 @@
 ;   (copy-groupstore <instance>) copies a groupstore instance.
 (defun groupstore-new (groups) ; -> groupstore instance.
   ;(format t "~&groups ~A" groups)
-  (loop for grpx in groups do 
-    (assert (group-p grpx))
-  )
-
   (let ((ret (make-groupstore :groups nil)))
-    (loop for grpx in (reverse groups) do ; preserve order of groups. 
-      (if (not (groupstore-contains ret grpx))
-        (groupstore-push ret grpx))
+    (loop for grpx in groups do 
+      (groupstore-push ret grpx)
     )
     ret
   )
@@ -40,6 +35,12 @@
 (defun groupstore-push(storex groupx) ; -> bool.
   (assert (groupstore-p storex))
   (assert (group-p groupx))
+
+  (if (groupstore-is-not-empty storex)
+    (assert (= (group-num-bits groupx) (group-num-bits (groupstore-first storex)))))
+
+  (if (groupstore-contains storex groupx)
+    (return-from groupstore-push false))
 
   (let (del-grps)
 
@@ -106,7 +107,7 @@
   (if (member stax (groupstore-groups storex) :test #'group-eq) true false)
 )
 
-(defun groupstore-first-group (storex) ; -> group
+(defun groupstore-first (storex) ; -> group
   (assert (groupstore-p storex))
   (assert (groupstore-is-not-empty storex))
 

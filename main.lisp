@@ -43,6 +43,9 @@
 (load #p "stepstore.lisp")
 (load #p "stepstore_t.lisp")
 
+(load #p "change.lisp")
+(load #p "change_t.lisp")
+
 (load #p "domain.lisp")
 
 (load #p "anyxofn.lisp")
@@ -68,14 +71,14 @@
 		     	(rulestore-new (list (rule-from-str "[Xx/Xx/11/XX]")))))))
 		    ))))
 
-    (setf from-reg (region-from-str "0X00"))
+    (setf from-reg (region-from-str "0X10"))
     (format t "~&from ~A" from-reg)
 
-    (setf to-reg (region-from-str "100X"))
+    (setf to-reg (region-from-str "10XX"))
     (format t "~&to   ~A" to-reg)
 
     (setf rule-needed (rule-new-region-to-region from-reg to-reg))
-    (format t "~&rule-needed ~A" rule-needed)
+    (format t "~&rule-to-goal ~A" rule-needed)
     (setf steps (domain-get-steps domx rule-needed))
     (format t "~&steps ~A" steps)
     true
@@ -108,6 +111,8 @@
 
   (step-tests)
   (stepstore-tests)
+
+  (change-tests)
 
   (format t "~&All tests done")
   t
