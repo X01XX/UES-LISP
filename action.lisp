@@ -69,10 +69,10 @@
 )
 
 ; Return possible steps given a rule to satisfy.
-(defun action-get-steps (actx rule) ; -> stepstore.
+(defun action-get-steps (actx rule-to-goal) ; -> stepstore.
   ;(format t "~&action-get-steps")
   (let ((ret-steps (stepstore-new nil)) group-steps)
-    (setf group-steps (groupstore-get-steps (action-groups actx) rule))
+    (setf group-steps (groupstore-get-steps (action-groups actx) rule-to-goal))
     (loop for stpx in (stepstore-steps group-steps) do
       (setf (step-act-id stpx) (action-id actx))
       (stepstore-push ret-steps stpx)

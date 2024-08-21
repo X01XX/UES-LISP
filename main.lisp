@@ -54,8 +54,8 @@
 (defvar false nil)
 
 (defun main ()
-  (let (domx rule-needed steps from-reg to-reg)
-    (setf domx (domain-new :id 0 :actions 
+  (let (domx rule-to-goal steps from-reg to-reg)
+    (setf domx (domain-new :id 0 :actions
 		 (actionstore-new (list
 		    (action-new :id 0 :groups
 		      (groupstore-new (list (group-new :rules 
@@ -69,7 +69,8 @@
 		    (action-new :id 3 :groups
 		      (groupstore-new (list (group-new :rules 
 		     	(rulestore-new (list (rule-from-str "[Xx/Xx/11/XX]")))))))
-		    ))))
+		    ))
+		 :current-state (state-from-str "#b0101")))
 
     (setf from-reg (region-from-str "0X10"))
     (format t "~&from ~A" from-reg)
@@ -77,9 +78,9 @@
     (setf to-reg (region-from-str "10XX"))
     (format t "~&to   ~A" to-reg)
 
-    (setf rule-needed (rule-new-region-to-region from-reg to-reg))
-    (format t "~&rule-to-goal ~A" rule-needed)
-    (setf steps (domain-get-steps domx rule-needed))
+    (setf rule-to-goal (rule-new-region-to-region from-reg to-reg))
+    (format t "~&rule-to-goal ~A" rule-to-goal)
+    (setf steps (domain-get-steps domx rule-to-goal))
     (format t "~&steps ~A" steps)
     true
   )

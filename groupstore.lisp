@@ -115,11 +115,11 @@
 )
 
 ; Return possible steps to satisfy a rule.
-(defun groupstore-get-steps (storex rule) ; -> stepstore.
+(defun groupstore-get-steps (storex rule-to-goal) ; -> stepstore.
   ;(format t "~&groupstore-get-steps")
   (let ((ret-steps (stepstore-new nil)) steps)
     (loop for grpx in (groupstore-groups storex) do
-        (setf steps (group-get-steps grpx rule))
+        (setf steps (group-get-steps grpx rule-to-goal))
 	(loop for stpx in (stepstore-steps steps) do
 	  (if (not (stepstore-contains ret-steps stpx))
 	    (stepstore-push ret-steps stpx)

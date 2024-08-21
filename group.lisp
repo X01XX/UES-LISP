@@ -80,101 +80,73 @@
 )
 
 ; Return possible steps, given group, rule, from-region, to-region.
-(defun group-get-steps (grpx rulx) ; -> stepstore.
+(defun group-get-steps (grpx rule-to-goal) ; -> stepstore.
   ;(format t "~&group-get-steps")
-  ;(format t "~&group-get-steps group ~A rule ~A" grpx rulx)
+  ;(format t "~&group-get-steps group ~A rule ~A" grpx rule-to-goal)
   (assert (group-p grpx))
-  (assert (rule-p rulx))
-  (assert (= (group-num-bits grpx) (rule-num-bits rulx)))
+  (assert (rule-p rule-to-goal))
+  (assert (= (group-num-bits grpx) (rule-num-bits rule-to-goal)))
 
-  (let ((ret-steps (stepstore-new nil)) x-not-x rulz x-0 x-1 w01 w10 u01 u10 msk-change from-reg to-reg)
+  (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
+	(wanted-changes (rule-wanted-changes rule-to-goal))
+       )
 
-    (setf from-reg (rule-initial-region rulx))
-    (setf to-reg (rule-result-region rulx))
+    (setf from-reg (rule-initial-region rule-to-goal))
+    (setf to-reg (rule-result-region rule-to-goal))
 
     ;(format t "~&rules ~A" (rulestore-rules (group-rules grpx)))
 
     (loop for ruly in (rulestore-rules (group-rules grpx)) do
 
-      ;(format t "~&ruly ~A" ruly)
-
-      ;; Where wanted changes are at a position where the rule is X->x, X->0, X->1,
-      ;; remove the unneeded part.
-      ;;
-      ;; Where unwanted changes are at a position where the rule is X->0, X->1,
-      ;; remove the unwanted part.
-
-      ;; Calc needed masks.
-      (setf x-not-x (mask-new (mask-and (rule-b01 ruly) (rule-b10 ruly)))) ; Get mask of X->x.
-      (setf x-0 (mask-new (mask-and (rule-b00 ruly) (rule-b10 ruly)))) ; Get mask of X->0.
-      (setf x-1 (mask-new (mask-and (rule-b01 ruly) (rule-b11 ruly)))) ; Get mask of X->1.
-
-      ;; Get wanted change masks.
-      (setf w01 (mask-new (mask-and (rule-b01 ruly) (rule-b01 rulx)))) ; get wanted 0->1s.
-      (setf w10 (mask-new (mask-and (rule-b10 ruly) (rule-b10 rulx)))) ; get wanted 1->0s.
-
-      ;; Get unwanted change masks.
-      (setf u01 (mask-new (mask-and-not (rule-b01 ruly) (rule-b01 rulx)))) ; get unwanted 0->1s.
-      (setf u10 (mask-new (mask-and-not (rule-b10 ruly) (rule-b10 rulx)))) ; get unwanted 1->0s.
-
-      (setf rulz ruly)
-
-      ;; Parse wanted 0->1 changes in X->x
-      (setf msk-change (mask-new (mask-and w01 x-not-x)))
-      (if (mask-is-not-low msk-change)
-	(setf rulz (rule-mask-off-ones rulz msk-change))
-      )
-
-      ;; Parse wanted 1->0 changes in X->x
-      (setf msk-change (mask-new (mask-and w10 x-not-x)))
-      (if (mask-is-not-low msk-change)
-	(setf rulz (rule-mask-off-zeros rulz msk-change))
-      )
-
-      ;; Parse wanted 0->1 changes in X->1
-      (setf msk-change (mask-new (mask-and w01 x-1)))
-      (if (mask-is-not-low msk-change)
-	(setf rulz (rule-mask-off-ones rulz msk-change))
-      )
-
-      ;; Parse wanted 1->0 changes in X->1
-      (setf msk-change (mask-new (mask-and w10 x-0)))
-      (if (mask-is-not-low msk-change)
-	(setf rulz (rule-mask-off-zeros rulz msk-change))
-      )
-
-      ;; Parse unwanted 1->0 changes in X->0
-      (setf msk-change (mask-new (mask-and u10 x-0)))
-      (if (mask-is-not-low msk-change)
-	(setf rulz (rule-mask-off-ones rulz msk-change))
-      )
-
-      ;; Parse unwanted 0->1 changes in X->1
-      (setf msk-change (mask-new (mask-and u01 x-1)))
-      (if (mask-is-not-low msk-change)
-	(setf rulz (rule-mask-off-zeros rulz msk-change))
-      )
-
-      ;; Restrict rule that intersects the from region.
-      (cond ((region-intersects from-reg (rule-initial-region ruly)) 
-             (let ((new-rule (rule-restrict-initial-region ruly from-reg)) new-rule2)
-               (if (region-intersects to-reg (rule-result-region new-rule)) 
-                 (progn
-                   (setf new-rule2 (rule-restrict-result-region new-rule to-reg))
-                   (if (region-intersects (rule-initial-region new-rule2) from-reg)
-                     (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule2 :kind 's))
-                     (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f))
+      (when (or (value-is-not-low (mask-and (rule-b01 ruly) (change-b01 wanted-changes)))
+                (value-is-not-low (mask-and (rule-b10 ruly) (change-b10 wanted-changes))))
+        ;(format t "~&ruly ~A" ruly)
+  
+        ;; Where wanted changes are at a position where the rule is X->x,
+        ;; remove the unwanted part.
+  
+        ;; Calc needed masks.
+        (setf x-not-x (mask-new (mask-and (rule-b01 ruly) (rule-b10 ruly)))) ; Get mask of X->x.
+  
+        ;; Get wanted change masks.
+        (setf w01 (change-b01 wanted-changes)) ; get wanted 0->1s.
+        (setf w10 (change-b10 wanted-changes)) ; get wanted 1->0s.
+  
+        (setf rulz ruly)
+  
+        ;; Parse wanted 0->1 changes in X->x
+        (setf msk-change (mask-new (mask-and w01 x-not-x)))
+        (if (mask-is-not-low msk-change)
+  	  (setf rulz (rule-mask-off-ones rulz msk-change))
+        )
+  
+        ;; Parse wanted 1->0 changes in X->x
+        (setf msk-change (mask-new (mask-and w10 x-not-x)))
+        (if (mask-is-not-low msk-change)
+  	  (setf rulz (rule-mask-off-zeros rulz msk-change))
+        )
+  
+        ;; Restrict rule that intersects the from region.
+        (cond ((region-intersects from-reg (rule-initial-region ruly)) 
+               (let ((new-rule (rule-restrict-initial-region ruly from-reg)) new-rule2)
+                 (if (region-intersects to-reg (rule-result-region new-rule)) 
+                   (progn
+                     (setf new-rule2 (rule-restrict-result-region new-rule to-reg))
+                     (if (region-intersects (rule-initial-region new-rule2) from-reg)
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule2 :kind 's))
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f))
+                     )
                    )
+                   (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f))
                  )
-                 (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f))
                )
              )
-           )
-           ((region-intersects (rule-result-region ruly) to-reg) 
-              (stepstore-push ret-steps (step-new :act-id 0 :rule (rule-restrict-result-region rulz to-reg) :kind 'b))
-           )
-           (t (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a)))
-      )
+             ((region-intersects (rule-result-region ruly) to-reg) 
+                (stepstore-push ret-steps (step-new :act-id 0 :rule (rule-restrict-result-region rulz to-reg) :kind 'b))
+             )
+             (t (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a)))
+        )
+      ) ; end-when
     ) ; end-loop
     ret-steps
   )

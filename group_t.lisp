@@ -16,7 +16,7 @@
   )
 
   ; Test group-get-steps.
-  (let (domx rule-needed steps from-reg to-reg)
+  (let (domx rule-to-goal steps from-reg to-reg)
     (setf domx (domain-new :id 0 :actions
                  (actionstore-new (list
                     (action-new :id 0 :groups
@@ -34,13 +34,13 @@
                     (action-new :id 4 :groups
                       (groupstore-new (list (group-new :rules
                         (rulestore-new (list (rule-from-str "[Xx/00/Xx/Xx]")))))))
-                    ))))
+                    )) :current-state (state-from-str "#b0101")))
 
     (setf from-reg (region-from-str "0101"))
     (setf to-reg   (region-from-str "1001"))
 
-    (setf rule-needed (rule-new-region-to-region from-reg to-reg))
-    (setf steps (domain-get-steps domx rule-needed))
+    (setf rule-to-goal (rule-new-region-to-region from-reg to-reg))
+    (setf steps (domain-get-steps domx rule-to-goal))
     ;(format t "~& steps ~A" steps)
 
     (assert (= (stepstore-length steps) 5))

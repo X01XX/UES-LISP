@@ -333,3 +333,18 @@
       (value-new :num-bits (value-num-bits val) :bits new-bits)
   )
 )
+
+;;; Return true if a value is low.
+(defun value-is-low (val) ; -> bool.
+  (assert (value-p val))
+
+  (zerop (value-bits val))
+)
+
+;;; Return true if a value is not low.
+(defun value-is-not-low (val) ; -> bool.
+  (assert (value-p val))
+
+  (not (zerop (value-bits val)))
+)
+
