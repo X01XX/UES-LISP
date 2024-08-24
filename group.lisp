@@ -89,6 +89,8 @@
 
   (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
 	(wanted-changes (rule-wanted-changes rule-to-goal))
+	(unwanted-changes (rule-unwanted-changes rule-to-goal))
+	num-wanted num-unwanted
        )
 
     (setf from-reg (rule-initial-region rule-to-goal))
@@ -106,7 +108,7 @@
         ;; remove the unwanted part.
   
         ;; Calc needed masks.
-        (setf x-not-x (mask-new (mask-and (rule-b01 ruly) (rule-b10 ruly)))) ; Get mask of X->x.
+        (setf x-not-x (mask-new-and (rule-b01 ruly) (rule-b10 ruly))) ; Get mask of X->x.
   
         ;; Get wanted change masks.
         (setf w01 (change-b01 wanted-changes)) ; get wanted 0->1s.
@@ -115,36 +117,48 @@
         (setf rulz ruly)
   
         ;; Parse wanted 0->1 changes in X->x
-        (setf msk-change (mask-new (mask-and w01 x-not-x)))
+        (setf msk-change (mask-new-and w01 x-not-x))
         (if (mask-is-not-low msk-change)
   	  (setf rulz (rule-mask-off-ones rulz msk-change))
         )
   
         ;; Parse wanted 1->0 changes in X->x
-        (setf msk-change (mask-new (mask-and w10 x-not-x)))
+        (setf msk-change (mask-new-and w10 x-not-x))
         (if (mask-is-not-low msk-change)
   	  (setf rulz (rule-mask-off-zeros rulz msk-change))
         )
   
         ;; Restrict rule that intersects the from region.
-        (cond ((region-intersects from-reg (rule-initial-region ruly)) 
-               (let ((new-rule (rule-restrict-initial-region ruly from-reg)) new-rule2)
+        (cond ((region-intersects from-reg (rule-initial-region rulz)) 
+               (let ((new-rule (rule-restrict-initial-region rulz from-reg)) new-rule2)
                  (if (region-intersects to-reg (rule-result-region new-rule)) 
                    (progn
                      (setf new-rule2 (rule-restrict-result-region new-rule to-reg))
+		     (setf num-wanted (change-num-changes (rule-intersection-change new-rule2 wanted-changes)))
+		     (setf num-unwanted (change-num-changes (rule-intersection-change new-rule2 unwanted-changes)))
                      (if (region-intersects (rule-initial-region new-rule2) from-reg)
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule2 :kind 's))
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f))
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule2 :kind 's :w num-wanted :u num-unwanted))
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f :w num-wanted :u num-unwanted))
                      )
                    )
-                   (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f))
+                   (progn
+		     (setf num-wanted (change-num-changes (rule-intersection-change new-rule wanted-changes)))
+		     (setf num-unwanted (change-num-changes (rule-intersection-change new-rule unwanted-changes)))
+                     (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f :w num-wanted :u num-unwanted))
+		   )
                  )
                )
              )
-             ((region-intersects (rule-result-region ruly) to-reg) 
-                (stepstore-push ret-steps (step-new :act-id 0 :rule (rule-restrict-result-region rulz to-reg) :kind 'b))
+             ((region-intersects (rule-result-region rulz) to-reg) 
+                (setf rulz (rule-restrict-result-region rulz to-reg))
+		(setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
+		(setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
+                (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'b :w num-wanted :u num-unwanted))
              )
-             (t (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a)))
+             (t 
+		(setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
+		(setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
+	        (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a :w num-wanted :u num-unwanted)))
         )
       ) ; end-when
     ) ; end-loop

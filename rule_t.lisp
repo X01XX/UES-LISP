@@ -464,6 +464,123 @@
     (format t "~&  rule-unwanted-changes OK")
   )
 
+  ; Test rule-order-bad.
+  (let (rul1 rul2 wanted bx)
+    (setf wanted (change-new :b01 (mask-from-str "#b10") :b10 (mask-from-str "#b01")))
+    (setf rul1 (rule-from-str "[01/00]"))
+    (setf rul2 (rule-from-str "[11/10]"))
+    ;(format t "~&rul1        ~A" rul1)
+    ;(format t "~&rul2        ~A" rul2)
+    ;(format t "~&combine 1 = ~A" (rule-combine-sequence rul1 rul2))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+;   (format t "~& rule order is bad ~A ~A bad is ~A" rul1 rul2 bx)
+    (assert (not bx))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b01") :b10 (mask-from-str "#b10")))
+    (setf rul1 (rule-from-str "[10/00]"))
+    (setf rul2 (rule-from-str "[00/01]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert (not bx))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b0") :b10 (mask-from-str "#b1")))
+    (setf rul1 (rule-from-str "[10]"))
+    (setf rul2 (rule-from-str "[10]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert (not bx))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b01") :b10 (mask-from-str "#b10")))
+    (setf rul1 (rule-from-str "[10/00]"))
+    (setf rul2 (rule-from-str "[01/01]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert bx)
+
+    (setf wanted (change-new :b01 (mask-from-str "#b01") :b10 (mask-from-str "#b10")))
+    (setf rul1 (rule-from-str "[10/00]"))
+    (setf rul2 (rule-from-str "[11/01]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert bx)
+
+    (setf wanted (change-new :b01 (mask-from-str "#b1") :b10 (mask-from-str "#b0")))
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[01]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert (not bx))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b10") :b10 (mask-from-str "#b01")))
+    (setf rul1 (rule-from-str "[01/00]"))
+    (setf rul2 (rule-from-str "[00/10]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert bx)
+
+    (setf wanted (change-new :b01 (mask-from-str "#b10") :b10 (mask-from-str "#b01")))
+    (setf rul1 (rule-from-str "[01/00]"))
+    (setf rul2 (rule-from-str "[10/10]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+    (assert bx)
+
+    (setf wanted (change-new :b01 (mask-from-str "#b1") :b10 (mask-from-str "#b0")))
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[00]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b1") :b10 (mask-from-str "#b0")))
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[01]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b1") :b10 (mask-from-str "#b0")))
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[11]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b1") :b10 (mask-from-str "#b0")))
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[10]"))
+
+    (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
+
+    (format t "~&  rule-order-bad OK")
+  )
+
+  ; Test rule-mutually-exclusive.
+  (let (rul1 rul2 wanted bx)
+
+    (setf wanted (change-new :b01 (mask-from-str "#b10") :b10 (mask-from-str "#b01")))
+    (setf rul1 (rule-from-str "[01/01]"))
+    (setf rul2 (rule-from-str "[10/10]"))
+
+    (setf bx (rule-mutually-exclusive rul1 rul2 wanted))
+    ;(format t "~& rule mutually-exclusive ~A ~A is ~A" rul1 rul2 bx)
+    (assert bx)
+
+    (setf wanted (change-new :b01 (mask-from-str "#b10") :b10 (mask-from-str "#b01")))
+    (setf rul1 (rule-from-str "[01/01]"))
+    (setf rul2 (rule-from-str "[11/10]"))
+
+    (setf bx (rule-mutually-exclusive rul1 rul2 wanted))
+    (assert (not bx))
+
+    (setf wanted (change-new :b01 (mask-from-str "#b10") :b10 (mask-from-str "#b01")))
+    (setf rul1 (rule-from-str "[01/11]"))
+    (setf rul2 (rule-from-str "[00/10]"))
+
+    (setf bx (rule-mutually-exclusive rul1 rul2 wanted))
+    (assert bx)
+
+    (format t "~&  rule-mutually-excusive OK")
+  )
+
   (format t "~&rule-tests done")
   t
 )

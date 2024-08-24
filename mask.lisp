@@ -158,3 +158,23 @@
   (plusp (value-bits (mask-value mskx)))
 )
 
+;;; Return a mask from a mask-or operation.
+(defun mask-new-or (msk1 msk2) ; -> mask
+  (assert (mask-p msk1))
+  (assert (mask-p msk2))
+  (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))
+
+  (mask-new (mask-or msk1 msk2))
+)
+
+;;; Return a mask from a mask-and operation.
+(defun mask-new-and (msk1 msk2) ; -> mask
+  (assert (mask-p msk1))
+  (assert (mask-p msk2))
+  (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))
+
+  (mask-new (mask-and msk1 msk2))
+)
+
+
+

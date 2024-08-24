@@ -5,12 +5,15 @@
 ;;;; Implement the Step type.
 ;;;;
 (defstruct (step (:print-function step-print))
-  act-id	; An stp2ion ID, GE zero.
+  act-id	; An action ID, GE zero.
   rule		; A rule.
   kind		; 'a = Asymmetrical.
                 ; 'b = Backward chaining.
                 ; 'f = Forward chaining.
 		; 's = Spans gap.
+  wanted-changes    ; number of wanted changes, GE 1.
+  unwanted-changes  ; number of unwanted changes, GE 0.
+  net-changes       ; wanted - unwanted changes. 
 )
 ; Functions automatically created by defstruct:
 ;
@@ -27,12 +30,14 @@
 ;   (copy-step <instance>) copies a step instance.
 
 ;;; Return an step instance
-(defun step-new (&key act-id rule kind)
+(defun step-new (&key act-id rule kind w u)
   (assert (rule-p rule))
   (assert (>= act-id 0))
   (assert (or (eq kind 'a) (eq kind 'b) (eq kind 'f) (eq kind 's)))
+  (assert (and (integerp w) (plusp w)))
+  (assert (and (integerp u) (>= u 0)))
 
-  (make-step :act-id act-id :rule rule :kind kind)
+  (make-step :act-id act-id :rule rule :kind kind :wanted-changes w :unwanted-changes u :net-changes (- w u))
 )
 
 ;;; Print a step.
@@ -48,6 +53,9 @@
         (setf str (concatenate 'string str (format nil "act-id ~D" (step-act-id stpx))))
         (setf str (concatenate 'string str (format nil " rule ~A" (rule-str (step-rule stpx)))))
         (setf str (concatenate 'string str (format nil " kind ~A" (step-kind stpx))))
+        (setf str (concatenate 'string str (format nil " w ~D" (step-wanted-changes stpx))))
+        (setf str (concatenate 'string str (format nil " u ~D" (step-unwanted-changes stpx))))
+        (setf str (concatenate 'string str (format nil " n ~D" (step-net-changes stpx))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -72,7 +80,6 @@
   (assert (step-p stp2))
 
   (and (= (step-act-id stp1) (step-act-id stp2))
-       (rule-eq (step-rule stp1) (step-rule stp2))
-       (eq (step-kind stp1) (step-kind stp2)))
+       (rule-eq (step-rule stp1) (step-rule stp2)))
 )
 

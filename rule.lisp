@@ -201,10 +201,10 @@
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (make-rule :b00 (mask-new (mask-or (rule-b00 rul1) (rule-b00 rul2)))
-             :b01 (mask-new (mask-or (rule-b01 rul1) (rule-b01 rul2)))
-             :b11 (mask-new (mask-or (rule-b11 rul1) (rule-b11 rul2)))
-             :b10 (mask-new (mask-or (rule-b10 rul1) (rule-b10 rul2))))
+  (make-rule :b00 (mask-new-or (rule-b00 rul1) (rule-b00 rul2))
+             :b01 (mask-new-or (rule-b01 rul1) (rule-b01 rul2))
+             :b11 (mask-new-or (rule-b11 rul1) (rule-b11 rul2))
+             :b10 (mask-new-or (rule-b10 rul1) (rule-b10 rul2)))
 )
 
 ;;; Return true if a rule is a valid union, that is no 1X, or 0X, bit positions.
@@ -223,10 +223,10 @@
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (make-rule :b00 (mask-new (mask-and (rule-b00 rul1) (rule-b00 rul2)))
-             :b01 (mask-new (mask-and (rule-b01 rul1) (rule-b01 rul2)))
-             :b11 (mask-new (mask-and (rule-b11 rul1) (rule-b11 rul2)))
-             :b10 (mask-new (mask-and (rule-b10 rul1) (rule-b10 rul2))))
+  (make-rule :b00 (mask-new-and (rule-b00 rul1) (rule-b00 rul2))
+             :b01 (mask-new-and (rule-b01 rul1) (rule-b01 rul2))
+             :b11 (mask-new-and (rule-b11 rul1) (rule-b11 rul2))
+             :b10 (mask-new-and (rule-b10 rul1) (rule-b10 rul2)))
 )
 
 ;;; Return true if a rule is a valid intersection, that is no bit position is zero for all four masks.
@@ -344,8 +344,8 @@
  
     (setf rulz (make-rule :b00 (rule-b00 rulex)
                           :b01 (rule-b01 rulex)
-                          :b11 (mask-new (mask-and (rule-b11 rulex) msk-in))
-                          :b10 (mask-new (mask-and (rule-b10 rulex) msk-in))))
+                          :b11 (mask-new-and (rule-b11 rulex) msk-in)
+                          :b10 (mask-new-and (rule-b10 rulex) msk-in)))
 
     (assert (rule-is-valid-intersection rulz))
     rulz
@@ -361,8 +361,8 @@
   (let (msk-in rulz)
     (setf msk-in (mask-new (mask-not msk-out)))
  
-    (setf rulz (make-rule :b00 (mask-new (mask-and (rule-b00 rulex) msk-in))
-                          :b01 (mask-new (mask-and (rule-b01 rulex) msk-in))
+    (setf rulz (make-rule :b00 (mask-new-and (rule-b00 rulex) msk-in)
+                          :b01 (mask-new-and (rule-b01 rulex) msk-in)
                           :b11 (rule-b11 rulex)
                           :b10 (rule-b10 rulex)))
 
@@ -379,10 +379,10 @@
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
   (assert (region-intersects (rule-result-region rul1) (rule-initial-region rul2)))
 
-  (make-rule :b00 (mask-new (value-or (mask-and (rule-b00 rul1) (rule-b00 rul2)) (mask-and (rule-b01 rul1) (rule-b10 rul2)))) 
-             :b01 (mask-new (value-or (mask-and (rule-b01 rul1) (rule-b11 rul2)) (mask-and (rule-b00 rul1) (rule-b01 rul2)))) 
-             :b11 (mask-new (value-or (mask-and (rule-b11 rul1) (rule-b11 rul2)) (mask-and (rule-b10 rul1) (rule-b01 rul2)))) 
-             :b10 (mask-new (value-or (mask-and (rule-b10 rul1) (rule-b00 rul2)) (mask-and (rule-b11 rul1) (rule-b10 rul2))))) 
+  (make-rule :b00 (mask-new-or (mask-new-and (rule-b00 rul1) (rule-b00 rul2)) (mask-new-and (rule-b01 rul1) (rule-b10 rul2))) 
+             :b01 (mask-new-or (mask-new-and (rule-b01 rul1) (rule-b11 rul2)) (mask-new-and (rule-b00 rul1) (rule-b01 rul2))) 
+             :b11 (mask-new-or (mask-new-and (rule-b11 rul1) (rule-b11 rul2)) (mask-new-and (rule-b10 rul1) (rule-b01 rul2))) 
+             :b10 (mask-new-or (mask-new-and (rule-b10 rul1) (rule-b00 rul2)) (mask-new-and (rule-b11 rul1) (rule-b10 rul2)))) 
 )
 
 ;;; Return the combination of two rules.
@@ -411,10 +411,10 @@
 	 (zeros (mask-new (state-not (region-low-state regint))))
 	 (ones  (mask-new (state-value (region-high-state regint)))))
 
-    (make-rule :b00 (mask-new (mask-and (rule-b00 rulx) zeros))
-	       :b01 (mask-new (mask-and (rule-b01 rulx) zeros))
-	       :b11 (mask-new (mask-and (rule-b11 rulx) ones))
-	       :b10 (mask-new (mask-and (rule-b10 rulx) ones)))
+    (make-rule :b00 (mask-new-and (rule-b00 rulx) zeros)
+	       :b01 (mask-new-and (rule-b01 rulx) zeros)
+	       :b11 (mask-new-and (rule-b11 rulx) ones)
+	       :b10 (mask-new-and (rule-b10 rulx) ones))
   )
 )
 
@@ -429,10 +429,10 @@
 	 (zeros (mask-new (state-not (region-low-state regint))))
 	 (ones  (mask-new (state-value (region-high-state regint)))))
 
-    (make-rule :b00 (mask-new (mask-and (rule-b00 rulx) zeros))
-	       :b01 (mask-new (mask-and (rule-b01 rulx) ones))
-	       :b11 (mask-new (mask-and (rule-b11 rulx) ones))
-	       :b10 (mask-new (mask-and (rule-b10 rulx) zeros)))
+    (make-rule :b00 (mask-new-and (rule-b00 rulx) zeros)
+	       :b01 (mask-new-and (rule-b01 rulx) ones)
+	       :b11 (mask-new-and (rule-b11 rulx) ones)
+	       :b10 (mask-new-and (rule-b10 rulx) zeros))
   )
 )
 
@@ -450,8 +450,8 @@
   (assert (rule-p rulx))
 
   (let ((care-mask (rule-change-care-mask rulx)))
-    (change-new :b01 (mask-new (mask-and (rule-b01 rulx) care-mask))
-                :b10 (mask-new (mask-and (rule-b10 rulx) care-mask)))
+    (change-new :b01 (mask-new-and (rule-b01 rulx) care-mask)
+                :b10 (mask-new-and (rule-b10 rulx) care-mask))
   )
 )
 
@@ -461,8 +461,57 @@
   (assert (rule-p rulx))
 
   (let ((care-mask (rule-change-care-mask rulx)))
-    (change-new :b01 (mask-new (mask-and (rule-b00 rulx) care-mask))
-                :b10 (mask-new (mask-and (rule-b11 rulx) care-mask)))
+    (change-new :b01 (mask-new-and (rule-b00 rulx) care-mask)
+                :b10 (mask-new-and (rule-b11 rulx) care-mask))
   )
 )
+
+;;; Return the intersection of a rule and a change, as a change.
+(defun rule-intersection-change (rulx cngx) ; -> change
+    (change-new :b01 (mask-new-and (rule-b01 rulx) (change-b01 cngx))
+                :b10 (mask-new-and (rule-b10 rulx) (change-b10 cngx)))
+)
+
+;;; Return true if two rules run in a given order results in
+;;; all needed changes in the first rule being reversed.
+(defun rule-sequence-blocks-changes (&key first next wanted) ; -> bool
+  (assert (rule-p first))
+  (assert (rule-p next))
+  (assert (change-p wanted))
+  (assert (= (rule-num-bits first) (rule-num-bits next)))
+  (assert (= (rule-num-bits first) (change-num-bits wanted)))
+  (assert (value-is-low (mask-and (change-b01 wanted) (change-b10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
+  (assert (value-is-not-low (mask-or (change-b01 wanted) (change-b10 wanted)))) ; At least one change should be needed.
+  
+  (let ((rule-comb (rule-combine-sequence first next))
+	(msk01 (mask-new-and (rule-b01 first) (change-b01 wanted)))
+	(msk10 (mask-new-and (rule-b10 first) (change-b10 wanted)))
+       )
+
+    (if (mask-is-not-low (mask-new-and (rule-b01 rule-comb) msk01))
+      (return-from rule-sequence-blocks-changes false))
+
+    (if (mask-is-not-low (mask-new-and (rule-b10 rule-comb) msk10))
+      (return-from rule-sequence-blocks-changes false))
+
+    true
+  )
+)
+
+;;; Return true if two rules are mutually exclusive, for a given wanted change.
+(defun rule-mutually-exclusive (rul1 rul2 wanted) ; -> bool
+  (assert (rule-p rul1))
+  (assert (rule-p rul2))
+  (assert (change-p wanted))
+  (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
+  (assert (= (rule-num-bits rul1) (change-num-bits wanted)))
+  (assert (value-is-low (mask-and (change-b01 wanted) (change-b10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
+  (assert (value-is-not-low (mask-or (change-b01 wanted) (change-b10 wanted)))) ; At least one change should be needed.
+  (assert (change-is-not-low (rule-intersection-change rul1 wanted)))
+  (assert (change-is-not-low (rule-intersection-change rul2 wanted)))
+
+  (and (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted)
+       (rule-sequence-blocks-changes :first rul2 :next rul1 :wanted wanted))
+)
+
 
