@@ -36,7 +36,7 @@
 ;   (make-group [:<field-name> <field-value>]*), use group-new instead.
 ;   (copy-group <instance>) copies a group instance.
 
-;;; Return an group instance
+;;; Return a new group.
 (defun group-new (&key rules)
   (assert (rulestore-p rules))
   (assert (plusp (rulestore-length rules)))

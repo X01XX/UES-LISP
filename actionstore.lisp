@@ -20,7 +20,7 @@
 ; Probably shouldn't use:
 ;   (make-actionstore [:<field-name> <field-actionstore>]*), use actionstore-new instead.
 ;   (copy-actionstore <instance>) copies a actionstore instance.
-(defun actionstore-new (actions) ; -> actionstore instance.
+(defun actionstore-new (actions) ; -> actionstore.
   ;(format t "~&actions ~A" actions)
   (assert (action-list-p actions))
 
@@ -35,28 +35,18 @@
 
 ; Push a new action into a actionstore, suppress dups, subsets.
 ; Return true if the action has been added.
-(defun actionstore-push(storex actx) ; -> bool.
+(defun actionstore-push(storex actx) ; -> bool, true if added.
   (assert (actionstore-p storex))
   (assert (action-p actx))
 
-  (let ((ret (actionstore-push-na storex actx)))
-     (cond ((err-p ret) (error (err-str ret)))
-           ((bool-p ret) ret)
-            (t (error "Result is not a bool"))))
-)
-
-(defun actionstore-push-na(storex actx) ; -> bool, or err.
   ; Check for equal actions.
   (loop for acty in (actionstore-actions storex) do
     (if (= (action-id acty) (action-id actx))
-      (return-from actionstore-push-na (err-new "duplicate action id")))
+      (return-from actionstore-push false))
   )
 
-  ; Add the new action to the end of the actions list.
-  (if (null (actionstore-actions storex))
-    (push actx (actionstore-actions storex))
-    (push actx (cdr (last (actionstore-actions storex))))) 
-
+  ; Add the new action.
+  (push actx (actionstore-actions storex))
   true
 )
 

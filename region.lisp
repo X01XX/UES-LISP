@@ -22,8 +22,8 @@
 ;   (make-region [:<field-name> <field-region>]*), use region-new instead.
 ;   (copy-region <instance>) copies a region instance.
 
-;;; Return a new region instance, made up of one, or more, states.
-(defun region-new (states) ; -> region instance.
+;;; Return a new region, made up of one, or more, states.
+(defun region-new (states) ; -> region.
   (assert (statestore-p states))
   (assert (> (statestore-length states) 0))
   (assert (statestore-same-num-bits states))
@@ -169,13 +169,13 @@
   (format stream (region-str instance))
 )
 
-;;; Return a region instance from evaluating a string.
+;;; Return a region from evaluating a string.
 ;;; A region can be made of a single state.
 ;;; A token with an X, or x, will be defined with two states.
 ;;; An X will cause a 1 in the first state, a zero in the second.
 ;;; An x will cause a 0 in the first state, a one in the second state.
 ;;; So the states making up a region can be specified by the string representation.
-(defun region-from-str (strx) ; -> region instance.
+(defun region-from-str (strx) ; -> region.
   (assert (stringp strx))
   (assert (not (string= strx "")))
 
@@ -184,7 +184,7 @@
            ((region-p ret) ret)
             (t (error "Result is not a region"))))
 )
-(defun region-from-str-na (strx) ; -> region instance, or err.
+(defun region-from-str-na (strx) ; -> region, or err.
 
   (let ((state_first "#b") (state_second "#b"))
     (loop for chr across strx do

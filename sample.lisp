@@ -1,9 +1,9 @@
 ;;;; Implement the sample struct.
 ;;;; It represents a initial state and a result of some action.
 (defstruct (sample (:print-function sample-print))
-  initial ; A state instance, before an action.
+  initial ; A state, before an action.
   action  ; Action number used to get sample.
-  result  ; A state instance, after an action.
+  result  ; A state, after an action.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -18,7 +18,7 @@
 ; Probably shouldn't use:
 ;   (make-sample [:<field-name> <field-sample>]*), use sample-new instead.
 ;   (copy-sample <instance>) copies a sample instance.
-(defun sample-new (&key initial action result) ; -> sample instance.
+(defun sample-new (&key initial action result) ; -> sample.
   (assert (state-p initial))
   (assert (integerp action))
   (assert (>= action 0))
@@ -28,7 +28,7 @@
   (make-sample :initial initial :action action :result result)
 )
 
-; Return a string to represent a sample instance.
+; Return a string to represent a sample.
 (defun sample-str (smpl) ; -> string.
   (format nil "#S(SAMPLE ~A-~D->~A)" (sample-initial smpl) (sample-action smpl) (sample-result smpl))
 )

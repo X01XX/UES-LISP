@@ -29,7 +29,7 @@
 ;   (make-step [:<field-name> <field-value>]*), use step-new instead.
 ;   (copy-step <instance>) copies a step instance.
 
-;;; Return an step instance
+;;; Return a new step.
 (defun step-new (&key act-id rule kind w u)
   (assert (rule-p rule))
   (assert (>= act-id 0))
@@ -83,3 +83,7 @@
        (rule-eq (step-rule stp1) (step-rule stp2)))
 )
 
+;;; Return the number of bits used by elements of a step.
+(defun step-num-bits (stpx) ; -> integer, ge 1.
+  (rule-num-bits (step-rule stpx))
+)

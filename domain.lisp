@@ -23,7 +23,7 @@
 ;   (make-domain [:<field-name> <field-value>]*), use domain-new instead.
 ;   (copy-domain <instance>) copies a domain instance.
 
-;;; Return an domain instance
+;;; Return a new domain.
 (defun domain-new (&key id actions current-state)
   (assert (actionstore-p actions))
   (assert (>= id ))

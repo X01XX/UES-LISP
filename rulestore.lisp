@@ -21,7 +21,7 @@
 ;   (copy-rulestore <instance>) copies a rulestore instance.
 
 ; Return a rulestore given one, or two, rules.
-(defun rulestore-new (rules) ; -> rulestore instance.
+(defun rulestore-new (rules) ; -> rulestore.
   (assert (listp rules))
   (assert (not (null rules)))
   (assert (< (length rules) 3))
@@ -32,7 +32,7 @@
            (t (error "Result is not a rulestore")))
   )
 )
-(defun rulestore-new-na (rules) ; -> rulestore instance, or err.
+(defun rulestore-new-na (rules) ; -> rulestore, or err.
   (let (rulx ruly)
     ;; Check type of each list item.
 

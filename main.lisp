@@ -50,11 +50,17 @@
 
 (load #p "anyxofn.lisp")
 
+(load #p "cngstps.lisp")
+(load #p "cngstps_t.lisp")
+
+(load #p "cngstpsstore.lisp")
+(load #p "cngstpsstore_t.lisp")
+
 (defvar true t)
 (defvar false nil)
 
 (defun main ()
-  (let (domx rule-to-goal steps from-reg to-reg)
+  (let (domx rule-to-goal steps from-reg to-reg care-mask wanted-changes cngstpsstore1 changes-each-bit)
     (setf domx (domain-new :id 0 :actions
 		 (actionstore-new (list
 		    (action-new :id 0 :groups
@@ -73,15 +79,31 @@
 		 :current-state (state-from-str "#b0101")))
 
     (setf from-reg (region-from-str "0X10"))
-    (format t "~&from ~A" from-reg)
+    (format t "~&from: ~A" from-reg)
 
     (setf to-reg (region-from-str "10XX"))
-    (format t "~&to   ~A" to-reg)
+    (format t "~&to:   ~A" to-reg)
 
     (setf rule-to-goal (rule-new-region-to-region from-reg to-reg))
-    (format t "~&rule-to-goal ~A" rule-to-goal)
+    (format t "~& ~&rule-to-goal: ~A" rule-to-goal)
+
+    (setf care-mask (mask-not (region-x-mask to-reg)))
+
+    (setf wanted-changes (change-new :b01 (mask-new-and care-mask (rule-b01 rule-to-goal))
+                                     :b10 (mask-new-and care-mask (rule-b10 rule-to-goal))))
+
+    ;(format t "~&wanted changes ~A" wanted-changes)
+
     (setf steps (domain-get-steps domx rule-to-goal))
-    (format t "~&steps ~A" steps)
+    (format t "~& ~&steps found:~&  ~A" steps)
+
+    (setf cngstpsstore1 (cngstpsstore-new wanted-changes))
+
+    (loop for stepx in (stepstore-steps steps) do
+      (cngstpsstore-add cngstpsstore1 stepx)
+    )
+    (format t "~& ~&steps stored by single-bit changes:~&  ~A" cngstpsstore1)
+
     true
   )
 )
@@ -114,6 +136,9 @@
   (stepstore-tests)
 
   (change-tests)
+  (cngstps-tests)
+
+  (cngstpsstore-tests)
 
   (format t "~&All tests done")
   t

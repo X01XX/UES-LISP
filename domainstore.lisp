@@ -20,7 +20,7 @@
 ; Probably shouldn't use:
 ;   (make-domainstore [:<field-name> <field-domainstore>]*), use domainstore-new instead.
 ;   (copy-domainstore <instance>) copies a domainstore instance.
-(defun domainstore-new (domains) ; -> domainstore instance.
+(defun domainstore-new (domains) ; -> domainstore.
   ;(format t "~&domains ~A" domains)
   (assert (domain-list-p domains))
 
@@ -35,28 +35,17 @@
 
 ; Push a new domain into a domainstore, suppress dups, subsets.
 ; Return true if the domain has been added.
-(defun domainstore-push(storex domx) ; -> bool.
+(defun domainstore-push(storex domx) ; -> bool, true if added.
   (assert (domainstore-p storex))
   (assert (domain-p domainx))
 
-  (let ((ret (domainstore-push-na storex domx)))
-     (cond ((err-p ret) (error (err-str ret)))
-           ((bool-p ret) ret)
-            (t (error "Result is not a bool"))))
-)
-
-(defun domainstore-push-na(storex domx) ; -> bool, or err.
   ; Check for equal domains.
-    (loop for acty in (domainstore-domains storex) do
-      (if (= (domain-id acty) (domain-id domx))
-        (return-from domainstore-push-na (err-new "duplicate domain id")))
-    )
-
-    ; Add the new domain to the end of the domains list.
-    (if (null (domainstore-domains storex))
-      (push domx (domainstore-domains storex))
-      (push domx (cdr (last (domainstore-domains storex))))) 
+  (loop for acty in (domainstore-domains storex) do
+    (if (= (domain-id acty) (domain-id domx))
+      (return-from domainstore-push false))
   )
+
+  (push domx (domainstore-domains storex))
   true
 )
 
@@ -92,20 +81,4 @@
     ret
   )
 )
-
-; Return true if a domainstore contains a given domain.
-(defun domainstore-contains (storex domx) ; -> bool
-  (assert (domainstore-p storex))
-  (assert (domain-p domx))
-
-  (if (member domx (domainstore-domains storex) :test #'domain-eq) true false)
-)
-
-(defun domainstore-first-domain (storex) ; -> domain
-  (assert (domainstore-p storex))
-  (assert (domainstore-is-not-empty storex))
-
-  (car (domainstore-domains storex))
-)
-
 

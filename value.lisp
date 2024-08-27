@@ -21,7 +21,7 @@
 ;   (copy-value <instance>) copies a value instance.
 
 ;;; Return a new value instasnce.
-(defun value-new (&key num-bits bits) ; -> value instance.
+(defun value-new (&key num-bits bits) ; -> value.
   (assert (integerp num-bits))
   (assert (plusp num-bits))
   (assert (integerp bits))
@@ -33,7 +33,7 @@
 
 ;;; Given a string like "#x123", "#b1100", return a valid value.
 ;;; Underscore characters, which can be used as spacers, are ignored.
-(defun value-from-str (str) ; -> value instance.
+(defun value-from-str (str) ; -> value.
   (assert (stringp str))
   (assert (> (length str) 2))
 
@@ -43,7 +43,7 @@
            (t (error "Result is not a value"))))
 )
 ;;; value-from-str no-abort (na).
-(defun value-from-str-na (str) ; -> value instance, or err.
+(defun value-from-str-na (str) ; -> value, or err.
   ;(format t "~&value-from-str-na: ~A" str)
 
   (let (valx bin hex (digit-num 0) str2 num-bits)
@@ -81,7 +81,7 @@
     ;; Translate string to integer.
     (setf valx (read-from-string str2))
 
-    ;; Create value instance to return.
+    ;; Create value to return.
     (value-new :num-bits num-bits :bits valx)
   )
 )
@@ -168,29 +168,29 @@
   )
 )
 
-;;; Return true if a given value instance is zero.
+;;; Return true if a given value is zero.
 (defun value-zerop (val) ; -> bool.
   (assert (value-p val))
 
   (zerop (value-bits val))
 )
 
-;;; Return the number of ones in a given value instance.
+;;; Return the number of ones in a given value.
 (defun value-num-ones (val) ; -> integer.
   (assert (value-p val))
 
   (logcount (value-bits val))
 )
 
-;;; Return the "not" bit value of a given value instance.
-(defun value-not (val) ; -> value instance.
+;;; Return the "not" bit value of a given value.
+(defun value-not (val) ; -> value.
   (assert (value-p val))
 
-  ; Create value instance to return.
+  ; Create value to return.
   (value-new :num-bits (value-num-bits val) :bits (logxor (- (expt 2 (value-num-bits val)) 1) (value-bits val)))
 )
 
-;;; Return true if two given value instances are adjacent.
+;;; Return true if two given values are adjacent.
 (defun value-is-adjacent (val1 val2) ; -> bool.
   (let ((ret (value-is-adjacent-na val1 val2)))
     (cond ((err-p ret) (error (err-str ret)))
@@ -212,7 +212,7 @@
   (= 1 (value-num-ones (value-xor val1 val2)))
 )
 
-;;; Return true if two given value instances are equal.
+;;; Return true if two given values are equal.
 (defun value-eq (val1 val2) ; -> bool.
   (assert (value-p val1))
   (assert (value-p val2))
@@ -221,8 +221,8 @@
   (= (value-bits val1) (value-bits val2))
 )
 
-;;; Return the "or" bit value of two, or more, value instances.
-(defun value-or (&rest vals) ; -> value instance.
+;;; Return the "or" bit value of two, or more, values.
+(defun value-or (&rest vals) ; -> value.
   (assert (> (length vals) 1))
   (assert (value-p (car vals)))
 
@@ -240,8 +240,8 @@
   )
 )
 
-;;; Return the "and" bit value of two, or more, given value instances.
-(defun value-and (&rest vals) ; -> value instance.
+;;; Return the "and" bit value of two, or more, given values.
+(defun value-and (&rest vals) ; -> value.
   (assert (> (length vals) 1))
   (assert (value-p (car vals)))
 
@@ -259,23 +259,23 @@
   )
 )
 
-;;; Return the "xor" bit value of two given value instance.
-(defun value-xor (val1 val2) ; -> value instance.
+;;; Return the "xor" bit value of two given values.
+(defun value-xor (val1 val2) ; -> value.
   (assert (value-p val1))
   (assert (value-p val2))
   (assert (= (value-num-bits val1) (value-num-bits val2)))
 
-  ; Create value instance to return.
+  ; Create value to return.
   (value-new :num-bits (value-num-bits val1) :bits (logxor (value-bits val1) (value-bits val2)))
 )
 
-;;; Return the "not xor" bit value of two given value instance.
-(defun value-eqv (val1 val2) ; -> value instance.
+;;; Return the "not xor" bit value of two given values.
+(defun value-eqv (val1 val2) ; -> value.
   (assert (value-p val1))
   (assert (value-p val2))
   (assert (= (value-num-bits val1) (value-num-bits val2)))
 
-  ; Create value instance to return.
+  ; Create value to return.
   (value-not (value-xor val1 val2))
 )
 
@@ -312,7 +312,7 @@
 )
 
 ;;; Return a value with the most significant bit set to one.
-(defun value-msb (val) ; -> value instance
+(defun value-msb (val) ; -> value.
   (assert (value-p val))
 
   (value-new :num-bits (value-num-bits val) :bits (expt 2 (1- (value-num-bits val))))
@@ -321,7 +321,7 @@
 ;;; Return a value with bits shifted by a given value.
 ;;; A positive integer shifts left.
 ;;; A negative integer shifts right.
-(defun value-shift (val num) ; -> value instance
+(defun value-shift (val num) ; -> value.
   (assert (value-p val))
   (assert (integerp num))
   (assert (<= (abs num) (value-num-bits val)))
@@ -346,5 +346,12 @@
   (assert (value-p val))
 
   (not (zerop (value-bits val)))
+)
+
+;;; Return true if a value is high.
+(defun value-is-high (val) ; -> bool.
+  (assert (value-p val))
+
+  (= (- (expt 2 (value-num-bits val)) 1) (value-bits val))
 )
 

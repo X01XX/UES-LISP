@@ -15,7 +15,7 @@
 ; Probably shouldn't use:
 ;   (make-err [:<field-name> <field-err>]*), use err-new instead.
 ;   (copy-err <instance>) copies a err instance.
-(defun err-new (msg) ; -> err instance.
+(defun err-new (msg) ; -> err.
   (assert (stringp msg))
   (assert (> (length msg) 0))
 

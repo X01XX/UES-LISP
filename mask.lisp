@@ -2,7 +2,7 @@
 
 ;;; The mask struct.
 (defstruct (mask (:print-function mask-print))
-  value ; A value instance, where bits set to one have some meaning.
+  value ; A value, where bits set to one have some meaning.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -18,8 +18,8 @@
 ;   (make-mask [:<field-name> <field-mask>]*), use mask-new instead.
 ;   (copy-mask <instance>) copies a mask instance.
 
-;;; Return a new mask instance.
-(defun mask-new (value) ; -> mask instance.
+;;; Return a new mask.
+(defun mask-new (value) ; -> mask.
   (assert (value-p value))
 
   (make-mask :value value)
@@ -62,7 +62,7 @@
 )
 
 ;;; Return a mask with the most significant bit set to one.
-(defun mask-msb (msk) ; -> mask instance.
+(defun mask-msb (msk) ; -> mask.
   (assert (mask-p msk))
 
   (mask-new (value-msb (mask-value msk)))
@@ -71,7 +71,7 @@
 ;;; Return a mask with bits shifted by a given value.
 ;;; A positive integer shifts left.
 ;;; A negative integer shifts right.
-(defun mask-shift (msk num) ; -> mask instance.
+(defun mask-shift (msk num) ; -> mask.
   (assert (mask-p msk))
   (assert (integerp num))
   (assert (<= (abs num) (mask-num-bits msk)))
@@ -79,7 +79,7 @@
   (mask-new (value-shift (mask-value msk) num))
 )
 
-;;; Return true if a given mask instance is zero.
+;;; Return true if a given mask is zero.
 (defun mask-zerop (msk) ; -> bool.
   (assert (mask-p msk))
 
@@ -87,7 +87,7 @@
 )
 
 ;;; Return the "and" bit mask of a mask or a state.
-(defun mask-and (msk1 other) ; -> value instance.
+(defun mask-and (msk1 other) ; -> value.
   (assert (mask-p msk1))
   (assert (or (mask-p other) (state-p other)))
 
@@ -103,7 +103,7 @@
 )
 
 ;;; Return the "and" bit mask of the "not" of a mask or a state.
-(defun mask-and-not (msk1 other) ; -> value instance.
+(defun mask-and-not (msk1 other) ; -> value.
   (assert (mask-p msk1))
   (assert (or (mask-p other) (state-p other)))
 
@@ -115,42 +115,55 @@
 
   (assert (= (mask-num-bits msk1) (mask-num-bits other)))
 
-  (value-and (mask-value msk1) (mask-not other))
+  (mask-and msk1 (mask-not other))
 )
 
 ;;; Return the Boolean "or" of two masks.
-(defun mask-or(msk1 msk2) ; -> value instance.
+(defun mask-or(msk1 msk2) ; -> value.
   (assert (mask-p msk1))
   (assert (mask-p msk2))
   (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))
 
-  ; Create mask instance to return.
+  ; Create mask to return.
   (value-or (mask-value msk1) (mask-value msk2))
 )
 
-;;; Return the "not" bit mask of a given mask instance.
-(defun mask-not (msk) ; -> value instance.
+;;; Return the "not" bit mask of a given mask.
+(defun mask-not (msk) ; -> mask.
   (assert (mask-p msk))
 
-  ; Create value instance to return.
-  (value-not (mask-value msk))
+  ; Create mask to return.
+  (mask-new (value-not (mask-value msk)))
 )
 
 ;;; Return the number of bits set to one in a mask.
-(defun mask-num-ones (msk) ; -> integer.
-  (assert (mask-p msk))
+(defun mask-num-ones (mskx) ; -> integer.
+  (assert (mask-p mskx))
 
-  (value-num-ones (mask-value msk))
+  (value-num-ones (mask-value mskx))
 )
 
 ;;; Return true if a mask is a ones-subset of another.
 (defun mask-subset-of (&key sub-mask sup-mask) ; -> bool
-    (value-eq (mask-and sub-mask sup-mask) (mask-value sub-mask))
+  (assert (mask-p sub-mask))
+  (assert (mask-p sup-mask))
+  (assert (= (mask-num-bits sub-mask) (mask-num-bits sup-mask)))
+
+  (value-eq (mask-and sub-mask sup-mask) (mask-value sub-mask))
 )
 
 ;;; Return true if a mask is zero.
 (defun mask-is-low (mskx) ; -> bool
-  (zerop (value-bits (mask-value mskx)))
+  (assert (mask-p mskx))
+
+  (value-is-low (mask-value mskx))
+)
+
+;;; Return true if a mask is at its highest value.
+(defun mask-is-high (mskx) ; -> bool
+  (assert (mask-p mskx))
+
+  (value-is-high (mask-value mskx))
 )
 
 ;;; Return true if a mask is not zero.
@@ -176,5 +189,16 @@
   (mask-new (mask-and msk1 msk2))
 )
 
+;;; Return a list of masks, each one having one bit from a given mask.
+(defun mask-split (mskx) ; -> list of masks.
+  (assert (mask-p mskx))
+
+  (let (ret-msks)
+      (loop for bitx in (value-split (mask-value mskx)) do
+	(push (mask-new bitx) ret-msks)
+      )
+      ret-msks
+  )
+)
 
 

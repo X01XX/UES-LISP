@@ -20,7 +20,7 @@
 ; Probably shouldn't use:
 ;   (make-stepstore [:<field-name> <field-stepstore>]*), use stepstore-new instead.
 ;   (copy-stepstore <instance>) copies a stepstore instance.
-(defun stepstore-new (steps) ; -> stepstore instance.
+(defun stepstore-new (steps) ; -> stepstore.
   ;(format t "~&steps ~A" steps)
   (assert (step-list-p steps))
 
@@ -35,30 +35,18 @@
 
 ; Push a new step into a stepstore, suppress dups, subsets.
 ; Return true if the step has been added.
-(defun stepstore-push(storex stpx) ; -> bool.
+(defun stepstore-push(storex stpx) ; -> bool, true if added.
+  ;(format t "~&stepstore-push store ~A step ~A" storex stpx)
   (assert (stepstore-p storex))
   (assert (step-p stpx))
 
-  (let ((ret (stepstore-push-na storex stpx)))
-     (cond ((err-p ret) (error (err-str ret)))
-           ((bool-p ret) ret)
-            (t (error "Result is not a bool"))))
-)
-
-(defun stepstore-push-na(storex stpx) ; -> bool, or err.
-  ; Check for equal steps.
-  (loop for acty in (stepstore-steps storex) do
-    (if (= (step-act-id acty) (step-act-id stpx))
-      (if (rule-eq (step-rule acty) (step-rule stpx))
-        (return-from stepstore-push-na (err-new "duplicate step"))))
+  (if (member stpx (stepstore-steps storex) :test #'step-eq)
+    false
+    (progn
+      (push stpx (stepstore-steps storex))
+      true
+    )
   )
-
-  ; Add the new step to the end of the steps list.
-  (if (null (stepstore-steps storex))
-    (push stpx (stepstore-steps storex))
-    (push stpx (cdr (last (stepstore-steps storex))))) 
-
-  true
 )
 
 ; Return the number of steps in a stepstore.
@@ -101,6 +89,7 @@
   (if (member stpx (stepstore-steps storex) :test #'step-eq) true false)
 )
 
+;;; Return the first step of a non-empty stepstore.
 (defun stepstore-first-step (storex) ; -> step
   (assert (stepstore-p storex))
   (assert (stepstore-is-not-empty storex))
@@ -108,4 +97,10 @@
   (car (stepstore-steps storex))
 )
 
+;;; Return the number of bits used is elements of a non-empty stepstore.
+(defun stepstore-num-bits (stpstrx) ; -> integer ge 1.
+  (assert (stepstore-p stpstrx))
+  (assert (stepstore-is-not-empty stpstrx))
 
+  (step-num-bits (stepstore-first-step stpstrx))
+)

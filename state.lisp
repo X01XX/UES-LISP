@@ -6,7 +6,7 @@
 
 ;;; The state struct.
 (defstruct (state (:print-function state-print))
-  value  ; A value instance.
+  value  ; A value.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -22,15 +22,15 @@
 ;   (make-state [:<field-name> <field-state>]*), use state-new instead.
 ;   (copy-state <instance>) copies a state instance.
 
-;;; Return a new state instance.
-(defun state-new (value) ; -> state instance.
+;;; Return a new state.
+(defun state-new (value) ; -> state.
   (assert (value-p value))
 
   (make-state :value value)
 )
 
 ;;; Return a state from a string.
-(defun state-from-str (str) ; -> state instance.
+(defun state-from-str (str) ; -> state.
   (assert (stringp str))
 
   (state-new (value-from-str str))

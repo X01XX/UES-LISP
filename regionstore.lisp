@@ -20,7 +20,7 @@
 ; Probably shouldn't use:
 ;   (make-regionstore [:<field-name> <field-regionstore>]*), use regionstore-new instead.
 ;   (copy-regionstore <instance>) copies a regionstore instance.
-(defun regionstore-new (regions) ; -> regionstore instance.
+(defun regionstore-new (regions) ; -> regionstore.
   ;(format t "~&regions ~A" regions)
   (assert (region-list-p regions))
 
@@ -35,14 +35,17 @@
 
 ; Push a new region into a regionstore, suppress dups, subsets.
 ; Return true if the region has been added.
-(defun regionstore-push(storex regx) ; -> bool.
+(defun regionstore-push(storex regx) ; -> bool, true if added.
   (assert (regionstore-p storex))
   (assert (region-p regx))
 
   ; Add the new region to the end of the regions list, old survivors migrate to the beginning of the list.
-  (if (null (regionstore-regions storex))
-    (push regx (regionstore-regions storex))
-    (push regx (cdr (last (regionstore-regions storex))))
+  (if (member regx (regionstore-regions storex) :test #'region-eq)
+    false
+    (progn
+      (push regx (regionstore-regions storex))
+      true
+    )
   )
 )
 

@@ -16,5 +16,20 @@
     (format t "~&  change-num-changes Ok")
   )
 
+  ; Test change-split.
+  (let (cng1 cng-lst)
+    (setf cng1 (change-new :b01 (mask-from-str "#b1001") :b10 (mask-from-str "#b0110")))
+    (setf cng-lst (change-split cng1))
+    ;(format t "~&cng-lst ~A" cng-lst)
+
+    (assert (= (length cng-lst) 4))
+    (assert (member (change-new :b01 (mask-from-str "#x0") :b10 (mask-from-str "#x4")) cng-lst :test #'change-eq))
+    (assert (member (change-new :b01 (mask-from-str "#x0") :b10 (mask-from-str "#x2")) cng-lst :test #'change-eq))
+    (assert (member (change-new :b01 (mask-from-str "#x8") :b10 (mask-from-str "#x0")) cng-lst :test #'change-eq))
+    (assert (member (change-new :b01 (mask-from-str "#x1") :b10 (mask-from-str "#x0")) cng-lst :test #'change-eq))
+
+    (format t "~&  change-split Ok")
+  )
+
   (format t "~&change-tests done")
 )

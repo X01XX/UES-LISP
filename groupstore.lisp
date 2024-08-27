@@ -20,7 +20,7 @@
 ; Probably shouldn't use:
 ;   (make-groupstore [:<field-name> <field-groupstore>]*), use groupstore-new instead.
 ;   (copy-groupstore <instance>) copies a groupstore instance.
-(defun groupstore-new (groups) ; -> groupstore instance.
+(defun groupstore-new (groups) ; -> groupstore.
   ;(format t "~&groups ~A" groups)
   (let ((ret (make-groupstore :groups nil)))
     (loop for grpx in groups do 
@@ -32,7 +32,7 @@
 
 ; Push a new group into a groupstore, suppress dups, subsets.
 ; Return true if the group has been added.
-(defun groupstore-push(storex groupx) ; -> bool.
+(defun groupstore-push(storex groupx) ; -> bool, true if added.
   (assert (groupstore-p storex))
   (assert (group-p groupx))
 

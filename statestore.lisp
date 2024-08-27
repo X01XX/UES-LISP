@@ -21,8 +21,8 @@
 ;   (make-statestore [:<field-name> <field-statestore>]*), use statestore-new instead.
 ;   (copy-statestore <instance>) copies a statestore instance.
 
-;;; Return a new statestore instance, given a list of states.
-(defun statestore-new (states) ; -> statestore instance.
+;;; Return a new statestore, given a list of states.
+(defun statestore-new (states) ; -> statestore.
   ;(format t "~&states ~A" states)
 
   (let ((ret (make-statestore :states nil)))
@@ -42,12 +42,17 @@
 )
 
 ;;; Push a new state into a statestore, suppress dups.
-(defun statestore-push(store state) ; -> nothing.
+(defun statestore-push(store state) ; -> bool, true if added.
   (assert (statestore-p store))
   (assert (state-p state))
 
-  (if (not (statestore-contains store state))
-    (push state (statestore-states store)))
+  (if (statestore-contains store state)
+    false
+    (progn
+      (push state (statestore-states store))
+      true
+    )
+  )
 )
 
 ;;; Return the number of states in a statestore.

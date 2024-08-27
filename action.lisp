@@ -22,7 +22,7 @@
 ;   (make-action [:<field-name> <field-value>]*), use action-new instead.
 ;   (copy-action <instance>) copies a action instance.
 
-;;; Return an action instance
+;;; Return an action.
 (defun action-new (&key id groups)
   (assert (groupstore-p groups))
   (assert (>= id ))

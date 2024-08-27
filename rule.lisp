@@ -24,10 +24,10 @@
 ;;;   Backward-chaining would seem to disallow X->0 and X->1, but successful backward-chaining
 ;;;   is converted to forward-chaining to run a plan.
 (defstruct (rule (:print-function rule-print))
-  b00  ; A mask instance, where each bit set to one represents a 0->0 bit position before/after for a sample.
-  b01  ; A mask instance, where each bit set to one represents a 0->1 bit position before/after for a sample.
-  b11  ; A mask instance, where each bit set to one represents a 1->1 bit position before/after for a sample.
-  b10  ; A mask instance, where each bit set to one represents a 1->0 bit position before/after for a sample.
+  b00  ; A mask, where each bit set to one represents a 0->0 bit position before/after for a sample.
+  b01  ; A mask, where each bit set to one represents a 0->1 bit position before/after for a sample.
+  b11  ; A mask, where each bit set to one represents a 1->1 bit position before/after for a sample.
+  b10  ; A mask, where each bit set to one represents a 1->0 bit position before/after for a sample.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -43,8 +43,8 @@
 ;   (make-rule [:<field-name> <field-rule>]*), use rule-new if possible..
 ;   (copy-rule <instance>) copies a rule instance.
 
-;;; Return a new rule instance, given a sample.
-(defun rule-new (smpl) ; -> rule instance.
+;;; Return a new rule, given a sample.
+(defun rule-new (smpl) ; -> rule.
   (assert (sample-p smpl))
 
   (let ((b00 (mask-new (value-and (value-not (state-value (sample-initial smpl))) (value-not (state-value (sample-result smpl))))))
@@ -59,7 +59,7 @@
 ;;; Return a rule from a token, like "[00/01/11/10/x0/X0/x1/X1/XX/xx/Xx/xX]"
 ;;; XX == xx, x to x.
 ;;; Xx == xX, x to x-not.
-(defun rule-from-str (str) ; -> rule instance.
+(defun rule-from-str (str) ; -> rule.
   (assert (stringp str))
 
   (let ((ret (rule-from-str-na str)))
@@ -68,7 +68,7 @@
            (t (error "Result is not a rule")))
   )
 )
-(defun rule-from-str-na (strx) ; -> rule or err instance.
+(defun rule-from-str-na (strx) ; -> rule or err.
     (if (< (length strx) 4)
         (return-from rule-from-str-na (err-new "String is too short")))
 
@@ -196,7 +196,7 @@
 )
 
 ;;; Return the Boolean "or", or union, of two rules.
-(defun rule-union (rul1 rul2) ; -> rule instance.
+(defun rule-union (rul1 rul2) ; -> rule.
   (assert (rule-p rul1))
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
@@ -218,7 +218,7 @@
 )
 
 ;;; Return the Boolean "and", or intersection, of two rules.
-(defun rule-intersection (rul1 rul2) ; -> rule instance.
+(defun rule-intersection (rul1 rul2) ; -> rule.
   (assert (rule-p rul1))
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
@@ -233,10 +233,10 @@
 (defun rule-is-valid-intersection (rul) ; -> bool.
   (assert (rule-p rul))
 
-    (value-zerop (value-not (value-or
-			      (mask-value (rule-b00 rul))
-			      (value-or (mask-value (rule-b01 rul))
-					(mask-or (rule-b11 rul) (rule-b10 rul))))))
+    (mask-is-high (mask-new-or
+		    (rule-b00 rul)
+		      (mask-new-or (rule-b01 rul)
+			 (mask-new-or (rule-b11 rul) (rule-b10 rul)))))
 )
 
 ;;; Return true if two rules are equal.
@@ -257,7 +257,7 @@
 )
 
 ;;; Return the initial region of a rule.
-(defun rule-initial-region (rulx) ; -> region instance.
+(defun rule-initial-region (rulx) ; -> region.
   (assert (rule-p rulx))
 
   (let (
@@ -271,7 +271,7 @@
 )
 
 ;;; Return the result region of a rule.
-(defun rule-result-region (rulx) ; -> region instance.
+(defun rule-result-region (rulx) ; -> region.
   (assert (rule-p rulx))
 
   (let (
@@ -308,7 +308,7 @@
 ;;; Return a rule that has the minimun changes, to translate from one region to intersect another.
 ;;; A rule made this way will never have a X->x (0->1, 1->0) bit position.
 ;;; The X->x bit position can result from the union of two rules.
-(defun rule-new-region-to-region (reg1 reg2) ; -> region instance.
+(defun rule-new-region-to-region (reg1 reg2) ; -> rule.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -334,13 +334,13 @@
 )
 
 ;;; Mask off one positions in a rule, that has 0->0, or 0->1, in the same positions.
-(defun rule-mask-off-ones (rulex msk-out) ; -> rule instance.
+(defun rule-mask-off-ones (rulex msk-out) ; -> rule.
   (assert (rule-p rulex))
   (assert (mask-p msk-out))
   (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
   (let (msk-in rulz)
-    (setf msk-in (mask-new (mask-not msk-out)))
+    (setf msk-in (mask-not msk-out))
  
     (setf rulz (make-rule :b00 (rule-b00 rulex)
                           :b01 (rule-b01 rulex)
@@ -353,13 +353,13 @@
 )
 
 ;;; Mask off zero positions in a rule, that has 1->1, or 1->0, in the same positions.
-(defun rule-mask-off-zeros (rulex msk-out) ; -> rule instance.
+(defun rule-mask-off-zeros (rulex msk-out) ; -> rule.
   (assert (rule-p rulex))
   (assert (mask-p msk-out))
   (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
   (let (msk-in rulz)
-    (setf msk-in (mask-new (mask-not msk-out)))
+    (setf msk-in (mask-not msk-out))
  
     (setf rulz (make-rule :b00 (mask-new-and (rule-b00 rulex) msk-in)
                           :b01 (mask-new-and (rule-b01 rulex) msk-in)
@@ -373,7 +373,7 @@
 
 ;;; Return the combination of two rules where the result region of the first rule
 ;;; intersects the initial region of the second rule.
-(defun rule-combine-sequence2 (rul1 rul2) ; -> rule instance.
+(defun rule-combine-sequence2 (rul1 rul2) ; -> rule.
   (assert (rule-p rul1))
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
@@ -387,7 +387,7 @@
 
 ;;; Return the combination of two rules.
 ;;; The result region of the first rule may, or may not,  intersect the initial region of the second rule.
-(defun rule-combine-sequence (rul1 rul2) ; -> rule instance.
+(defun rule-combine-sequence (rul1 rul2) ; -> rule.
   (assert (rule-p rul1))
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
@@ -401,7 +401,7 @@
 )
 
 ;;; Return a rule that has an initial region restricted by a given region.
-(defun rule-restrict-initial-region (rulx regx) ; -> rule instance.
+(defun rule-restrict-initial-region (rulx regx) ; -> rule.
   (assert (rule-p rulx))
   (assert (region-p regx))
   (assert (= (rule-num-bits rulx) (region-num-bits regx)))
@@ -419,7 +419,7 @@
 )
 
 ;;; Return a rule that has an result region restricted by a given region.
-(defun rule-restrict-result-region (rulx regx) ; -> rule instance.
+(defun rule-restrict-result-region (rulx regx) ; -> rule.
   (assert (rule-p rulx))
   (assert (region-p regx))
   (assert (= (rule-num-bits rulx) (region-num-bits regx)))

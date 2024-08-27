@@ -24,7 +24,7 @@
   (let (numx msk1)
      (setf msk1 (mask-from-str "#x5"))
  
-     ; Test a valid mask instance.
+     ; Test a valid mask.
      (setf numx (mask-num-bits msk1))
      (assert (and (integerp numx) (= numx 4)))
  
@@ -158,7 +158,7 @@
 
   ; Test mask-not.
   (let (mskx)
-    (setf mskx (mask-new (mask-not (mask-from-str "#x5a"))))
+    (setf mskx (mask-not (mask-from-str "#x5a")))
     (assert (and (mask-p mskx) (mask-eq mskx (mask-from-str "#xa5"))))
 
     (format t "~&  mask-not OK")
