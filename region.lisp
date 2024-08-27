@@ -276,4 +276,65 @@
   (= (region-distance reg1 reg2) 0)
 )
 
+;;; Return true if the first region is a superset of the second.
+(defun region-superset-of (&key sub sup) ; -> bool.
+  (assert (region-p sub))
+  (assert (region-p sup))
+  (assert (= (region-num-bits sub) (region-num-bits sup)))
 
+  (if (not (region-intersects sub sup))
+    (return-from region-superset-of false))
+
+  (let ((subx (region-x-mask sub))
+        (supx (region-x-mask sup)))
+    (mask-superset-of :sup-mask supx :sub-mask subx)
+  )
+)
+
+;;; Return a region with edges of a mask set to ones.
+(defun region-set-to-ones (regx mskx) ; -> region.
+  (assert (region-p regx))
+  (assert (mask-p mskx))
+  (assert (= (region-num-bits regx) (mask-num-bits mskx)))
+
+  (region-new (statestore-new (list (state-new (value-or (mask-value mskx) (state-value (region-high-state regx))))
+                                    (state-new (value-or (mask-value mskx) (state-value (region-low-state regx)))))))
+)
+
+;;; Return a region with edges of a mask set to zeros.
+(defun region-set-to-zeros (regx mskx) ; -> region.
+  (assert (region-p regx))
+  (assert (mask-p mskx))
+  (assert (= (region-num-bits regx) (mask-num-bits mskx)))
+
+  (let ((mskn (mask-not mskx)))
+    (region-new (statestore-new (list (state-new (value-and (mask-value mskn) (state-value (region-high-state regx))))
+                                      (state-new (value-and (mask-value mskn) (state-value (region-low-state regx)))))))
+  )
+)
+
+;;; Return the minuend region minus the subtrahend region.
+(defun region-subtract (&key min-reg sub-reg) ; -> regionstore.
+  (assert (region-p min-reg))
+  (assert (region-p sub-reg))
+  (assert (= (region-num-bits min-reg) (region-num-bits sub-reg)))
+
+  (if (not (region-intersects min-reg sub-reg))
+    (return-from region-subtract (regionstore-new (list min-reg))))
+
+  (if (region-superset-of :sup sub-reg :sub min-reg)
+    (return-from region-subtract (regionstore-new nil)))
+
+  (let ((ret (regionstore-new nil))
+        (sub-bits (mask-split (mask-new-and (region-x-mask min-reg) (region-edge-mask sub-reg))))
+       )
+    (loop for bitx in sub-bits do
+      (if (mask-is-low (mask-new-and bitx (mask-new (state-value (region-first-state sub-reg)))))
+	  (regionstore-push-nosubs ret (region-set-to-ones min-reg bitx))
+	  (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
+      )
+    )
+    ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" min-reg sub-reg ret) 
+    ret
+  )
+)

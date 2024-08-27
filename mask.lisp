@@ -152,6 +152,16 @@
   (value-eq (mask-and sub-mask sup-mask) (mask-value sub-mask))
 )
 
+;;; Return true if a mask is a ones-superset of another.
+(defun mask-superset-of (&key sub-mask sup-mask) ; -> bool
+  (assert (mask-p sub-mask))
+  (assert (mask-p sup-mask))
+  (assert (= (mask-num-bits sub-mask) (mask-num-bits sup-mask)))
+
+  (value-eq (mask-and sub-mask sup-mask) (mask-value sub-mask))
+)
+
+;;; Return true if a mask is zero.
 ;;; Return true if a mask is zero.
 (defun mask-is-low (mskx) ; -> bool
   (assert (mask-p mskx))

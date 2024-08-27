@@ -82,6 +82,10 @@
 
       (setf ret (concatenate 'string ret (state-str stax)))
     )
+    (if (zerop (statestore-length storex))
+      (setf ret (concatenate 'string ret "NIL)"))
+      (setf ret (concatenate 'string ret ")"))
+    )
 
     ret)
 )

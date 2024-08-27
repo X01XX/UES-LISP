@@ -60,7 +60,7 @@
 (defvar false nil)
 
 (defun main ()
-  (let (domx rule-to-goal steps from-reg to-reg care-mask wanted-changes cngstpsstore1 changes-each-bit)
+  (let (domx rule-to-goal steps from-reg to-reg care-mask wanted-changes cngstpsstore1)
     (setf domx (domain-new :id 0 :actions
 		 (actionstore-new (list
 		    (action-new :id 0 :groups

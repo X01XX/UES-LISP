@@ -13,7 +13,7 @@
     (setf num (change-num-changes cng1))
     (assert (= num 3))
 
-    (format t "~&  change-num-changes Ok")
+    (format t "~&  change-num-changes OK")
   )
 
   ; Test change-split.
@@ -28,7 +28,7 @@
     (assert (member (change-new :b01 (mask-from-str "#x8") :b10 (mask-from-str "#x0")) cng-lst :test #'change-eq))
     (assert (member (change-new :b01 (mask-from-str "#x1") :b10 (mask-from-str "#x0")) cng-lst :test #'change-eq))
 
-    (format t "~&  change-split Ok")
+    (format t "~&  change-split OK")
   )
 
   (format t "~&change-tests done")

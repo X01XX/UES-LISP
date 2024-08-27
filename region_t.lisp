@@ -248,9 +248,9 @@
 
   ; Test region-intersects.
   (let (reg1 reg2 reg3 boolx)
-     (setf reg1 (region-from-str "0XX1"))
-     (setf reg2 (region-from-str "X101"))
-     (setf reg3 (region-from-str "XX00"))
+    (setf reg1 (region-from-str "0XX1"))
+    (setf reg2 (region-from-str "X101"))
+    (setf reg3 (region-from-str "XX00"))
  
     ; Test true condition.
     (setf boolx (region-intersects reg1 reg2))
@@ -263,6 +263,86 @@
     (format t "~&  region-intersects OK")
   )
 
+  ; Test region-superset-of.
+  (let (reg1 reg2 reg3 reg4 boolx)
+    (setf reg1 (region-from-str "0XX1"))
+    (setf reg2 (region-from-str "01x1"))
+    (setf reg3 (region-from-str "XX00"))
+    (setf reg4 (region-from-str "1X00"))
+
+    ; Test subset.
+    (setf boolx (region-superset-of :sup reg1 :sub reg2))
+    (assert boolx)
+
+    ; Test not subset.
+    (setf boolx (region-superset-of :sup reg1 :sub reg3))
+    (assert (not boolx))
+
+    ; Test not subset, no intersection.
+    (setf boolx (region-superset-of :sup reg1 :sub reg4))
+    (assert (not boolx))
+
+    (format t "~&  region-superset-of OK")
+  )
+ 
+  ; Test region-set-to-ones.
+  (let (reg1 reg2 mskx)
+    (setf reg1 (region-from-str "0XX1"))
+    (setf mskx (mask-from-str "#b1100"))
+
+    (setf reg2 (region-set-to-ones reg1 mskx))
+    (assert (region-eq reg2 (region-from-str "11X1")))
+
+    (format t "~&  region-set-to-ones OK")
+  )
+ 
+  ; Test region-set-to-zeros.
+  (let (reg1 reg2 mskx)
+    (setf reg1 (region-from-str "1XX1"))
+    (setf mskx (mask-from-str "#b1100"))
+
+    (setf reg2 (region-set-to-zeros reg1 mskx))
+    (assert (region-eq reg2 (region-from-str "00X1")))
+
+    (format t "~&  region-set-to-zeros OK")
+  )
+ 
+  ; Test region-subtract.
+  (let (reg1 reg2 regstr)
+    (setf reg1 (region-from-str "0XX1"))
+    (setf reg2 (region-from-str "0011"))
+
+    ; Test subtracting a subset region.
+    (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
+    ;(format t "~&regstr 1: ~A" regstr)
+    (assert (= (regionstore-length regstr) 2))
+    (assert (regionstore-contains regstr (region-from-str "01X1")))
+    (assert (regionstore-contains regstr (region-from-str "0x01")))
+
+    ; Test subtracting an intersecting region.
+    (setf reg2 (region-from-str "X01x"))
+    (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
+    ;(format t "~&regstr 2: ~A" regstr)
+    (assert (= (regionstore-length regstr) 2))
+    (assert (regionstore-contains regstr (region-from-str "01X1")))
+    (assert (regionstore-contains regstr (region-from-str "0x01")))
+
+    ; Test subtracting a non-intersecting region.
+    (setf reg2 (region-from-str "X010"))
+    (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
+    ;(format t "~&regstr 3: ~A" regstr)
+    (assert (= (regionstore-length regstr) 1))
+    (assert (regionstore-contains regstr (region-from-str "0XX1")))
+
+    ; Test subtracting a superset region.
+    (setf reg2 (region-from-str "XXXX"))
+    (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
+    ;(format t "~&regstr 4: ~A" regstr)
+    (assert (= (regionstore-length regstr) 0))
+
+    (format t "~&  region-subtract OK")
+  )
+ 
  (format t "~&region-tests done")
  t
 )

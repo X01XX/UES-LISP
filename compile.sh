@@ -17,6 +17,10 @@ sleep 1
 sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"region_t.lisp\") (quit))"
 sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"regionstore.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"regionstore_t.lisp\") (quit))"
+sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"sample.lisp\") (quit))"
 sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"sample_t.lisp\") (quit))"
