@@ -20,31 +20,21 @@
 ; Probably shouldn't use:
 ;   (make-maskstore [:<field-name> <field-maskstore>]*), use maskstore-new instead.
 ;   (copy-maskstore <instance>) copies a maskstore instance.
+
+;;; Return a new maskstore instance.
 (defun maskstore-new (masks) ; -> maskstore.
-  ;(format t "~&masks ~A" masks)
+  ;(format t "~&maskstore-new ~A" masks)
   (assert (mask-list-p masks))
 
-  (let ((ret (make-maskstore :masks nil)))
-    (loop for stax in masks do 
-      (if (not (maskstore-contains ret stax))
-        (maskstore-push ret stax))
-    )
-    ret
-  )
+  (make-maskstore :masks mask)
 )
 
 ; Push a new mask into a maskstore.
-(defun maskstore-push(storex maskx) ; -> bool, true if added.
+(defun maskstore-push(storex maskx) ; -> nothing. Side-effect maskstore is changed.
   (assert (maskstore-p storex))
   (assert (mask-p maskx))
 
-    (if (maskstore-contains storex maskx)
-      false
-      (progn
-        (push maskx (maskstore-masks storex))
-        true
-      )
-    )
+  (push maskx (maskstore-masks storex))
 )
 
 ; Return the number of masks in a maskstore.

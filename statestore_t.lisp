@@ -4,16 +4,9 @@
 
   ; Test statestore-new.
   (let (ssx ss1 ss3 len)
-    ; A state list with a duplicate.
-    (setf ss1 (list (state-from-str "#x1") (state-from-str "#x1") (state-from-str "#x8")))
 
-    ; A state list without duplicates.
+    ; A state list.
     (setf ss3 (list (state-from-str "#x1") (state-from-str "#x2") (state-from-str "#x8")))
- 
-    ; Test list that contains duplicates.
-    (setf ss1 (statestore-new ss1))
-    ;(format t "~&errx ~A" errx)
-    (assert (= (statestore-length ss1) 2))
  
     ; Test a good state list.
     (setf ssx (statestore-new ss3))

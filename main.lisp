@@ -122,7 +122,6 @@
   (rulestore-tests)
 
   (region-tests)
-  (regionstore-tests)
 
   (sample-tests)
 
@@ -139,6 +138,7 @@
   (cngstps-tests)
 
   (cngstpsstore-tests)
+  (regionstore-tests)
 
   (format t "~&All tests done")
   t

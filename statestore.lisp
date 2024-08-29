@@ -24,15 +24,9 @@
 ;;; Return a new statestore, given a list of states.
 (defun statestore-new (states) ; -> statestore.
   ;(format t "~&states ~A" states)
+  (assert (state-list-p states))
 
-  (let ((ret (make-statestore :states nil)))
-    (loop for stax in (reverse states) do ; preserve order of states. 
-      (assert (state-p stax))
-      (if (not (statestore-contains ret stax))
-        (statestore-push ret stax))
-    )
-    ret
-  )
+  (make-statestore :states states)
 )
 
 ;;; Print a statestore.
@@ -42,17 +36,11 @@
 )
 
 ;;; Push a new state into a statestore, suppress dups.
-(defun statestore-push(store state) ; -> bool, true if added.
+(defun statestore-push(store state) ; -> nothing, side-effect statestore is changed.
   (assert (statestore-p store))
   (assert (state-p state))
 
-  (if (statestore-contains store state)
-    false
-    (progn
-      (push state (statestore-states store))
-      true
-    )
-  )
+  (push state (statestore-states store))
 )
 
 ;;; Return the number of states in a statestore.
@@ -63,11 +51,15 @@
 
 ;;; Return true if a statestore is empty.
 (defun statestore-is-empty (storex) ; -> bool
+  (assert (statestore-p storex))
+
   (zerop (statestore-length storex))
 )
 
 ;;; Return true if a statestore is not empty.
 (defun statestore-is-not-empty (storex) ; -> bool
+  (assert (statestore-p storex))
+
   (plusp (statestore-length storex))
 )
 
@@ -92,7 +84,8 @@
 
 ;;; Return true if a statestore contains a given state.
 (defun statestore-contains (storex stax) ; -> bool
-  (assert (statestore-p storex)) (assert (state-p stax))
+  (assert (statestore-p storex))
+  (assert (state-p stax))
 
   (if (member stax (statestore-states storex) :test #'state-eq) true false)
 )

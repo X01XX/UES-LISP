@@ -338,3 +338,38 @@
     ret
   )
 )
+
+;;; Return true if a list is a list of regions.
+;;; An empty list will return true.
+(defun region-list-p (reglst) ; -> bool
+  (if (not (listp reglst))
+    (return-from region-list-p false))
+
+  (loop for regx in reglst do
+    (if (not (region-p regx))
+      (return-from region-list-p false))
+  )
+  true
+)
+
+;;; Return true if a list is a list of regions of the same number of bits.
+;;; An empty list will return true.
+(defun region-list-same-num-bits-p (reglst) ; -> bool
+  (if (not (listp reglst))
+    (return-from region-list-same-num-bits-p false))
+
+  (if (null reglst)
+    (return-from region-list-same-num-bits-p true))
+
+  (let ((num-bits (region-num-bits (car reglst))))
+    (loop for regx in (cdr reglst) do
+      (if (not (region-p regx))
+        (return-from region-list-same-num-bits-p false))
+
+      (if (/= num-bits (region-num-bits regx))
+        (return-from region-list-same-num-bits-p false))
+    )
+    true
+  )
+)
+

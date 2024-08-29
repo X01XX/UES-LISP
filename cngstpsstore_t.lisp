@@ -14,11 +14,6 @@
     (assert (cngstpsstore-add store1 stp1))
     (assert (= (cngstpsstore-num-steps store1) 1))
 
-    ; Test adding a duplicate.
-    (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/11/00/01]") :kind 'a :w 1 :u 0))
-    (assert (not (cngstpsstore-add store1 stp1)))
-    (assert (= (cngstpsstore-num-steps store1) 1))
-
     ; Test adding a second change/steps, to the same cngstps instance.
     (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/10/11/01]") :kind 'a :w 1 :u 0))
     (assert (cngstpsstore-add store1 stp1))

@@ -24,29 +24,17 @@
   ;(format t "~&steps ~A" steps)
   (assert (step-list-p steps))
 
-  (let ((ret (make-stepstore :steps nil)))
-    (loop for stpx in steps do 
-      (if (not (stepstore-contains ret stpx))
-        (stepstore-push ret stpx))
-    )
-    ret
-  )
+  (make-stepstore :steps  steps)
 )
 
 ; Push a new step into a stepstore, suppress dups, subsets.
 ; Return true if the step has been added.
-(defun stepstore-push(storex stpx) ; -> bool, true if added.
+(defun stepstore-push(storex stpx) ; -> nothing, side-effect stepstore is changed.
   ;(format t "~&stepstore-push store ~A step ~A" storex stpx)
   (assert (stepstore-p storex))
   (assert (step-p stpx))
 
-  (if (member stpx (stepstore-steps storex) :test #'step-eq)
-    false
-    (progn
-      (push stpx (stepstore-steps storex))
-      true
-    )
-  )
+  (push stpx (stepstore-steps storex))
 )
 
 ; Return the number of steps in a stepstore.
@@ -58,11 +46,15 @@
 
 ; Return true if a stepstore is empty.
 (defun stepstore-is-empty (storex) ; -> bool
+  (assert (stepstore-p storex))
+
   (zerop (stepstore-length storex))
 )
 
 ; Return true if a stepstore is not empty.
 (defun stepstore-is-not-empty (storex) ; -> bool
+  (assert (stepstore-p storex))
+
   (plusp (stepstore-length storex))
 )
 
@@ -86,6 +78,7 @@
 (defun stepstore-contains (storex stpx) ; -> bool
   (assert (stepstore-p storex))
   (assert (step-p stpx))
+
   (if (member stpx (stepstore-steps storex) :test #'step-eq) true false)
 )
 

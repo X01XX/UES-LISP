@@ -343,6 +343,49 @@
     (format t "~&  region-subtract OK")
   )
  
+  ; Test region-list-p.
+  (let (lst1)
+    (assert (region-list-p lst1))
+
+    (assert (not (region-list-p 1)))
+    
+    (setf lst1 (list (region-from-str "XXXX")))
+    (assert (region-list-p lst1))
+
+    (setf lst1 (list (region-from-str "XXXX") 1))
+    (assert (not (region-list-p lst1)))
+
+    (setf lst1 (list (region-from-str "01XX") (region-from-str "10XX")))
+    (assert (region-list-p lst1))
+
+    (setf lst1 (list (region-from-str "01XX") (region-from-str "10X")))
+    (assert (region-list-p lst1))
+
+    (format t "~&  region-list-p OK")
+  )
+
+  ; Test region-list-some-num-bits-p.
+  (let (lst1)
+    (assert (region-list-same-num-bits-p lst1))
+
+    (assert (not (region-list-same-num-bits-p 1)))
+    
+    (setf lst1 (list (region-from-str "XXXX")))
+    (assert (region-list-same-num-bits-p lst1))
+
+    (setf lst1 (list (region-from-str "XXXX") 1))
+    (assert (not (region-list-same-num-bits-p lst1)))
+
+    (setf lst1 (list (region-from-str "01XX") (region-from-str "10XX")))
+    (assert (region-list-same-num-bits-p lst1))
+
+    (setf lst1 (list (region-from-str "01XX") (region-from-str "10X")))
+    (assert (not (region-list-same-num-bits-p lst1)))
+
+    (format t "~&  region-list-same-num-bits-p OK")
+  )
+
+
  (format t "~&region-tests done")
  t
 )

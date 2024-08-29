@@ -514,4 +514,16 @@
        (rule-sequence-blocks-changes :first rul2 :next rul1 :wanted wanted))
 )
 
+;;; Return true if a list is a list of rules.
+;;; An empty list will return true.
+(defun rule-list-p (rullst) ; -> bool
+  (if (not (listp rullst))
+    (return-from rule-list-p false))
+
+  (loop for rulx in rullst do
+    (if (not (rule-p rulx))
+      (return-from rule-list-p false))
+  )
+  true
+)
 

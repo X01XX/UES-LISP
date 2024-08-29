@@ -142,3 +142,17 @@
 
   (value-not (state-value stax))
 )
+
+;;; Return true if a list is a list of states.
+;;; An empty list will return true.
+(defun state-list-p (stelst) ; -> bool
+  (if (not (listp stelst))
+    (return-from state-list-p false))
+
+  (loop for stax in stelst do
+    (if (not (state-p stax))
+      (return-from state-list-p false))
+  )
+  true
+)
+
