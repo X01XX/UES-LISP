@@ -74,7 +74,7 @@
 
       ; Test regions that can be linked by two regions.
       ; Try many times, until all region options are used.
-      ; At one point, two options are available, random needs to give two different results over some number of tries.
+      ; At one point, two options are available, the random function needs to give two different results over some number of tries.
       (let ((reg1 (region-from-str "0101"))
             (reg2 (region-from-str "1111"))
             regs-used
@@ -84,8 +84,11 @@
           (loop for num from 1 to 100
             while (< (length regs-used) 2) do
     
-              (setf store3 (regionstore-find-links store2 reg1 reg2))
-	      ;(format t "~&regionstore-find-links result ~A" store3)
+	      ;; Choose an order, it should work either way.
+	      (setf store3
+		(if (zerop (random 2))
+                  (regionstore-find-links store2 reg1 reg2)
+                  (regionstore-find-links store2 reg2 reg1)))
     
               (when (/= 5 (regionstore-length store3))
                 (format t "~&Unexpected number of regs-used found ~A" store3)
