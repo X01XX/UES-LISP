@@ -228,11 +228,13 @@
 )
 
 ;;; Return the intersection of two regions.
-(defun region-intersection (reg1 reg2) ; -> region, or nil?
+(defun region-intersection (reg1 reg2) ; -> region, or nil.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
-  (assert (region-intersects reg1 reg2))
+
+  (if (not (region-intersects reg1 reg2))
+    (return-from region-intersection nil))
 
   (region-new (statestore-new (list (state-new (state-and (region-high-state reg1) (region-high-state reg2)))
                                     (state-new (state-or  (region-low-state reg1) (region-low-state reg2))))))

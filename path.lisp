@@ -21,7 +21,7 @@
 ;   (make-path [:<field-name> <field-path>]*), use path-new instead.
 ;   (copy-path <instance>) copies a path instance.
 
-;;; Return a new path instance, from a list of regions.
+;;; Return a new path instance, from a regionstore.
 (defun path-new (regions) ; -> path, or nil.
   ;(format t "~&regions ~A" regions)
   (assert (regionstore-p regions))

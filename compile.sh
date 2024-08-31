@@ -72,6 +72,10 @@ sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"path.lisp\") (quit))"
 sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"path_t.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"regionscorr.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"regionscorr_t.lisp\") (quit))"
 
 /usr/bin/rm ./*.o
 

@@ -1,3 +1,11 @@
+;;;; The Unorthodox-Expert-System, in LISP.
+;;;;
+;;;; The obvious question is: What is it an expert of?
+;;;;
+;;;; It is an expert of its own state.
+;;;;
+;;;; For use outside of the GPL-3.0 license, contact the Wisconsin Alumni Research Foundation (WARF).
+;;;;
 
 (load #p "err.lisp")
 (load #p "tools.lisp")
@@ -58,6 +66,9 @@
 
 (load #p "path.lisp")
 (load #p "path_t.lisp")
+
+(load #p "regionscorr.lisp")
+(load #p "regionscorr_t.lisp")
 
 (defvar true t)
 (defvar false nil)
@@ -144,6 +155,8 @@
   (regionstore-tests)
 
   (path-tests)
+
+  (regionscorr-tests)
 
   (format t "~&All tests done")
   t
