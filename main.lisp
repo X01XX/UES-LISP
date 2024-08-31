@@ -56,6 +56,9 @@
 (load #p "cngstpsstore.lisp")
 (load #p "cngstpsstore_t.lisp")
 
+(load #p "path.lisp")
+(load #p "path_t.lisp")
+
 (defvar true t)
 (defvar false nil)
 
@@ -139,6 +142,8 @@
 
   (cngstpsstore-tests)
   (regionstore-tests)
+
+  (path-tests)
 
   (format t "~&All tests done")
   t

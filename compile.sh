@@ -68,6 +68,10 @@ sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"cngstpsstore.lisp\") (quit))"
 sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"cngstpsstore_t.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"path.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"path_t.lisp\") (quit))"
 
 /usr/bin/rm ./*.o
 

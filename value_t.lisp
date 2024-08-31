@@ -6,6 +6,7 @@
   (let (valx)
     ; Test valid value parameters.
     (setf valx (value-new :num-bits 4 :bits 7))
+    (assert (value-p valx))
     (assert (and (value-p valx) (= (value-num-bits valx) 4) (= (value-bits valx) 7)))
 
     (format t "~&  value-new OK")

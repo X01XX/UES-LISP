@@ -1,5 +1,8 @@
 ;;;; Implement the mask struct and functions.
 
+(defvar true t)
+(defvar false nil)
+
 ;;; The mask struct.
 (defstruct (mask (:print-function mask-print))
   value ; A value, where bits set to one have some meaning.
@@ -211,4 +214,16 @@
   )
 )
 
+;;; Return true if a list is a list of masks.
+;;; An empty list will return true.
+(defun mask-list-p (msklst) ; -> bool
+  (if (not (listp msklst))
+    (return-from mask-list-p false))
+
+  (loop for mskx in msklst do
+    (if (not (mask-p mskx))
+      (return-from mask-list-p false))
+  )
+  true
+)
 

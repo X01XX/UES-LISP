@@ -3,16 +3,9 @@
   (format t "~&rulestore-tests beginning")
 
   ; Test rulestore-new.
-  (let (rul1 rul2)
-    (setf rul1 (rule-from-str "[Xx/XX/XX/XX]"))
-    (setf rul2 (rule-from-str "[Xx/XX/XX/XX]"))
-
-    ; Test rules equal error.
-
-    ; Test rules subset error.
-
-    ; Test valid rule list.
-
+  (let (store1)
+    (setf store1 (rulestore-new (list (rule-from-str "[Xx/XX/XX/XX]"))))
+    (assert (rulestore-p store1))
 
     (format t "~&  rulestore-new OK")
   )

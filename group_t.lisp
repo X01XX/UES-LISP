@@ -5,6 +5,8 @@
   ; Test group-new
   (let (grp0 errx)
     (setf grp0 (group-new :rules (rulestore-new (list (rule-from-str "[Xx/XX/XX/XX]")))))
+    (assert (group-p grp0))
+
     (setf grp0 (group-new :rules (rulestore-new (list (rule-from-str "[XX/Xx/XX/01]") 
 						      (rule-from-str "[XX/Xx/XX/00]")))))
 

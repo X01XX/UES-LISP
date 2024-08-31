@@ -9,6 +9,7 @@
     (setf reg2 (region-from-str "1x10"))
 
     (setf store1 (regionstore-new (list reg1 reg2)))
+    (assert (regionstore-p store1))
     (assert (= (regionstore-length store1) 2))
 
     (format t "~&  regionstore-new OK")
@@ -54,23 +55,23 @@
     (format t "~&  regionstore-append OK")
   )
 
-  ; Test regionstore-find-links.
-  (let (store1 store2 store3)
+  ; Test regionstore-find-path.
+  (let (path1 path2 path3)
       ;; Calculate regions available to link together.
-      (setf store1 (regionstore-new (list (region-from-str "XXXX"))))
-      (setf store2 (regionstore-subtract-region store1 (region-from-str "0111"))) ; Maybe square 0111 causes something bad to happen.
-      (setf store2 (regionstore-subtract-region store2 (region-from-str "1101"))) ; Maybe square 1101 causes something bad to happen.
+      (setf path1 (regionstore-new (list (region-from-str "XXXX"))))
+      (setf path2 (regionstore-subtract-region path1 (region-from-str "0111"))) ; Maybe square 0111 causes something bad to happen.
+      (setf path2 (regionstore-subtract-region path2 (region-from-str "1101"))) ; Maybe square 1101 causes something bad to happen.
 
       ; Test two regions that cannot be linked.
-      (setf store3 (regionstore-find-links store2 (region-from-str "0111") (region-from-str "1101")))
-      (assert (regionstore-is-empty store3))
+      (setf path3 (regionstore-find-path path2 (region-from-str "0111") (region-from-str "1101")))
+      (assert (null path3))
 
       ; Test two regions that can be linked by one region.
-      (setf store3 (regionstore-find-links store2 (region-from-str "0000") (region-from-str "0101")))
-      (assert (= 3 (regionstore-length store3)))
-      (assert (region-eq (regionstore-first-region store3) (region-from-str "0000")))
-      (assert (regionstore-contains store3 (region-from-str "0X0X")))
-      (assert (region-eq (regionstore-last-region store3) (region-from-str "0101")))
+      (setf path3 (regionstore-find-path path2 (region-from-str "0000") (region-from-str "0101")))
+      (assert (= 3 (path-length path3)))
+      (assert (region-eq (path-first-region path3) (region-from-str "0000")))
+      (assert (path-contains path3 (region-from-str "0X0X")))
+      (assert (region-eq (path-last-region path3) (region-from-str "0101")))
 
       ; Test regions that can be linked by two regions.
       ; Try many times, until all region options are used.
@@ -84,63 +85,50 @@
           (loop for num from 1 to 100
             while (< (length regs-used) 2) do
     
-	      ;; Choose an order, it should work either way.
-	      (setf store3
-		(if (zerop (random 2))
-                  (regionstore-find-links store2 reg1 reg2)
-                  (regionstore-find-links store2 reg2 reg1)))
+              ;; Choose an order, it should work either way.
+              (setf path3
+                (if (zerop (random 2))
+                  (regionstore-find-path path2 reg1 reg2)
+                  (regionstore-find-path path2 reg2 reg1)))
     
-              (when (/= 5 (regionstore-length store3))
-                (format t "~&Unexpected number of regs-used found ~A" store3)
-                (error "regionstore-find-links failed")
+              (when (/= 5 (path-length path3))
+                (format t "~&Unexpected number of regs-used found ~A" path3)
+                (error "regionstore-find-path failed")
               )
     
-	      ;; Check list of regions.
-	      (let ((last-reg (regionstore-first-region store3)))
-	        (loop for regx in (cdr (regionstore-regions store3)) do
-		  ;; Each two successive regions must intersect.
-		  (when (not (region-intersects regx last-reg))
-		    (format t "~&region ~A does not intersect ~A" last-reg regx)
-                    (format t "~&store3 ~A" store3)
-		    (error "done")
-		  )
-		  ;; Each two successive regions cannot be the same.
-		  (when (region-eq regx last-reg)
-		    (format t "~&region ~A duplicated" last-reg)
-                    (format t "~&store3 ~A" store3)
-		    (error "done")
-		  )
-		  (setf last-reg regx)
-	        )
-	      )	
+              ;; Check path of regions.
+              (when (null path3)
+                (format t "~&Path not found")
+                (error "done")
+              )
 
-	      ;; Check for the two options.
-              (cond ((regionstore-contains store3 link1)
+              ;; Check for the two options.
+              (cond ((path-contains path3 link1)
         	     (if (not (member link1 regs-used :test #'region-eq))
         	       (push link1 regs-used))
         	     )
-                    ((regionstore-contains store3 link2)
+                    ((path-contains path3 link2)
         	     (if (not (member link2 regs-used :test #'region-eq))
         	       (push link2 regs-used))
         	    )
-        	   (t (format t "~&Unexpected result ~A" (regionstore-first-region store3)) 
-        	      (error "regionstore-find-links failed"))
+        	   (t (format t "~&Unexpected result ~A" (path-first-region path3)) 
+        	      (error "regionstore-find-path failed"))
               )
           )
           (when (/= 2 (length regs-used))
             (format t "~&Not all region options used ~A" regs-used)
-            (error "regionstore-find-links failed")
+            (error "regionstore-find-path failed")
           )
     )
 
     ; Test two regions that cannot be linked by one region.
-    (setf store3 (regionstore-find-links store2 (region-from-str "0010") (region-from-str "0101")))
-    (assert (= 4 (regionstore-length store3)))
-    (assert (regionstore-contains store3 (region-from-str "0X0X")))
-    (assert (region-eq (regionstore-first-region store3) (region-from-str "0010")))
-    (assert (region-eq (regionstore-last-region store3) (region-from-str "0101")))
+    (setf path3 (regionstore-find-path path2 (region-from-str "0010") (region-from-str "0101")))
+    (assert (= 4 (path-length path3)))
+    (assert (path-contains path3 (region-from-str "0X0X")))
+    (assert (region-eq (path-first-region path3) (region-from-str "0010")))
+    (assert (region-eq (path-last-region path3) (region-from-str "0101")))
 
-    (format t "~&  regionstore-find-links OK")
+    (format t "~&  regionstore-find-path OK")
   )
 
   (format t "~&regionstore-tests done")

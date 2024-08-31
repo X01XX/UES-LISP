@@ -5,6 +5,7 @@
   ; Test state-new.
   (let (stax)
     (setf stax (state-new (value-from-str "#x03")))
+    (assert (state-p stax))
     (assert (and (state-p stax) (= (value-bits (state-value stax)) 3)))
     (format t "~&  state-new OK")
   )

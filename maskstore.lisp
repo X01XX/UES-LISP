@@ -26,7 +26,7 @@
   ;(format t "~&maskstore-new ~A" masks)
   (assert (mask-list-p masks))
 
-  (make-maskstore :masks mask)
+  (make-maskstore :masks masks)
 )
 
 ; Push a new mask into a maskstore.

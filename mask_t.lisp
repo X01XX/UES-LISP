@@ -6,6 +6,7 @@
   (let (mskx)
     ; Test creating a valid mask.
     (setf mskx (mask-new (value-from-str "#x03")))
+    (assert (mask-p mskx))
     (assert (and (mask-p mskx) (= (value-bits (mask-value mskx)) 3)))
  
     (format t "~&  mask-new OK")

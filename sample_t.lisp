@@ -10,6 +10,7 @@
    ; Test creating a sample.
    (setf smplx (sample-new :initial sta1 :action 0 :result sta2))
    (assert (sample-p smplx))
+
    (assert (state-eq (sample-initial smplx) sta1))
    (assert (state-eq (sample-result smplx) sta2))
 

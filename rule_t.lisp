@@ -10,6 +10,7 @@
     ; Test making a rule.
     (setf rulx (rule-new (sample-new :initial sta1 :action 0 :result sta2)))
     (assert (rule-p rulx))
+
     (assert (mask-eq (rule-b00 rulx) (mask-from-str "#x8")))
     (assert (mask-eq (rule-b01 rulx) (mask-from-str "#x2")))
     (assert (mask-eq (rule-b11 rulx) (mask-from-str "#x4")))

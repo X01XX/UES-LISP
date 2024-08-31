@@ -10,6 +10,8 @@
 	  (rule-new (sample-new :initial (state-from-str "#x0") :action 0 :result (state-from-str "#x1")))
 	  (rule-new (sample-new :initial (state-from-str "#xf") :action 0 :result (state-from-str "#xe"))))))))))
  
+    (assert (groupstore-p store1))
+
     ;(format t "~&groupstore ~A" (groupstore-str store1))
     (format t "~&  groupstore-new OK")
   )

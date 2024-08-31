@@ -6,6 +6,7 @@
  (let (states regx)
    (setf states (statestore-new (list (state-from-str "#x1") (state-from-str "#x2") (state-from-str "#x4"))))
    (setf regx (region-new states))
+   (assert (region-p regx))
    (assert (and (region-p regx) (string= (region-str regx) "#S(REGION 0xxX)+")))
 
    (format t "~&  region-new OK")

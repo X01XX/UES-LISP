@@ -222,11 +222,11 @@
 
 ;;; Find a path of intersecting regions between two given regions.
 ;;; Return a regionstore of reg1 + series-of-intersecting-regions + reg2.
-;;; Failure to find a path is an empty regionstore.
+;;; Failure to find a path returns nil.
 ;;; The strategy is to keep dividing the problem into two smaller problems.
 ;;; Later, a path can be calculated from intersection to intersection.
-(defun regionstore-find-links (path-options left-reg right-reg) ; -> regionstore
-  ;(format t "~&regionstore-find-links ~A and ~A" left-reg right-reg)
+(defun regionstore-find-path (path-options left-reg right-reg) ; -> path, or nil.
+  ;(format t "~&regionstore-find-path ~A and ~A" left-reg right-reg)
   (assert (regionstore-p path-options))
   (assert (region-p left-reg))
   (assert (region-p right-reg))
@@ -234,21 +234,21 @@
 
   ;; No point without at least one intersectionu of the left region.
   (if (not (regionstore-any-intersection path-options left-reg))
-    (return-from regionstore-find-links (regionstore-new nil)))
+    (return-from regionstore-find-path nil))
 
   ;; No point without at least one intersection of the right region.
   (if (not (regionstore-any-intersection path-options right-reg))
-    (return-from regionstore-find-links (regionstore-new nil)))
+    (return-from regionstore-find-path nil))
 
   ;; Regions should not intersect already.
   (if (region-intersects left-reg right-reg)
-    (return-from regionstore-find-links (regionstore-new nil)))
+    (return-from regionstore-find-path nil))
 
   ;; Try to find a path between the regions.
-  (regionstore-find-links2 path-options left-reg right-reg)
+  (regionstore-find-path2 path-options left-reg right-reg)
 )
-(defun regionstore-find-links2 (path-options left-reg right-reg) ; -> regionstore. Probably should not call this function directly.
-  ;(format t "~&regionstore-find-links2 ~A and ~A" left-reg right-reg)
+(defun regionstore-find-path2 (path-options left-reg right-reg) ; -> path, or nil. Probably should not call this function directly.
+  ;(format t "~&regionstore-find-path2 ~A and ~A" left-reg right-reg)
   ;(assert (regionstore-p path-options))
   ;(assert (region-p left-reg))
   ;(assert (region-p right-reg))
@@ -264,7 +264,7 @@
       )
     )
     (if links
-      (return-from regionstore-find-links2 (regionstore-new (list left-reg (nth (random (length links)) links) right-reg)))
+      (return-from regionstore-find-path2 (path-new (regionstore-new (list left-reg (nth (random (length links)) links) right-reg))))
     )
   )
 
@@ -288,18 +288,18 @@
       ;; Choose a region to split the problem in two.
       (setf middle-region (nth (random (length links)) links))
  
-      (setf left-path (regionstore-find-links2 path-options left-reg middle-region))
-      (if (regionstore-is-empty left-path)
-        (return-from regionstore-find-links2 left-path))
+      (setf left-path (regionstore-find-path2 path-options left-reg middle-region))
+      (if (null left-path)
+        (return-from regionstore-find-path2 nil))
 
-      (setf right-path (regionstore-find-links2 path-options middle-region right-reg))
-      (if (regionstore-is-empty right-path)
-        (return-from regionstore-find-links2 right-path))
+      (setf right-path (regionstore-find-path2 path-options middle-region right-reg))
+      (if (null right-path)
+        (return-from regionstore-find-path2 nil))
 
       (if (region-eq (regionstore-last-region left-path) (regionstore-first-region right-path))
-        (return-from regionstore-find-links2 (regionstore-append left-path (regionstore-cdr right-path))))
+        (return-from regionstore-find-path2 (path-append left-path (regionstore-cdr right-path))))
 
-      (return-from regionstore-find-links2 (regionstore-append left-path right-path))
+      (return-from regionstore-find-path2 (path-append left-path right-path))
     )
   )
 
@@ -333,24 +333,25 @@
 
       ;; Process a region that intersects the left region.
       (when (region-intersects next-region left-reg)
-        (setf right-path (regionstore-find-links2 path-options next-region right-reg))
-        (if (regionstore-is-empty right-path)
-          (return-from regionstore-find-links2 right-path))
+        (setf right-path (regionstore-find-path2 path-options next-region right-reg))
+        (if (path-is-empty right-path)
+          (return-from regionstore-find-path2 right-path))
 
-        (regionstore-push right-path left-reg)
-        (return-from regionstore-find-links2 right-path)
+        (path-add-start right-path left-reg)
+        (return-from regionstore-find-path2 right-path)
       )
       ;; Process a region that intersects the right region.
       (when (region-intersects next-region right-reg)
-        (setf left-path (regionstore-find-links2 path-options left-reg next-region))
-        (if (regionstore-is-empty left-path)
-          (return-from regionstore-find-links2 left-path))
+        (setf left-path (regionstore-find-path2 path-options left-reg next-region))
+        (if (path-is-empty left-path)
+          (return-from regionstore-find-path2 left-path))
 
-        (regionstore-add-end left-path right-reg)
-        (return-from regionstore-find-links2 left-path)
+        (path-add-end left-path right-reg)
+        (return-from regionstore-find-path2 left-path)
       )
     )
   ) 
   ;; Default return.
-  (regionstore-new nil)
+  nil
 )
+

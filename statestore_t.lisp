@@ -11,6 +11,7 @@
     ; Test a good state list.
     (setf ssx (statestore-new ss3))
     (assert (statestore-p ssx))
+
     (setf len (statestore-length ssx))
     ;(format t "~&len ~A" len)
     (assert (= len 3))
