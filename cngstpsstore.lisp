@@ -36,7 +36,7 @@
 )
 
 ; Push a new step to a cngstpsstore.
-(defun cngstpsstore-add(storex stpx) ; -> bool, true if added.
+(defun cngstpsstore-add (storex stpx) ; -> bool, true if added.
   (assert (cngstpsstore-p storex))
   (assert (step-p stpx))
 

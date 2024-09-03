@@ -29,7 +29,7 @@
 
 ; Push a new step into a stepstore, suppress dups, subsets.
 ; Return true if the step has been added.
-(defun stepstore-push(storex stpx) ; -> nothing, side-effect stepstore is changed.
+(defun stepstore-push (storex stpx) ; -> nothing, side-effect stepstore is changed.
   ;(format t "~&stepstore-push store ~A step ~A" storex stpx)
   (assert (stepstore-p storex))
   (assert (step-p stpx))

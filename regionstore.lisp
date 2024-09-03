@@ -208,16 +208,3 @@
   )
 )
 
-;;; Return true if a given region intersects regions that another region does not intersect.
-(defun regionstore-other-intersections (&key store int-reg not-reg) ; -> bool
-  (assert (regionstore-p store))
-  (assert (region-p int-reg))
-  (assert (region-p not-reg))
-
-  (loop for regx in (regionstore-region-list store) do
-    (if (and (region-intersects regx int-reg) (not (region-intersects regx not-reg)))
-      (return-from regionstore-other-intersections true))
-  )
-  false
-)
-

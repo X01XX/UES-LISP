@@ -35,7 +35,7 @@
 
 ; Push a new domain into a domainstore, suppress dups, subsets.
 ; Return true if the domain has been added.
-(defun domainstore-push(storex domx) ; -> bool, true if added.
+(defun domainstore-push (storex domx) ; -> bool, true if added.
   (assert (domainstore-p storex))
   (assert (domain-p domainx))
 

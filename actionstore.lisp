@@ -35,7 +35,7 @@
 
 ; Push a new action into a actionstore, suppress dups, subsets.
 ; Return true if the action has been added.
-(defun actionstore-push(storex actx) ; -> bool, true if added.
+(defun actionstore-push (storex actx) ; -> bool, true if added.
   (assert (actionstore-p storex))
   (assert (action-p actx))
 

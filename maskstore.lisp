@@ -30,7 +30,7 @@
 )
 
 ; Push a new mask into a maskstore.
-(defun maskstore-push(storex maskx) ; -> nothing. Side-effect maskstore is changed.
+(defun maskstore-push (storex maskx) ; -> nothing. Side-effect maskstore is changed.
   (assert (maskstore-p storex))
   (assert (mask-p maskx))
 

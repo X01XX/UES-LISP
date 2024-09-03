@@ -122,7 +122,7 @@
 )
 
 ;;; Return the Boolean "or" of two masks.
-(defun mask-or(msk1 msk2) ; -> value.
+(defun mask-or (msk1 msk2) ; -> value.
   (assert (mask-p msk1))
   (assert (mask-p msk2))
   (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))

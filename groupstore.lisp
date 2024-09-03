@@ -32,7 +32,7 @@
 
 ; Push a new group into a groupstore, suppress dups, subsets.
 ; Return true if the group has been added.
-(defun groupstore-push(storex groupx) ; -> bool, true if added.
+(defun groupstore-push (storex groupx) ; -> bool, true if added.
   (assert (groupstore-p storex))
   (assert (group-p groupx))
 

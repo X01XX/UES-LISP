@@ -36,7 +36,7 @@
 )
 
 ;;; Push a new state into a statestore, suppress dups.
-(defun statestore-push(store state) ; -> nothing, side-effect statestore is changed.
+(defun statestore-push (store state) ; -> nothing, side-effect statestore is changed.
   (assert (statestore-p store))
   (assert (state-p state))
 
