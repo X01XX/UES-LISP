@@ -64,11 +64,14 @@
 (load #p "cngstpsstore.lisp")
 (load #p "cngstpsstore_t.lisp")
 
-(load #p "path.lisp")
-(load #p "path_t.lisp")
-
 (load #p "regionscorr.lisp")
 (load #p "regionscorr_t.lisp")
+
+(load #p "pathcorr.lisp")
+(load #p "pathcorr_t.lisp")
+
+(load #p "regionscorrstore.lisp")
+(load #p "regionscorrstore_t.lisp")
 
 (defvar true t)
 (defvar false nil)
@@ -154,9 +157,10 @@
   (cngstpsstore-tests)
   (regionstore-tests)
 
-  (path-tests)
+  (pathcorr-tests)
 
   (regionscorr-tests)
+  (regionscorrstore-tests)
 
   (format t "~&All tests done")
   t

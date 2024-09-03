@@ -344,6 +344,7 @@
 ;;; Return true if a list is a list of regions.
 ;;; An empty list will return true.
 (defun region-list-p (reglst) ; -> bool
+  ;(format t "~&region-list-p: ~A" reglst)
   (if (not (listp reglst))
     (return-from region-list-p false))
 
