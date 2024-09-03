@@ -65,10 +65,10 @@
       ;; Calculate regions available to link together.
       (setf path1 (regionscorrstore-new (list (regionscorr-new (list (region-from-str "XX") (region-from-str "XX"))))))
       (setf path2 (regionscorrstore-subtract-regionscorr path1
-	 (regionscorr-new (list (region-from-str "01") (region-from-str "11"))))) ; Maybe square 0111 causes something bad to happen.
+	 (regionscorr-new (list (region-from-str "01") (region-from-str "11"))))) ; Maybe squares 01 and 11 cause something bad to happen.
 
       (setf path2 (regionscorrstore-subtract-regionscorr path2
-	 (regionscorr-new (list (region-from-str "11") (region-from-str "01"))))) ; Maybe square 1101 causes something bad to happen.
+	 (regionscorr-new (list (region-from-str "11") (region-from-str "01"))))) ; Maybe squares 11 and 01 cause something bad to happen.
 
       ; Test two regions that cannot be linked.
       (setf path3 (regionscorrstore-find-path path2

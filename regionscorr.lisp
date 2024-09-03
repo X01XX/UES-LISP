@@ -1,6 +1,8 @@
 ;;;; Implement a series of regions that correspond to a particular order.
 ;;;;
 ;;;; The regions may use different numbers of bits, depending on their position in a list.
+;;;;
+;;;; See the Domain concept in the Rust version of the project.
 
 (defvar true t)
 (defvar false nil)
