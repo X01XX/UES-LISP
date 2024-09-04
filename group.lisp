@@ -96,9 +96,9 @@
     (setf from-reg (rule-initial-region rule-to-goal))
     (setf to-reg (rule-result-region rule-to-goal))
 
-    ;(format t "~&rules ~A" (rulestore-rules (group-rules grpx)))
+    ;(format t "~&rules ~A" (rulestore-rule-list (group-rules grpx)))
 
-    (loop for ruly in (rulestore-rules (group-rules grpx)) do
+    (loop for ruly in (rulestore-rule-list (group-rules grpx)) do
 
       (when (or (value-is-not-low (mask-and (rule-b01 ruly) (change-b01 wanted-changes)))
                 (value-is-not-low (mask-and (rule-b10 ruly) (change-b10 wanted-changes))))

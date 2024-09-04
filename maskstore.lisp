@@ -5,7 +5,7 @@
 
 ; Implement a store of masks.
 (defstruct maskstore
-  masks  ; A list of zero, or more, non-duplicate, same number bits, masks.
+  mask-list  ; A list of zero, or more, non-duplicate, same number bits, masks.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&maskstore-new ~A" masks)
   (assert (mask-list-p masks))
 
-  (make-maskstore :masks masks)
+  (make-maskstore :mask-list masks)
 )
 
 ; Push a new mask into a maskstore.
@@ -34,14 +34,14 @@
   (assert (maskstore-p storex))
   (assert (mask-p maskx))
 
-  (push maskx (maskstore-masks storex))
+  (push maskx (maskstore-mask-list storex))
 )
 
 ; Return the number of masks in a maskstore.
 (defun maskstore-length (storex) ; -> number.
   (assert (maskstore-p storex))
 
-  (length (maskstore-masks storex))
+  (length (maskstore-mask-list storex))
 )
 
 ; Return true if a maskstore is empty.
@@ -60,7 +60,7 @@
 
   (let ((ret "#S(MASKSTORE ") (start t))
 
-    (loop for mskx in (maskstore-masks storex) do
+    (loop for mskx in (maskstore-mask-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (mask-str mskx)))
@@ -75,14 +75,14 @@
   (assert (maskstore-p storex))
   (assert (mask-p mskx))
 
-  (if (member mskx (maskstore-masks storex) :test #'mask-eq) true false)
+  (if (member mskx (maskstore-mask-list storex) :test #'mask-eq) true false)
 )
 
 (defun maskstore-first-mask (storex) ; -> mask
   (assert (maskstore-p storex))
   (assert (maskstore-is-not-empty storex))
 
-  (car (maskstore-masks storex))
+  (car (maskstore-mask-list storex))
 )
 
 

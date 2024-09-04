@@ -5,7 +5,7 @@
 
 ; Implement a store of domains.
 (defstruct domainstore
-  domains  ; A list of zero, or more, non-duplicate, same number bits, domains.
+  domain-list  ; A list of zero, or more, domains with unique id values.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,7 +24,7 @@
   ;(format t "~&domains ~A" domains)
   (assert (domain-list-p domains))
 
-  (let ((ret (make-domainstore :domains nil)))
+  (let ((ret (make-domainstore :domain-list nil)))
     (loop for domx in domains do 
       (if (not (domainstore-contains ret domx))
         (domainstore-push ret domx))
@@ -37,15 +37,15 @@
 ; Return true if the domain has been added.
 (defun domainstore-push (storex domx) ; -> bool, true if added.
   (assert (domainstore-p storex))
-  (assert (domain-p domainx))
+  (assert (domain-p domx))
 
   ; Check for equal domains.
-  (loop for acty in (domainstore-domains storex) do
+  (loop for acty in (domainstore-domain-list storex) do
     (if (= (domain-id acty) (domain-id domx))
       (return-from domainstore-push false))
   )
 
-  (push domx (domainstore-domains storex))
+  (push domx (domainstore-domain-list storex))
   true
 )
 
@@ -53,7 +53,7 @@
 (defun domainstore-length (storex) ; -> number.
   (assert (domainstore-p storex))
 
-  (length (domainstore-domains storex))
+  (length (domainstore-domain-list storex))
 )
 
 ; Return true if a domainstore is empty.
@@ -72,7 +72,7 @@
 
   (let ((ret "#S(ACTIONSTORE ") (start t))
 
-    (loop for domx in (domainstore-domains storex) do
+    (loop for domx in (domainstore-domain-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (domain-str domx)))
@@ -80,5 +80,14 @@
 
     ret
   )
+)
+
+;;; Return true if a domainstore contains a given domain.
+(defun domainstore-contains (storex domx) ; -> bool
+  ;(format t "domainstore-contains storex ~A domx ~A" storex domx)
+  (assert (domainstore-p storex))
+  (assert (domain-p domx))
+
+  (if (member domx (domainstore-domain-list storex) :test #'domain-eq) true false)
 )
 

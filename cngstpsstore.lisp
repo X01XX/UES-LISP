@@ -5,7 +5,7 @@
 
 ; Implement a store of cngstpss.
 (defstruct cngstpsstore
-  cngstpss  ; A list of zero, or more, non-duplicate, same number bits, change steps.
+  cngstps-list  ; A list of zero, or more, non-duplicate, same number bits, change steps.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,10 +26,10 @@
   (assert (change-p wanted-changes))
   (assert (change-is-not-low wanted-changes))
 
-  (let ((ret-store (make-cngstpsstore :cngstpss nil))
+  (let ((ret-store (make-cngstpsstore :cngstps-list nil))
 	(changes-each-bit (change-split wanted-changes)))
     (loop for one-bit-change in changes-each-bit do
-        (push (cngstps-new one-bit-change) (cngstpsstore-cngstpss ret-store))
+        (push (cngstps-new one-bit-change) (cngstpsstore-cngstps-list ret-store))
     )
     ret-store
   )
@@ -42,7 +42,7 @@
 
   ; Update existing cngstps, if any.
   (let (ret)
-    (loop for cngstpsx in (cngstpsstore-cngstpss storex) do 
+    (loop for cngstpsx in (cngstpsstore-cngstps-list storex) do 
       (when (change-is-not-low (rule-intersection-change (step-rule stpx) (cngstps-change cngstpsx)))
         (if (cngstps-add cngstpsx stpx)
 	  (setf ret true)
@@ -57,21 +57,21 @@
 (defun cngstpsstore-length (storex) ; -> number.
   (assert (cngstpsstore-p storex))
 
-  (length (cngstpsstore-cngstpss storex))
+  (length (cngstpsstore-cngstps-list storex))
 )
 
 ; Return true if a cngstpsstore is empty.
 (defun cngstpsstore-is-empty (storex) ; -> bool
   (assert (cngstpsstore-p storex))
 
-  (zerop (length (cngstpsstore-cngstpss storex)))
+  (zerop (length (cngstpsstore-cngstps-list storex)))
 )
 
 ; Return true if a cngstpsstore is not empty.
 (defun cngstpsstore-is-not-empty (storex) ; -> bool
   (assert (cngstpsstore-p storex))
 
-  (plusp (length (cngstpsstore-cngstpss storex)))
+  (plusp (length (cngstpsstore-cngstps-list storex)))
 )
 
 ; Return a string representing a cngstpsstore.
@@ -80,7 +80,7 @@
 
   (let ((ret "#S(CNGSTPSSTORE ") (start t))
 
-    (loop for cngstpsx in (cngstpsstore-cngstpss storex) do
+    (loop for cngstpsx in (cngstpsstore-cngstps-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ",\n")))    
 
       (setf ret (concatenate 'string ret (change-str (cngstps-cng cngstpsx))))
@@ -97,7 +97,7 @@
   (assert (cngstpsstore-p storex))
 
   (let ((cnt 0))
-    (loop for cngstpsx in (cngstpsstore-cngstpss storex) do
+    (loop for cngstpsx in (cngstpsstore-cngstps-list storex) do
       (setf cnt (+ cnt (cngstps-num-steps cngstpsx)))
     )
     cnt

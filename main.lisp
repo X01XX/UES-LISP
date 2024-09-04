@@ -55,6 +55,7 @@
 (load #p "change_t.lisp")
 
 (load #p "domain.lisp")
+(load #p "domain_t.lisp")
 
 (load #p "anyxofn.lisp")
 
@@ -72,6 +73,15 @@
 
 (load #p "regionscorrstore.lisp")
 (load #p "regionscorrstore_t.lisp")
+
+(load #p "domainstore.lisp")
+(load #p "domainstore_t.lisp")
+
+(load #p "plan.lisp")
+(load #p "plan_t.lisp")
+
+(load #p "planstore.lisp")
+(load #p "planstore_t.lisp")
 
 (defvar true t)
 (defvar false nil)
@@ -116,7 +126,7 @@
 
     (setf cngstpsstore1 (cngstpsstore-new wanted-changes))
 
-    (loop for stepx in (stepstore-steps steps) do
+    (loop for stepx in (stepstore-step-list steps) do
       (cngstpsstore-add cngstpsstore1 stepx)
     )
     (format t "~& ~&steps stored by single-bit changes:~&  ~A" cngstpsstore1)
@@ -161,6 +171,12 @@
 
   (regionscorr-tests)
   (regionscorrstore-tests)
+
+  (domain-tests)
+  (domainstore-tests)
+
+  (plan-tests)
+  (planstore-tests)
 
   (format t "~&All tests done")
   t

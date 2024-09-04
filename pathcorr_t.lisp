@@ -4,7 +4,7 @@
   (format t "~&pathcorr-tests beginning")
 
   ; Test pathcorr-new.
-  (let (pathcorr1 pathcorr2)
+  (let (pathcorr1)
     ; Test new, empty, pathcorr.
     (setf pathcorr1 (pathcorr-new nil))
     (assert (pathcorr-p pathcorr1))

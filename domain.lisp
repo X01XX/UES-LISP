@@ -64,3 +64,22 @@
   (state-num-bits (domain-current-state domx))
 )
 
+;;; Return true if a list is a list of domains.
+;;; An empty list will return true.
+(defun domain-list-p (domlst) ; -> bool
+  ;(format t "~&domain-list-p: ~A" domlst)
+  (if (not (listp domlst))
+    (return-from domain-list-p false))
+
+  (loop for domx in domlst do
+    (if (not (domain-p domx))
+      (return-from domain-list-p false))
+  )
+  true
+)
+
+;;; Return true if two domains are equal.
+(defun domain-eq (dom1 dom2) ; -> bool
+  (= (domain-id dom1) (domain-id dom2))
+)
+

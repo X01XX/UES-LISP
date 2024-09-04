@@ -73,7 +73,7 @@
   ;(format t "~&action-get-steps")
   (let ((ret-steps (stepstore-new nil)) group-steps)
     (setf group-steps (groupstore-get-steps (action-groups actx) rule-to-goal))
-    (loop for stpx in (stepstore-steps group-steps) do
+    (loop for stpx in (stepstore-step-list group-steps) do
       (setf (step-act-id stpx) (action-id actx))
       (stepstore-push ret-steps stpx)
     )

@@ -5,7 +5,7 @@
 
 ; Implement a store of regions.
 (defstruct (pathcorr (:print-function pathcorr-print))
-  regionscorr-list  ; A list of of zero, or more, regionscorr.
+  regionscorrstore  ; A store of of zero, or more, regionscorr.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -27,10 +27,15 @@
   (assert (regionscorr-list-p regions))
 
   (let (ret)
-    (setf ret (make-pathcorr :regionscorr-list regions))
+    (setf ret (make-pathcorr :regionscorrstore (regionscorrstore-new regions)))
     (assert (pathcorr-is-valid ret))
     ret
   )
+)
+
+;;; Return a list of regionscorr.
+(defun pathcorr-regionscorr-list (pathcorrx) ; -> A list of regionscorr.
+  (regionscorrstore-regionscorr-list (pathcorr-regionscorrstore pathcorrx))
 )
 
 ;;; Print a pathcorr.
@@ -47,7 +52,7 @@
 
   (assert (or (pathcorr-is-empty pathcorrx) (regionscorr-intersect regx (pathcorr-first-region pathcorrx))))
 
-  (push regx (pathcorr-regionscorr-list pathcorrx))
+  (regionscorrstore-push (pathcorr-regionscorrstore pathcorrx) regx)
 )
 
 ;;; Add region to the end of a pathcorr.
@@ -57,14 +62,14 @@
 
   (assert (or (pathcorr-is-empty pathcorrx) (regionscorr-intersect regx (pathcorr-last-region pathcorrx))))
 
-  (setf (pathcorr-regionscorr-list pathcorrx) (append (pathcorr-regionscorr-list pathcorrx) (list regx)))
+  (regionscorrstore-add-end (pathcorr-regionscorrstore pathcorrx) regx)
 )
 
 ;;; Return the number of regions in a pathcorr.
 (defun pathcorr-length (pathcorrx) ; -> number.
   (assert (pathcorr-p pathcorrx))
 
-  (length (pathcorr-regionscorr-list pathcorrx))
+  (regionscorrstore-length (pathcorr-regionscorrstore pathcorrx))
 )
 
 ;;; Return true if a pathcorr is empty.
@@ -85,7 +90,7 @@
 (defun pathcorr-str (pathcorrx) ; -> string.
   (assert (pathcorr-p pathcorrx))
 
-  (if (null (pathcorr-regionscorr-list pathcorrx))
+  (if  (pathcorr-is-empty pathcorrx)
     (return-from pathcorr-str "#S(pathcorr REGIONS NIL)")
   )
 
@@ -113,7 +118,7 @@
   (assert (pathcorr-p pathcorrx))
   (assert (regionscorr-p regx))
 
-  (member regx (pathcorr-regionscorr-list pathcorrx) :test #'regionscorr-eq)
+  (regionscorrstore-contains (pathcorr-regionscorrstore pathcorrx) regx)
 )
 
 ;;; Return the first region in a non-empty pathcorr.
@@ -121,7 +126,7 @@
   (assert (pathcorr-p pathcorrx))
   (assert (pathcorr-is-not-empty pathcorrx))
 
-  (car (pathcorr-regionscorr-list pathcorrx))
+  (regionscorrstore-first-region (pathcorr-regionscorrstore pathcorrx))
 )
 
 ;;; Return the last region in a non-empty pathcorr.
@@ -129,7 +134,7 @@
   (assert (pathcorr-p pathcorrx))
   (assert (pathcorr-is-not-empty pathcorrx))
 
-  (car (last (pathcorr-regionscorr-list pathcorrx)))
+  (regionscorrstore-last-region (pathcorr-regionscorrstore pathcorrx)))
 )
 
 ;;; Return the cdr of a non-empty pathcorr.
@@ -137,7 +142,7 @@
   (assert (pathcorr-p pathcorrx))
   (assert (pathcorr-is-not-empty pathcorrx))
 
-  (make-pathcorr :regionscorr-list (regionscorr-cdr (pathcorr-regionscorr-list pathcorrx)))
+  (make-pathcorr :regionscorrstore (regionscorrstore-cdr (pathcorr-regionscorrstore pathcorrx)))
 )
 
 ;;; Append two pathcorrs.
@@ -146,14 +151,8 @@
   (assert (pathcorr-p store1))
   (assert (pathcorr-p store2))
 
-  (let ((ret (make-pathcorr :regionscorr-list (pathcorr-regionscorr-list store1))))
-
-    ;; Add store2 regions.
-    (loop for regx in (pathcorr-regionscorr-list store2) do
-      (regionscorr-add-end (pathcorr-regionscorr-list ret) regx)
-    )
-    ret
-  )
+  (make-pathcorr :regionscorrstore (regionscorrstore-append (pathcorr-regioncorrstore store1)
+                                                            (pathcorr-regioncorrstore store2)))
 )
 
 ;;; Return true if a pathcorr contains a series of intersecting regions.

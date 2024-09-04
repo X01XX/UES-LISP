@@ -80,6 +80,22 @@ sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"regionscorrstore.lisp\") (quit))"
 sleep 1
 /usr/bin/gcl -eval "(progn (compile-file \"regionscorrstore_t.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"domain.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"domain_t.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"domainstore.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"domainstore_t.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"plan.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"plan_t.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"planstore.lisp\") (quit))"
+sleep 1
+/usr/bin/gcl -eval "(progn (compile-file \"planstore_t.lisp\") (quit))"
 
 /usr/bin/rm ./*.o
 

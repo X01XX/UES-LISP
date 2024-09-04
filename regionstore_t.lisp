@@ -3,7 +3,7 @@
   (format t "~&regionstore-tests beginning")
 
   ; Test regionstore-new.
-  (let (reg1 reg2 reg3 store1)
+  (let (reg1 reg2 store1)
 
     (setf reg1 (region-from-str "0x10"))
     (setf reg2 (region-from-str "1x10"))

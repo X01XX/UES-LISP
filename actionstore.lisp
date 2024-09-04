@@ -5,7 +5,7 @@
 
 ; Implement a store of actions.
 (defstruct actionstore
-  actions  ; A list of zero, or more, non-duplicate, same number bits, actions.
+  action-list  ; A list of zero, or more, non-duplicate, same number bits, actions.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,7 +24,7 @@
   ;(format t "~&actions ~A" actions)
   (assert (action-list-p actions))
 
-  (let ((ret (make-actionstore :actions nil)))
+  (let ((ret (make-actionstore :action-list nil)))
     (loop for actx in actions do 
       (if (not (actionstore-contains ret actx))
         (actionstore-push ret actx))
@@ -40,13 +40,13 @@
   (assert (action-p actx))
 
   ; Check for equal actions.
-  (loop for acty in (actionstore-actions storex) do
+  (loop for acty in (actionstore-action-list storex) do
     (if (= (action-id acty) (action-id actx))
       (return-from actionstore-push false))
   )
 
   ; Add the new action.
-  (push actx (actionstore-actions storex))
+  (push actx (actionstore-action-list storex))
   true
 )
 
@@ -54,7 +54,7 @@
 (defun actionstore-length (storex) ; -> number.
   (assert (actionstore-p storex))
 
-  (length (actionstore-actions storex))
+  (length (actionstore-action-list storex))
 )
 
 ; Return true if a actionstore is empty.
@@ -73,7 +73,7 @@
 
   (let ((ret "#S(ACTIONSTORE ") (start t))
 
-    (loop for actx in (actionstore-actions storex) do
+    (loop for actx in (actionstore-action-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (format nil " ~&  ~A" (action-str actx))))
@@ -88,14 +88,14 @@
   (assert (actionstore-p storex))
   (assert (action-p actx))
 
-  (if (member actx (actionstore-actions storex) :test #'action-eq) true false)
+  (if (member actx (actionstore-action-list storex) :test #'action-eq) true false)
 )
 
 (defun actionstore-first-action (storex) ; -> action
   (assert (actionstore-p storex))
   (assert (actionstore-is-not-empty storex))
 
-  (car (actionstore-actions storex))
+  (car (actionstore-action-list storex))
 )
 
 ;  Return possible steps, given a rule.
@@ -105,9 +105,9 @@
   (assert (rule-p rule-to-goal))
   
   (let ((ret-steps (stepstore-new nil)) act-steps)
-    (loop for actx in (actionstore-actions storex) do
+    (loop for actx in (actionstore-action-list storex) do
       (setf act-steps (action-get-steps actx rule-to-goal))
-      (loop for stpx in (stepstore-steps act-steps) do
+      (loop for stpx in (stepstore-step-list act-steps) do
         (stepstore-push ret-steps stpx) 
       )
     )

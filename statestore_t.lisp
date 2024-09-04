@@ -3,13 +3,13 @@
   (format t "~&statestore-tests beginning")
 
   ; Test statestore-new.
-  (let (ssx ss1 ss3 len)
+  (let (ssx ss1 len)
 
     ; A state list.
-    (setf ss3 (list (state-from-str "#x1") (state-from-str "#x2") (state-from-str "#x8")))
+    (setf ss1 (list (state-from-str "#x1") (state-from-str "#x2") (state-from-str "#x8")))
  
     ; Test a good state list.
-    (setf ssx (statestore-new ss3))
+    (setf ssx (statestore-new ss1))
     (assert (statestore-p ssx))
 
     (setf len (statestore-length ssx))

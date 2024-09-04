@@ -5,7 +5,7 @@
 
 ;;; The statestore struct.
 (defstruct (statestore (:print-function statestore-print))
-  states  ; A list of zero, or more, non-duplicate, same number bits, states.
+  state-list  ; A list of zero, or more, non-duplicate, same number bits, states.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&states ~A" states)
   (assert (state-list-p states))
 
-  (make-statestore :states states)
+  (make-statestore :state-list states)
 )
 
 ;;; Print a statestore.
@@ -40,14 +40,14 @@
   (assert (statestore-p store))
   (assert (state-p state))
 
-  (push state (statestore-states store))
+  (push state (statestore-state-list store))
 )
 
 ;;; Return the number of states in a statestore.
 (defun statestore-length (storex) ; -> number.
   (assert (statestore-p storex))
 
-  (length (statestore-states storex)))
+  (length (statestore-state-list storex)))
 
 ;;; Return true if a statestore is empty.
 (defun statestore-is-empty (storex) ; -> bool
@@ -69,7 +69,7 @@
 
   (let ((ret "#S(STATESTORE ") (start t))
 
-    (loop for stax in (statestore-states storex) do
+    (loop for stax in (statestore-state-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (state-str stax)))
@@ -87,7 +87,7 @@
   (assert (statestore-p storex))
   (assert (state-p stax))
 
-  (if (member stax (statestore-states storex) :test #'state-eq) true false)
+  (if (member stax (statestore-state-list storex) :test #'state-eq) true false)
 )
 
 ;;; Return the first state of a non-empty statestore.
@@ -95,7 +95,7 @@
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
 
-  (car (statestore-states storex))
+  (car (statestore-state-list storex))
 )
 
 ;;; Return the last state of a non-empty statestore.
@@ -103,7 +103,7 @@
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
 
-  (car (last (statestore-states storex)))
+  (car (last (statestore-state-list storex)))
 )
 
 ;;; Return the number of bits used by states in a non-empty statestore.
@@ -124,7 +124,7 @@
 
     (setf ret (value-new :num-bits (state-num-bits first-state) :bits 0))
 
-    (loop for stax in (cdr (statestore-states storex)) do
+    (loop for stax in (cdr (statestore-state-list storex)) do
        (setf ret (value-or ret (state-xor stax first-state)))
     )
     (mask-new ret)
@@ -137,7 +137,7 @@
   (assert (statestore-is-not-empty storex))
 
   (let ((ret (statestore-first-state storex)))
-    (loop for stax in (cdr (statestore-states storex)) do
+    (loop for stax in (cdr (statestore-state-list storex)) do
       (state-or ret stax)
     )
     ret
@@ -150,7 +150,7 @@
   (assert (statestore-is-not-empty storex))
 
   (let ((ret (statestore-first-state storex)))
-    (loop for stax in (cdr (statestore-states storex)) do
+    (loop for stax in (cdr (statestore-state-list storex)) do
       (state-and ret stax)
     )
     ret
@@ -165,8 +165,8 @@
   (if (< (statestore-length storex) 2)
     (return-from statestore-same-num-bits true))
 
-  (let ((num-bits (state-num-bits (car (statestore-states storex)))))
-    (loop for stax in (cdr (statestore-states storex)) do
+  (let ((num-bits (state-num-bits (car (statestore-state-list storex)))))
+    (loop for stax in (cdr (statestore-state-list storex)) do
       (if (/= (state-num-bits stax) num-bits)
         (return-from statestore-same-num-bits false))
     )
@@ -185,7 +185,7 @@
 
     (loop for num from 2 below (statestore-length storex) do
 
-      (setf options (any-x-of-n num (statestore-states storex)))
+      (setf options (any-x-of-n num (statestore-state-list storex)))
       (loop for optx in options do
 
 	(setf storey (statestore-new optx))

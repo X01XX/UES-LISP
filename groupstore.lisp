@@ -5,7 +5,7 @@
 
 ; Implement a store of groups.
 (defstruct groupstore
-  groups  ; A list of zero, or more, non-duplicate, same number bits, groups.
+  group-list  ; A list of zero, or more, non-duplicate, same number bits, groups.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -22,7 +22,7 @@
 ;   (copy-groupstore <instance>) copies a groupstore instance.
 (defun groupstore-new (groups) ; -> groupstore.
   ;(format t "~&groups ~A" groups)
-  (let ((ret (make-groupstore :groups nil)))
+  (let ((ret (make-groupstore :group-list nil)))
     (loop for grpx in groups do 
       (groupstore-push ret grpx)
     )
@@ -45,7 +45,7 @@
   (let (del-grps)
 
     ; Check for equal, superset and subset groups.
-    (loop for grpx in (groupstore-groups storex) do
+    (loop for grpx in (groupstore-group-list storex) do
       (if (region-subset :sub-reg (group-region groupx) :sup-reg (group-region grpx))
         (return-from groupstore-push false))
 
@@ -55,13 +55,13 @@
 
     ; Delete subset groups, if any.
     (loop for grpx in del-grps do
-        (remove grpx (groupstore-groups storex) :test #'group-eq)
+        (remove grpx (groupstore-group-list storex) :test #'group-eq)
     )
 
     ; Add the new group to the end of the groups list, old survivors migrate to the beginning of the list.
-    (if (null (groupstore-groups storex))
-      (push groupx (groupstore-groups storex))
-      (push groupx (cdr (last (groupstore-groups storex))))) 
+    (if (null (groupstore-group-list storex))
+      (push groupx (groupstore-group-list storex))
+      (push groupx (cdr (last (groupstore-group-list storex))))) 
   )
   true
 )
@@ -70,7 +70,7 @@
 (defun groupstore-length (storex) ; -> number.
   (assert (groupstore-p storex))
 
-  (length (groupstore-groups storex))
+  (length (groupstore-group-list storex))
 )
 
 ; Return true if a groupstore is empty.
@@ -89,7 +89,7 @@
 
   (let ((ret "#S(GROUPSTORE ") (start t))
 
-    (loop for grpx in (groupstore-groups storex) do
+    (loop for grpx in (groupstore-group-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (format nil " ~&    ~A" (group-str grpx))))
@@ -104,23 +104,23 @@
   (assert (groupstore-p storex))
   (assert (group-p stax))
 
-  (if (member stax (groupstore-groups storex) :test #'group-eq) true false)
+  (if (member stax (groupstore-group-list storex) :test #'group-eq) true false)
 )
 
 (defun groupstore-first (storex) ; -> group
   (assert (groupstore-p storex))
   (assert (groupstore-is-not-empty storex))
 
-  (car (groupstore-groups storex))
+  (car (groupstore-group-list storex))
 )
 
 ; Return possible steps to satisfy a rule.
 (defun groupstore-get-steps (storex rule-to-goal) ; -> stepstore.
   ;(format t "~&groupstore-get-steps")
   (let ((ret-steps (stepstore-new nil)) steps)
-    (loop for grpx in (groupstore-groups storex) do
+    (loop for grpx in (groupstore-group-list storex) do
         (setf steps (group-get-steps grpx rule-to-goal))
-	(loop for stpx in (stepstore-steps steps) do
+	(loop for stpx in (stepstore-step-list steps) do
 	  (if (not (stepstore-contains ret-steps stpx))
 	    (stepstore-push ret-steps stpx)
 	  )	

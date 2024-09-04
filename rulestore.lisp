@@ -4,7 +4,7 @@
 
 ; Implement a store of rules.
 (defstruct rulestore
-  rules  ; A list of zero, or two, non-duplicate, same number bits, rules.
+  rule-list  ; A list of zero, or two, non-duplicate, same number bits, rules.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -27,19 +27,19 @@
   (assert (< (length rules) 3))
   (assert (rule-list-p rules))
 
-  (make-rulestore :rules rules)
+  (make-rulestore :rule-list rules)
 )
 
 (defun rulestore-length (storex) ; -> integer
   (assert (rulestore-p storex))
 
-  (length (rulestore-rules storex))
+  (length (rulestore-rule-list storex))
 )
 
 (defun rulestore-initial-region (storex) ; -> region
   (assert (rulestore-p storex))
 
-  (rule-initial-region (car (rulestore-rules storex)))
+  (rule-initial-region (car (rulestore-rule-list storex)))
 )
 
 (defun rulestore-str (storex) ; -> string
@@ -47,7 +47,7 @@
 
   (let ((ret "#S(RULESTORE ") (start t))
 
-    (loop for rulx in (rulestore-rules storex) do
+    (loop for rulx in (rulestore-rule-list storex) do
       (if start (setf start false)
         (setf ret (concatenate 'string ret ", ")))
 
@@ -67,9 +67,9 @@
     (return-from rulestore-eq false))
 
   (let (found-eq)
-    (loop for rulx in (rulestore-rules store1) do
+    (loop for rulx in (rulestore-rule-list store1) do
       (setf found-eq false)
-      (loop for ruly in (rulestore-rules store2) do
+      (loop for ruly in (rulestore-rule-list store2) do
 	(if (rule-eq rulx ruly)
 	  (setf found-eq true))
       )
@@ -90,9 +90,9 @@
     (return-from rulestore-subset-of false))
 
   (let (found-sup)
-    (loop for rulx in (rulestore-rules sub-store) do
+    (loop for rulx in (rulestore-rule-list sub-store) do
       (setf found-sup false)
-      (loop for ruly in (rulestore-rules sup-store) do
+      (loop for ruly in (rulestore-rule-list sup-store) do
 	(if (rule-subset-of :sub-rule rulx :sup-rule ruly)
 	  (setf found-sup true))
       )
@@ -108,7 +108,7 @@
   (assert (rulestore-p storex))
   (assert (> (rulestore-length storex) 0))
 
-  (car (rulestore-rules storex))
+  (car (rulestore-rule-list storex))
 )
 
 ;;; Return the second rule of a rulestore that has at least two rules.
@@ -116,6 +116,6 @@
   (assert (rulestore-p storex))
   (assert (> (rulestore-length storex) 1))
 
-  (second (rulestore-rules storex))
+  (second (rulestore-rule-list storex))
 )
 
