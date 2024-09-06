@@ -18,7 +18,7 @@
 ;;;;
 (defstruct (group (:print-function group-print))
     region    ; Region defined by two* compatible squares.
-    rules     ; The combined rule of two* compatible squares.
+    rulestore ; The combined rule of two* compatible squares.
 )
 ; * Sometimes a group is made of just one square, region state1 == state2.
 
@@ -54,7 +54,7 @@
             (rule-initial-region (rulestore-second rules)))
       (return-from group-new-na (err-new "Rulestore initial regions do not match")))
   )
-  (make-group :region (rulestore-initial-region rules) :rules rules)
+  (make-group :region (rulestore-initial-region rules) :rulestore rules)
 )
 
 ;;; Print a group.
@@ -68,7 +68,7 @@
 
     (let ((str "#S(GROUP "))
         (setf str (concatenate 'string str (format nil "region ~A" (region-str (group-region agrp)))))
-        (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp)))))
+        (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rulestore agrp)))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -96,9 +96,9 @@
     (setf from-reg (rule-initial-region rule-to-goal))
     (setf to-reg (rule-result-region rule-to-goal))
 
-    ;(format t "~&rules ~A" (rulestore-rule-list (group-rules grpx)))
+    ;(format t "~&rules ~A" (rulestore-rule-list (group-rulestore grpx)))
 
-    (loop for ruly in (rulestore-rule-list (group-rules grpx)) do
+    (loop for ruly in (rulestore-rule-list (group-rulestore grpx)) do
 
       (when (or (value-is-not-low (mask-and (rule-b01 ruly) (change-b01 wanted-changes)))
                 (value-is-not-low (mask-and (rule-b10 ruly) (change-b10 wanted-changes))))

@@ -83,6 +83,12 @@
 (load #p "planstore.lisp")
 (load #p "planstore_t.lisp")
 
+(load #p "selectregions.lisp")
+(load #p "selectregions_t.lisp")
+
+(load #p "selectregionsstore.lisp")
+(load #p "selectregionsstore_t.lisp")
+
 (defvar true t)
 (defvar false nil)
 
@@ -177,6 +183,9 @@
 
   (plan-tests)
   (planstore-tests)
+
+  (selectregions-tests)
+  (selectregionsstore-tests)
 
   (format t "~&All tests done")
   t

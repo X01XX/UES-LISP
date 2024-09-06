@@ -234,6 +234,20 @@
   (not (region-eq reg1 reg2))
 )
 
+;;; Return true if a list is a list of regions.
+;;; An empty list will return true.
+(defun region-list-p (reglst) ; -> bool
+  ;(format t "~&region-list-p: ~A" reglst)
+  (if (not (listp reglst))
+    (return-from region-list-p false))
+
+  (loop for regx in reglst do
+    (if (not (region-p regx))
+      (return-from region-list-p false))
+  )
+  true
+)
+
 ;;; Return the intersection of two regions.
 (defun region-intersection (reg1 reg2) ; -> region, or nil.
   (assert (region-p reg1))
@@ -281,7 +295,7 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-; (format t "~&distance = ~D" (region-distance reg1 reg2))
+  ; (format t "~&distance = ~D" (region-distance reg1 reg2))
   (= (region-distance reg1 reg2) 0)
 )
 
@@ -346,20 +360,6 @@
     ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" min-reg sub-reg ret) 
     ret
   )
-)
-
-;;; Return true if a list is a list of regions.
-;;; An empty list will return true.
-(defun region-list-p (reglst) ; -> bool
-  ;(format t "~&region-list-p: ~A" reglst)
-  (if (not (listp reglst))
-    (return-from region-list-p false))
-
-  (loop for regx in reglst do
-    (if (not (region-p regx))
-      (return-from region-list-p false))
-  )
-  true
 )
 
 ;;; Return true if a list is a list of regions of the same number of bits.

@@ -18,10 +18,10 @@
     (setf regcorr2 (regionscorr-new (list (region-from-str "00") (region-from-str "X0"))))
     (setf regcorr3 (regionscorr-new (list (region-from-str "00") (region-from-str "01"))))
   
-    (assert (regionscorr-intersect regcorr1 regcorr2))
-    (assert (not (regionscorr-intersect regcorr1 regcorr3)))
+    (assert (regionscorr-intersects regcorr1 regcorr2))
+    (assert (not (regionscorr-intersects regcorr1 regcorr3)))
 
-    (format t "~&  regionscorr-intersect OK")
+    (format t "~&  regionscorr-intersects OK")
   )
 
   ; Test regionscorr-intersection.

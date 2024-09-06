@@ -106,7 +106,7 @@
 )
 
 ;;; Return true if two regionscorrs intersect.
-(defun regionscorr-intersect (regcorr1 regcorr2) ; -> bool
+(defun regionscorr-intersects (regcorr1 regcorr2) ; -> bool
   (assert (regionscorr-p regcorr1))
   (assert (regionscorr-p regcorr2))
   (assert (regionscorr-congruent regcorr1 regcorr2))
@@ -115,7 +115,7 @@
 	for reg2 in (regionscorr-region-list regcorr2) do
 
     (if (not (region-intersects reg1 reg2))
-      (return-from regionscorr-intersect false))
+      (return-from regionscorr-intersects false))
   )
   true
 )
@@ -200,7 +200,7 @@
   (assert (regionscorr-p sub-regcorr))
   (assert (= (regionscorr-length min-regcorr) (regionscorr-length sub-regcorr)))
 
-  (if (not (regionscorr-intersect min-regcorr sub-regcorr))
+  (if (not (regionscorr-intersects min-regcorr sub-regcorr))
     (return-from regionscorr-subtract (regionscorrstore-new (list min-regcorr))))
 
   (if (regionscorr-superset-of :sub-regcorr min-regcorr :sup-regcorr sub-regcorr)

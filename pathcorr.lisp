@@ -50,7 +50,7 @@
   (assert (pathcorr-p pathcorrx))
   (assert (regionscorr-p regx))
 
-  (assert (or (pathcorr-is-empty pathcorrx) (regionscorr-intersect regx (pathcorr-first-region pathcorrx))))
+  (assert (or (pathcorr-is-empty pathcorrx) (regionscorr-intersects regx (pathcorr-first-region pathcorrx))))
 
   (regionscorrstore-push (pathcorr-regionscorrstore pathcorrx) regx)
 )
@@ -60,7 +60,7 @@
   (assert (pathcorr-p pathcorrx))
   (assert (regionscorr-p regx))
 
-  (assert (or (pathcorr-is-empty pathcorrx) (regionscorr-intersect regx (pathcorr-last-region pathcorrx))))
+  (assert (or (pathcorr-is-empty pathcorrx) (regionscorr-intersects regx (pathcorr-last-region pathcorrx))))
 
   (regionscorrstore-add-end (pathcorr-regionscorrstore pathcorrx) regx)
 )
@@ -166,7 +166,7 @@
 
     (loop for regx in (cdr (pathcorr-regionscorr-list pathcorrx)) do
       ;; Each two successive regions must intersect.
-      (when (not (regionscorr-intersect regx last-reg))
+      (when (not (regionscorr-intersects regx last-reg))
 	(format t "~&~A does not intersect ~A" regx last-reg)
 	(return-from pathcorr-is-valid false))
  

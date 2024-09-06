@@ -151,6 +151,56 @@
     (format t "~&  regionscorrstore-find-path OK")
   )
 
+  ; Test regionscorrstore-intersections-of-intersections.
+  (let (store1 store2)
+    ;; Test three overlapping regions, with 0101 overlaped by all three.
+    (setf store1 (regionscorrstore-new (list
+      (regionscorr-new (list (region-from-str "X10X")))
+      (regionscorr-new (list (region-from-str "X1X1")))
+      (regionscorr-new (list (region-from-str "0XX1"))))))
+
+    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    ;(format t "~& ~&store2: ~A" store2)
+    (assert (= (regionscorrstore-length store2) 6))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "0101")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "X100")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "1111")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "00X1")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "0111")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "1101")))))
+
+    ;; Test one region that is a proper subset of another.
+    (setf store1 (regionscorrstore-new (list
+      (regionscorr-new (list (region-from-str "X1XX")))
+      (regionscorr-new (list (region-from-str "01X1"))))))
+
+    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    ;(format t "~& ~&store2: ~A" store2)
+    (assert (= (regionscorrstore-length store2) 3))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "X1X0")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "11XX")))))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "01X1")))))
+
+    ;; Test duplicate regionscorr.
+    (setf store1 (regionscorrstore-new (list
+      (regionscorr-new (list (region-from-str "X1XX")))
+      (regionscorr-new (list (region-from-str "X1XX"))))))
+
+    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    ;(format t "~& ~&store2: ~A" store2)
+    (assert (= (regionscorrstore-length store2) 1))
+    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from-str "X1XX")))))
+
+    ;; Test no regionscorr.
+    (setf store1 (regionscorrstore-new nil))
+
+    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    ;(format t "~& ~&store2: ~A" store2)
+    (assert (= (regionscorrstore-length store2) 0))
+
+    (format t "~&  regionscorrstore-intersections-of-intersections OK")
+  )
+
   (format t "~&regionscorrstore-tests done")
   t
 )
