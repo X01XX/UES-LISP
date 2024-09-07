@@ -11,7 +11,7 @@
   )
 
   ; Test generating a plan.
-  (let (domstr)
+  (let (domstr pathx)
     (setf domstr (domainstore-new nil))
 
     (domainstore-push domstr
@@ -37,46 +37,19 @@
       )
     )
 
-    (domainstore-push domstr
-      (domain-new
-	:id 1
-	:actions
-          (actionstore-new (list
-            (action-new :id 0 :groups
-              (groupstore-new (list (group-new :rules
-                (rulestore-new (list (rule-from-str "[00/XX/XX/XX/Xx]")))))))
-            (action-new :id 1 :groups
-              (groupstore-new (list (group-new :rules
-                (rulestore-new (list (rule-from-str "[00/XX/XX/Xx/XX]")))))))
-            (action-new :id 2 :groups
-              (groupstore-new (list (group-new :rules
-                (rulestore-new (list (rule-from-str "[00/XX/Xx/XX/XX]")))))))
-            (action-new :id 3 :groups
-              (groupstore-new (list (group-new :rules
-                (rulestore-new (list (rule-from-str "[00/Xx/XX/XX/XX]")))))))
-             )
-           )
-         :current-state (state-from-str "#b01010")
-      )
-    )
+    (domainstore-add-selectregions domstr
+	(selectregions-new (regionscorr-new (list (region-from-str "0111"))) 0 -1))
 
     (domainstore-add-selectregions domstr
-	(selectregions-new (regionscorr-new (list (region-from-str "00X00") (region-from-str "0X00"))) 2 -3))
+	(selectregions-new (regionscorr-new (list (region-from-str "1101"))) 0 -1))
 
-    (domainstore-add-selectregions domstr
-	(selectregions-new (regionscorr-new (list (region-from-str "000X0") (region-from-str "00X0"))) 5 -7))
-
-    (domainstore-add-selectregions domstr
-	(selectregions-new (regionscorr-new (list (region-from-str "0010X") (region-from-str "010X"))) 11 -13))
 
     (domainstore-calc-select domstr)
-    (assert (= (selectregionsstore-length (domainstore-selectregionsstore-fragments domstr)) 8))
 
-    (assert (selectregionsstore-contains (domainstore-selectregionsstore-fragments domstr)
-					 (selectregions-new (regionscorr-new (list (region-from-str "00100") (region-from-str "0100"))) 13 -16)))
- 
-    (assert (selectregionsstore-contains (domainstore-selectregionsstore-fragments domstr)
-					 (selectregions-new (regionscorr-new (list (region-from-str "00000") (region-from-str "0000"))) 7 -10)))
+    (format t "~&non-negative ~A" (domainstore-non-negative-regionscorrstore domstr))
+
+    (domainstore-get-plans domstr (regionscorr-new (list (region-from-str "0101")))
+                                  (regionscorr-new (list (region-from-str "1111"))))
 
     ;(format t "~&  domainstore-generate-plan OK")
   )

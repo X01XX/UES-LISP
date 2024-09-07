@@ -34,12 +34,13 @@
   ;(assert (zerop depth))
   (format stream (planstore-str instance))
 )
-;;; Add plan to the end of a planstore.
-(defun planstore-add-end (storex regx) ; -> nothing, side-effect planstore changed.
-  (assert (planstore-p storex))
-  (assert (plan-p regx))
 
-  (setf (planstore-plan-list storex) (append (planstore-plan-list storex) (list regx)))
+;;; Add plan to the end of a planstore.
+(defun planstore-add-end (storex plnx) ; -> nothing, side-effect planstore changed.
+  (assert (planstore-p storex))
+  (assert (plan-p plnx))
+
+  (setf (planstore-plan-list storex) (append (planstore-plan-list storex) (list plnx)))
 )
 
 ;;; Return the number of plans in a planstore.
@@ -69,10 +70,10 @@
 
   (let ((ret "#S(planSTORE ") (start t))
 
-    (loop for regx in (planstore-plan-list storex) do
+    (loop for plnx in (planstore-plan-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
-      (setf ret (concatenate 'string ret (plan-str regx)))
+      (setf ret (concatenate 'string ret (plan-str plnx)))
     )
     (if (zerop (planstore-length storex))
       (setf ret (concatenate 'string ret "NIL)"))
@@ -80,6 +81,25 @@
     )
     ret
   )
+)
+
+;;; Add plan to the end of a planstore, check link to a previous plan for the same domain, if any.
+(defun planstore-add-end-link (storex plnx) ; -> nothing, side-effect planstore changed.
+  (assert (planstore-p storex))
+  (assert (plan-p plnx))
+
+  (let (last-plan)
+    ;; Find last plan of the same domain id.
+    (loop for plny in (planstore-plan-list storex) do
+      (if (= (plan-dom-id plny) (plan-dom-id plnx))
+	(setf last-plan plny))
+    )
+    ;; Check link.
+    (if last-plan
+      (assert (region-eq (step-result-region (plan-last-step last-plan))
+                         (step-initial-region (plan-first-step last-plan)))))
+  )
+  (setf (planstore-plan-list storex) (append (planstore-plan-list storex) (list plnx)))
 )
 
 

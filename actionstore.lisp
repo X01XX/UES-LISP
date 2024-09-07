@@ -99,14 +99,15 @@
 )
 
 ;  Return possible steps, given a rule.
-(defun actionstore-get-steps (storex rule-to-goal) ; -> stepstore.
+(defun actionstore-get-steps (storex rule-to-goal within) ; -> stepstore.
   ;(format t "~&actionstore-get-steps")
   (assert (actionstore-p storex))
   (assert (rule-p rule-to-goal))
+  (assert (region-p within))
   
   (let ((ret-steps (stepstore-new nil)) act-steps)
     (loop for actx in (actionstore-action-list storex) do
-      (setf act-steps (action-get-steps actx rule-to-goal))
+      (setf act-steps (action-get-steps actx rule-to-goal within))
       (loop for stpx in (stepstore-step-list act-steps) do
         (stepstore-push ret-steps stpx) 
       )

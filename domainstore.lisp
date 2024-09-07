@@ -8,7 +8,7 @@
   domain-list  ; A list of zero, or more, domains with unique id values.
   initial-selectregionsstore      ; Initial select regions.
   selectregionsstore-fragments    ; intersections-of-intersections of the initial-selectregionsstore.
-  non-negative-selectregionsstore ; Non-negative select regions.
+  non-negative-regionscorrstore   ; Non-negative select regions.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -34,7 +34,7 @@
 	       :domain-list nil
 	       :initial-selectregionsstore (selectregionsstore-new nil)
 	       :selectregionsstore-fragments (selectregionsstore-new nil)
-	       :non-negative-selectregionsstore (selectregionsstore-new nil)
+	       :non-negative-regionscorrstore (regionscorrstore-new nil)
 	     )
 	 )
        )
@@ -166,8 +166,7 @@
   )
 
   ;; Calc non-negative regionscorrs.
-  (let ((regionscorrstore-non-negative (regionscorrstore-new (list (domainstore-max-regions storex))))
-	selectregions-non-negative-list)
+  (let ((regionscorrstore-non-negative (regionscorrstore-new (list (domainstore-max-regions storex)))))
 
     ;; Subtract non-negative selectregions regionscorr from max domain regions.
     (loop for selectregionsx in (selectregionsstore-selectregions-list (domainstore-initial-selectregionsstore storex)) do
@@ -181,19 +180,19 @@
 
     ;; Double check.
     (loop for regionscorrx in (regionscorrstore-regionscorr-list regionscorrstore-non-negative) do
+
       (loop for selectregionsx in (selectregionsstore-selectregions-list (domainstore-initial-selectregionsstore storex)) do
-	 (assert (not (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx))))
+	 (when (and (< (selectregions-negative selectregionsx) 0) 
+	            (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx)))
+	   (format t "~&~A intersects ~A" regionscorrx selectregionsx)
+	   (assert (not (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx))))
+	 )
       )
     )
 
-    ;; Generate selectregions from regionscorrstore.
-    (loop for regionscorrx in (regionscorrstore-regionscorr-list regionscorrstore-non-negative) do
-	(push (selectregions-new regionscorrx 0 0) selectregions-non-negative-list)
-    )
-
     ;; Store non-negative selectregions.
-    (setf (domainstore-non-negative-selectregionsstore storex) (selectregionsstore-new selectregions-non-negative-list))
-    ;(format t "~&non-negative selectregions: ~A" (domainstore-non-negative-selectregionsstore storex))
+    (setf (domainstore-non-negative-regionscorrstore storex) regionscorrstore-non-negative)
+    ;(format t "~&non-negative selectregions: ~A" (domainstore-non-negative-regionscorrstore storex))
   )
 )
 
@@ -203,10 +202,63 @@
 
   (let (regions)
     (loop for domx in (domainstore-domain-list storex) do
-        (push (region-new (statestore-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx)))))) regions)
+	(push (domain-max-region domx) regions)
     )
     (regionscorr-new (reverse regions))
   )
 )
 
+;;; Return true if a domainstore is congruent with a regionstorecorr.
+(defun domainstore-congruent (storex regionscorrx) ; -> boll
+  (assert (domainstore-p storex))
+  (assert (regionscorr-p regionscorrx))
+
+  (loop for domx in (domainstore-domain-list storex)
+        for regx in (regionscorr-region-list regionscorrx) do
+
+    (if (/= (domain-num-bits domx) (region-num-bits regx))
+      (return-from domainstore-congruent false))
+  )
+  true
+)
+
+;;; Return plans to go from one region to another.
+(defun domainstore-get-plans (storex from-regs to-regs)
+  (assert (domainstore-p storex))
+  (assert (regionscorr-p from-regs))
+  (assert (regionscorr-p to-regs))
+  (assert (domainstore-congruent storex from-regs))
+  (assert (domainstore-congruent storex to-regs))
+  (assert (not (regionscorr-intersects from-regs to-regs)))
+
+  (setf pathx (regionscorrstore-find-path (domainstore-non-negative-regionscorrstore storex) from-regs to-regs))
+  (format t "~&pathx ~A" pathx)
+
+  (let (last-regs from-to superset)
+    (loop for regsx in (pathcorr-regionscorr-list pathx) do
+      (if last-regs
+	(progn
+	  (setf from-to (append from-to (list (regionscorr-intersection last-regs regsx))))
+	)
+      )
+      (setf last-regs regsx)
+    )
+    (format t "~&from-to ~A" from-to)
+
+    (setf last-regs nil)
+    
+    (loop for regsx in from-to do
+      (when last-regs
+	(loop for regsy in (pathcorr-regionscorr-list pathx) do
+	  (if (and (regionscorr-superset-of :sup-regcorr regsy :sub-regcorr last-regs)
+	           (regionscorr-superset-of :sup-regcorr regsy :sub-regcorr regsx))
+	    (setf superset regsy)
+	  )
+	)
+	(format t "~&from ~A to ~A within ~A" last-regs regsx superset)
+      )
+      (setf last-regs regsx)
+    )
+  )
+)
 

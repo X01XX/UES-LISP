@@ -49,12 +49,14 @@
 )
 
 ;;; Return possible steps, given a rule.
-(defun domain-get-steps (domx rule-to-goal) ; -> stepstore.
+(defun domain-get-steps (domx rule-to-goal within) ; -> stepstore.
   (assert (domain-p domx))
   (assert (rule-p rule-to-goal))
+  (assert (region-p within))
   (assert (= (domain-num-bits domx) (rule-num-bits rule-to-goal)))
+  (assert (= (domain-num-bits domx) (region-num-bits within)))
 
-  (actionstore-get-steps (domain-actions domx) rule-to-goal)
+  (actionstore-get-steps (domain-actions domx) rule-to-goal within)
 )
 
 ;;; Return the number of bits used by a domain.
@@ -82,4 +84,10 @@
 (defun domain-eq (dom1 dom2) ; -> bool
   (= (domain-id dom1) (domain-id dom2))
 )
+
+;;; Return the maximum region for a domain.
+(defun domain-max-region (domx) ; -> region.
+  (region-new (statestore-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx))))))
+)
+
 

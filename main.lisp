@@ -127,7 +127,7 @@
 
     ;(format t "~&wanted changes ~A" wanted-changes)
 
-    (setf steps (domain-get-steps domx rule-to-goal))
+    (setf steps (domain-get-steps domx rule-to-goal (domain-max-region domx)))
     (format t "~& ~&steps found:~&  ~A" steps)
 
     (setf cngstpsstore1 (cngstpsstore-new wanted-changes))

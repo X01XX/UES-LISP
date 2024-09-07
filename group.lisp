@@ -80,12 +80,14 @@
 )
 
 ; Return possible steps, given group, rule, from-region, to-region.
-(defun group-get-steps (grpx rule-to-goal) ; -> stepstore.
+(defun group-get-steps (grpx rule-to-goal within) ; -> stepstore.
   ;(format t "~&group-get-steps")
   ;(format t "~&group-get-steps group ~A rule ~A" grpx rule-to-goal)
   (assert (group-p grpx))
   (assert (rule-p rule-to-goal))
+  (assert (region-p within))
   (assert (= (group-num-bits grpx) (rule-num-bits rule-to-goal)))
+  (assert (= (group-num-bits grpx) (region-num-bits within)))
 
   (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
 	(wanted-changes (rule-wanted-changes rule-to-goal))
@@ -107,14 +109,15 @@
         ;; Where wanted changes are at a position where the rule is X->x,
         ;; remove the unwanted part.
   
+	;; Init work rule.
+	(setf rulz ruly)
+
         ;; Calc needed masks.
         (setf x-not-x (mask-new-and (rule-b01 ruly) (rule-b10 ruly))) ; Get mask of X->x.
   
         ;; Get wanted change masks.
         (setf w01 (change-b01 wanted-changes)) ; get wanted 0->1s.
         (setf w10 (change-b10 wanted-changes)) ; get wanted 1->0s.
-  
-        (setf rulz ruly)
   
         ;; Parse wanted 0->1 changes in X->x
         (setf msk-change (mask-new-and w01 x-not-x))
@@ -128,39 +131,37 @@
   	  (setf rulz (rule-mask-off-zeros rulz msk-change))
         )
   
-        ;; Restrict rule that intersects the from region.
-        (cond ((region-intersects from-reg (rule-initial-region rulz)) 
-               (let ((new-rule (rule-restrict-initial-region rulz from-reg)) new-rule2)
-                 (if (region-intersects to-reg (rule-result-region new-rule)) 
-                   (progn
-                     (setf new-rule2 (rule-restrict-result-region new-rule to-reg))
-		     (setf num-wanted (change-num-changes (rule-intersection-change new-rule2 wanted-changes)))
-		     (setf num-unwanted (change-num-changes (rule-intersection-change new-rule2 unwanted-changes)))
-                     (if (region-intersects (rule-initial-region new-rule2) from-reg)
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule2 :kind 's :w num-wanted :u num-unwanted))
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f :w num-wanted :u num-unwanted))
-                     )
-                   )
-                   (progn
-		     (setf num-wanted (change-num-changes (rule-intersection-change new-rule wanted-changes)))
-		     (setf num-unwanted (change-num-changes (rule-intersection-change new-rule unwanted-changes)))
-                     (stepstore-push ret-steps (step-new :act-id 0 :rule new-rule :kind 'f :w num-wanted :u num-unwanted))
-		   )
-                 )
+	(when (region-intersects (rule-initial-region rulz) within)
+
+           (setf rulz (rule-restrict-initial-region rulz within))
+
+	   (when (region-intersects (rule-result-region rulz) within)
+
+             (setf rulz (rule-restrict-result-region rulz within))
+
+	     (setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
+
+	     (when (plusp num-wanted)
+
+	       (setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
+
+               (cond ((and (region-intersects (rule-initial-region rulz) from-reg)
+                           (region-intersects (rule-result-region rulz) to-reg))
+                      (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 's :w num-wanted :u num-unwanted)))
+
+                     ((region-intersects (rule-initial-region rulz) from-reg)
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'f :w num-wanted :u num-unwanted)))
+
+                     ((region-intersects (rule-result-region rulz) to-reg)
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'b :w num-wanted :u num-unwanted)))
+
+		     (t
+                       (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a :w num-wanted :u num-unwanted)))
                )
-             )
-             ((region-intersects (rule-result-region rulz) to-reg) 
-                (setf rulz (rule-restrict-result-region rulz to-reg))
-		(setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
-		(setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
-                (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'b :w num-wanted :u num-unwanted))
-             )
-             (t 
-		(setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
-		(setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
-	        (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a :w num-wanted :u num-unwanted)))
-        )
-      ) ; end-when
+	     ) ; end-when 4
+	   ) ; end-when 3
+	) ; end-when 2
+      ) ; end-when 1
     ) ; end-loop
     ret-steps
   )

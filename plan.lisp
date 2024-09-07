@@ -5,6 +5,7 @@
 
 ;;; The plan struct.
 (defstruct (plan (:print-function plan-print))
+  dom-id           ; Domain ID.
   stepstore        ; A store of steps to go from one state to another.  May be empty.
 )
 ; Functions automatically created by defstruct:
@@ -22,10 +23,12 @@
 ;   (copy-plan <instance>) copies a plan instance.
 
 ;;; Return a new plan, made up of zero, or more, steps.
-(defun plan-new (steps) ; -> plan.
+(defun plan-new (id steps) ; -> plan.
+  (assert (integerp id))
+  (assert (>= id 0))
   (assert (step-list-p steps))
 
-  (let ((planx (make-plan :stepstore (stepstore-new steps))))
+  (let ((planx (make-plan :dom-id id :stepstore (stepstore-new steps))))
     (assert (plan-is-valid planx))
     planx
   )

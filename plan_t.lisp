@@ -6,7 +6,7 @@
   ; Test plan-new.
   (let (plan1)
     ; Test new, empty, plan.
-    (setf plan1 (plan-new nil))
+    (setf plan1 (plan-new 0 nil))
     (assert (plan-p plan1))
     (assert (plan-is-empty plan1))
 

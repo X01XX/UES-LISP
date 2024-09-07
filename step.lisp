@@ -85,5 +85,21 @@
 
 ;;; Return the number of bits used by elements of a step.
 (defun step-num-bits (stpx) ; -> integer, ge 1.
+  (assert (step-p stpx))
+
   (rule-num-bits (step-rule stpx))
+)
+
+;;; Return the initial region of a step.
+(defun step-initial-region (stepx) ; -> region.
+  (assert (step-p stepx))
+
+  (rule-initial-region (step-rule stepx))
+)
+
+;;; Return the result region of a step.
+(defun step-result-region (stepx) ; -> region.
+  (assert (step-p stepx))
+
+  (rule-result-region (step-rule stepx))
 )

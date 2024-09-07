@@ -42,25 +42,25 @@
     (setf to-reg   (region-from-str "1001"))
 
     (setf rule-to-goal (rule-new-region-to-region from-reg to-reg))
-    (setf steps (domain-get-steps domx rule-to-goal))
+    (setf steps (domain-get-steps domx rule-to-goal (domain-max-region domx)))
     ;(format t "~& steps ~A" steps)
 
     (assert (= (stepstore-length steps) 5))
 
     ;; No intersection, no changes to rule.
-    (assert (stepstore-contains steps (step-new :act-id 0 :rule (rule-from-str "[01/10/00/00]") :kind 'a :w 1 :u 0)))
+    (assert (stepstore-contains steps (step-new :act-id 0 :rule (rule-from-str "[01/10/00/00]") :kind 'a :w 2 :u 0)))
 
     ;; No intersection, bits 3 and 2 isolate-in  wanted changes, bits 1 and 0 isolate-out unwanted changes..
-    (assert (stepstore-contains steps (step-new :act-id 1 :rule (rule-from-str "[01/10/00/11]") :kind 's :w 1 :u 0)))
+    (assert (stepstore-contains steps (step-new :act-id 1 :rule (rule-from-str "[X1/X0/X0/X1]") :kind 's :w 2 :u 0)))
 
     ;; No intersection, Xx/Xx parsed to 01/10.
-    (assert (stepstore-contains steps (step-new :act-id 2 :rule (rule-from-str "[01/10/00/00]") :kind 'a :w 1 :u 0)))
+    (assert (stepstore-contains steps (step-new :act-id 2 :rule (rule-from-str "[01/10/00/00]") :kind 'a :w 2 :u 0)))
 
     ;; Intersection with from region.
-    (assert (stepstore-contains steps (step-new :act-id 3 :rule (rule-from-str "[01/11/00/11]") :kind 'f :w 1 :u 0)))
+    (assert (stepstore-contains steps (step-new :act-id 3 :rule (rule-from-str "[01/11/X0/X1]") :kind 'f :w 1 :u 0)))
 
     ;; Intersection with to region.
-    (assert (stepstore-contains steps (step-new :act-id 4 :rule (rule-from-str "[01/00/10/01]") :kind 'b :w 1 :u 0)))
+    (assert (stepstore-contains steps (step-new :act-id 4 :rule (rule-from-str "[01/00/Xx/Xx]") :kind 'b :w 1 :u 2)))
 
     (format t "~&  group-get-steps OK")
   )
