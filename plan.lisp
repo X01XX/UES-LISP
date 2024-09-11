@@ -95,6 +95,8 @@
 ;;; Return true if a plan is valid.
 ;;; That is, all steps link together.
 (defun plan-is-valid (planx) ; -> bool
+  (assert (plan-p planx))
+
   (if (< (plan-length planx) 2)
     (return-from plan-is-valid true))
 
@@ -118,6 +120,8 @@
 ;; Return true if a list is a list of plans.
 ;;; An empty list will return true.
 (defun plan-list-p (plnlst) ; -> bool
+  (assert (listp plnlst))
+
   ;(format t "~&plan-list-p: ~A" plnlst)
   (if (not (listp plnlst))
     (return-from plan-list-p false))
@@ -127,5 +131,10 @@
       (return-from plan-list-p false))
   )
   true
+)
+
+;;; Return true ir a plan is not empty.
+(defun plan-is-not-empty (aplan) ; -> bool
+  (stepstore-is-not-empty (plan-stepstore aplan))
 )
 

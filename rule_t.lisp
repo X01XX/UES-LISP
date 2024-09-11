@@ -8,7 +8,7 @@
     (setf sta2 (state-from-str "#x6"))
 
     ; Test making a rule.
-    (setf rulx (rule-new (sample-new :initial sta1 :action 0 :result sta2)))
+    (setf rulx (rule-new (sample-new :initial sta1 :result sta2)))
     (assert (rule-p rulx))
 
     (assert (mask-eq (rule-b00 rulx) (mask-from-str "#x8")))

@@ -11,7 +11,7 @@
   )
 
   ; Test generating a plan.
-  (let (domstr pathx)
+  (let (domstr)
     (setf domstr (domainstore-new nil))
 
     (domainstore-push domstr

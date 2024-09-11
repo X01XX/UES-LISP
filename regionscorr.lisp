@@ -181,6 +181,7 @@
 
 ;;;; Return true if a regionscorr is a superset of another.
 (defun regionscorr-superset-of (&key sub-regcorr sup-regcorr) ; -> bool
+  ;(format t "~&regionscorr-superset-of: sup ~A sub ~A" sup-regcorr sub-regcorr) 
   (assert (regionscorr-p sub-regcorr))
   (assert (regionscorr-p sup-regcorr))
   (assert (regionscorr-congruent sup-regcorr sub-regcorr))

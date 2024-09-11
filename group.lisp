@@ -135,6 +135,12 @@
 
            (setf rulz (rule-restrict-initial-region rulz within))
 
+	   (if (region-intersects (rule-initial-region rulz) from-reg)
+	     (setf rulz (rule-restrict-initial-region rulz from-reg)))
+
+	   (if (region-intersects (rule-result-region rulz) to-reg)
+	     (setf rulz (rule-restrict-result-region rulz to-reg)))
+
 	   (when (region-intersects (rule-result-region rulz) within)
 
              (setf rulz (rule-restrict-result-region rulz within))

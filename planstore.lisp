@@ -68,7 +68,7 @@
 (defun planstore-str (storex) ; -> string.
   (assert (planstore-p storex))
 
-  (let ((ret "#S(planSTORE ") (start t))
+  (let ((ret "#S(PLANSTORE ") (start t))
 
     (loop for plnx in (planstore-plan-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))

@@ -89,6 +89,11 @@
 (load #p "selectregionsstore.lisp")
 (load #p "selectregionsstore_t.lisp")
 
+(load #p "pn.lisp")
+
+(load #p "square.lisp")
+(load #p "square_t.lisp")
+
 (defvar true t)
 (defvar false nil)
 
@@ -177,6 +182,8 @@
 
   (regionscorr-tests)
   (regionscorrstore-tests)
+
+  (square-tests)
 
   (domain-tests)
   (domainstore-tests)

@@ -90,4 +90,30 @@
   (region-new (statestore-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx))))))
 )
 
+;;; Return a plan to change a current region to a goal region.
+(defun domain-get-plan (domx from-reg to-reg with-reg) ; -> plan, or nil.
+  (format t "~&domain-get-plan: domx ~A from ~A to ~A" (domain-id domx) from-reg to-reg with-reg)
+  (assert (domain-p domx))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
+  (assert (region-p with-reg))
+  (assert (= (domain-num-bits domx) (region-num-bits from-reg)))
+  (assert (= (domain-num-bits domx) (region-num-bits to-reg)))
+  (assert (= (domain-num-bits domx) (region-num-bits with-reg)))
+  (assert (region-superset-of :sup with-reg :sub from-reg))
+  (assert (region-superset-of :sup with-reg :sub to-reg))
 
+  (let ((steps (domain-get-steps domx (rule-new-region-to-region from-reg to-reg) with-reg)))
+    (format t "~&steps found ~A" steps)
+    ;; Check for one step that spans the gap.
+    (let (span-steps)
+      (loop for stepx in (stepstore-step-list steps) do
+        (if (eq (step-kind stepx) 's)
+          (push stepx span-steps)) 
+      )
+      (if span-steps
+	(return-from domain-get-plan (plan-new (domain-id domx)
+					       (list (nth (random (length span-steps)) span-steps)))))
+    )
+  )
+)
