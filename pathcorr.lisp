@@ -94,12 +94,12 @@
     (return-from pathcorr-str "#S(pathcorr REGIONS NIL)")
   )
 
-  (let ((ret "#S(pathcorr REGIONS ") (last-reg))
+  (let ((ret "#S(pathcorr REGIONSCORR ") (last-reg))
 
     (loop for regx in (pathcorr-regionscorr-list pathcorrx) do
       (when last-reg
-	(if (or (regionscorr-superset-of :sup-regcorr regx :sub-regcorr last-reg)
-	        (regionscorr-superset-of :sub-regcorr regx :sup-regcorr last-reg))
+	(if (or (regionscorr-superset-of :sup-regscorr regx :sub-regscorr last-reg)
+	        (regionscorr-superset-of :sub-regscorr regx :sup-regscorr last-reg))
 	  (setf ret (concatenate 'string ret "-"))
 	  (setf ret (concatenate 'string ret (format nil "-~A-" (regionscorr-intersection last-reg regx))))
 	)
@@ -121,7 +121,7 @@
   (regionscorrstore-contains (pathcorr-regionscorrstore pathcorrx) regx)
 )
 
-;;; Return the first region in a non-empty pathcorr.
+;;; Return the first regionscorr in a non-empty pathcorr.
 (defun pathcorr-first-region (pathcorrx) ; -> regioncorr
   (assert (pathcorr-p pathcorrx))
   (assert (pathcorr-is-not-empty pathcorrx))
@@ -129,12 +129,12 @@
   (regionscorrstore-first-region (pathcorr-regionscorrstore pathcorrx))
 )
 
-;;; Return the last region in a non-empty pathcorr.
+;;; Return the last regionscorr in a non-empty pathcorr.
 (defun pathcorr-last-region (pathcorrx) ; -> region
   (assert (pathcorr-p pathcorrx))
   (assert (pathcorr-is-not-empty pathcorrx))
 
-  (regionscorrstore-last-region (pathcorr-regionscorrstore pathcorrx)))
+  (regionscorrstore-last-region (pathcorr-regionscorrstore pathcorrx))
 )
 
 ;;; Return the cdr of a non-empty pathcorr.

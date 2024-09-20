@@ -71,6 +71,13 @@
   (stepstore-is-empty (plan-stepstore planx))
 )
 
+;;; Return true if a plan is not empty.
+(defun plan-is-not-empty (aplan) ; -> bool
+  (assert (plan-p aplan))
+
+  (stepstore-is-not-empty (plan-stepstore aplan))
+)
+
 ;;; Return the number of steps in a plan.
 (defun plan-length (planx) ; -> an integer.
   (assert (plan-p planx))
@@ -133,8 +140,113 @@
   true
 )
 
-;;; Return true ir a plan is not empty.
-(defun plan-is-not-empty (aplan) ; -> bool
-  (stepstore-is-not-empty (plan-stepstore aplan))
+;;; Return the initial region of a plan.
+(defun plan-initial-region (aplan) ; -> region, or nil.
+  (assert (plan-p aplan))
+
+  (if (plan-is-empty aplan)
+    (return-from plan-initial-region nil))
+
+  (step-initial-region (plan-first-step aplan))
+)
+
+;;; Return the result region of a plan.
+(defun plan-result-region (aplan) ; -> region, or nil.
+  (assert (plan-p aplan))
+
+  (if (plan-is-empty aplan)
+    (return-from plan-result-region nil))
+
+  (step-result-region (plan-last-step aplan))
+)
+
+;;; Return plan with the initial region restricted.
+;;; The restriction region should intersect the initial region of the plan,
+;;; but does not have to be a subset.
+(defun plan-restrict-initial-region (aplan regx) ; -> plan, or nil.
+  (assert (plan-p aplan))
+  (assert (region-p regx))
+  (assert (plan-is-valid aplan))
+
+  (if (or (plan-is-empty aplan) (not (region-intersects regx (plan-initial-region aplan))))
+    (return-from plan-restrict-initial-region nil))
+
+  (let ((cur-reg regx) steps temp-step)
+
+    (loop for stepx in (plan-step-list aplan) do
+
+      (if (not (region-intersects cur-reg (step-initial-region stepx)))
+        (return-from plan-restrict-initial-region nil))
+
+      (setf temp-step (step-restrict-initial-region stepx cur-reg))
+
+      (setf cur-reg (step-result-region temp-step))
+
+      (push temp-step steps)
+    )
+    (plan-new (plan-dom-id aplan) (reverse steps))
+  )
+)
+
+;;; Return plan with the result region restricted.
+;;; The restriction region should intersect the result region of the plan,
+;;; but does not have to be a subset.
+(defun plan-restrict-result-region (aplan regx) ; -> plan, or nil.
+  (assert (plan-p aplan))
+  (assert (region-p regx))
+  (assert (plan-is-valid aplan))
+
+  (if (or (plan-is-empty aplan) (not (region-intersects regx (plan-result-region aplan))))
+    (return-from plan-restrict-result-region nil))
+
+  (let ((cur-reg regx) steps temp-step)
+
+    (loop for stepx in (reverse (plan-step-list aplan)) do
+
+      (if (not (region-intersects cur-reg (step-result-region stepx)))
+        (return-from plan-restrict-result-region nil))
+
+      (setf temp-step (step-restrict-result-region stepx cur-reg))
+
+      (setf cur-reg (step-initial-region temp-step))
+
+      (push temp-step steps)
+    )
+    (plan-new (plan-dom-id aplan) steps)
+  )
+)
+
+;;; Return two plans linked together, in the order given.
+(defun plan-link (planx plany) ; -> plan, or nil.
+  (assert (plan-p planx))
+  (assert (plan-p plany))
+  (assert (= (plan-dom-id planx) (plan-dom-id plany)))
+  (assert (plan-is-valid planx))
+  (assert (plan-is-valid plany))
+
+  (let ((result-reg (step-result-region (plan-last-step planx)))
+        (initial-reg (step-initial-region (plan-first-step plany))))
+
+    (if (not (region-intersects result-reg initial-reg))
+      (return-from plan-link nil))
+
+    (if (region-eq result-reg initial-reg)
+      (return-from plan-link (plan-new (plan-dom-id planx) (append (plan-step-list planx) (plan-step-list plany)))))
+
+    (let ((int-reg (region-intersection result-reg initial-reg)))
+
+      (cond ((region-superset-of :sup result-reg :sub initial-reg)
+               (plan-new (plan-dom-id planx) (append (plan-step-list (plan-restrict-result-region planx int-reg)) (plan-step-list plany)))
+	     )
+            ((region-superset-of :sup initial-reg :sub result-reg)
+               (plan-new (plan-dom-id planx) (append (plan-step-list planx) (plan-step-list (plan-restrict-initial-region plany int-reg))))
+	     )
+	    (t
+               (plan-new (plan-dom-id planx) (append (plan-step-list (plan-restrict-result-region planx int-reg))
+                                                     (plan-step-list (plan-restrict-initial-region plany int-reg))))
+	    )
+      )
+    )
+  )
 )
 

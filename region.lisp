@@ -278,15 +278,19 @@
   (mask-new (value-eqv (state-value (region-first-state regx)) (state-value (region-second-state regx))))
 )
 
+;;; Return a edge-difference mask of two regions.
+(defun region-edge-dif-mask (reg1 reg2) ; -> mask
+    (mask-new (value-and (mask-and (region-edge-mask reg1) (region-edge-mask reg2))
+                         (state-xor (region-first-state reg1) (region-first-state reg2))))
+)
+
 ;;; Return the distance between two regions..
 (defun region-distance (reg1 reg2) ; -> integer.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  (value-num-ones (value-and
-    (mask-and (region-edge-mask reg1) (region-edge-mask reg2))
-    (state-xor (region-first-state reg1) (region-first-state reg2))))
+  (mask-num-ones (region-edge-dif-mask reg1 reg2))
 )
 
 ;;; Return true if a region intersects another.

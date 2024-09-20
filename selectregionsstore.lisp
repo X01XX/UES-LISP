@@ -96,7 +96,7 @@
 
     (loop for selectregionsx in (selectregionsstore-selectregions-list storex) do
       (when (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx))
-	(if (regionscorr-superset-of :sup-regcorr (selectregions-regionscorr selectregionsx) :sub-regcorr regionscorrx)
+	(if (regionscorr-superset-of :sup-regscorr (selectregions-regionscorr selectregionsx) :sub-regscorr regionscorrx)
 	  (setf pos (+ pos (selectregions-positive selectregionsx))
 	        neg (+ neg (selectregions-negative selectregionsx))
 	  )

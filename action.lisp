@@ -25,7 +25,7 @@
 ;;; Return an action.
 (defun action-new (&key id groups)
   (assert (groupstore-p groups))
-  (assert (>= id ))
+  (assert (>= id 0))
 
   (make-action :id id :groups groups)
 )

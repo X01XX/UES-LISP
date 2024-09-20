@@ -93,10 +93,12 @@
 	(wanted-changes (rule-wanted-changes rule-to-goal))
 	(unwanted-changes (rule-unwanted-changes rule-to-goal))
 	num-wanted num-unwanted
+	step-rule
        )
 
     (setf from-reg (rule-initial-region rule-to-goal))
     (setf to-reg (rule-result-region rule-to-goal))
+    ;(format t "~&group-get-steps: from: ~A to: ~A within: within ~A" from-reg to-reg within)
 
     ;(format t "~&rules ~A" (rulestore-rule-list (group-rulestore grpx)))
 
@@ -130,47 +132,67 @@
         (if (mask-is-not-low msk-change)
   	  (setf rulz (rule-mask-off-zeros rulz msk-change))
         )
+        ;(format t "~&rulz ~A" rulz)
   
-	(when (region-intersects (rule-initial-region rulz) within)
+        (when (region-intersects (rule-initial-region rulz) within)
 
-           (setf rulz (rule-restrict-initial-region rulz within))
+          (setf rulz (rule-restrict-initial-region rulz within))
 
-	   (if (region-intersects (rule-initial-region rulz) from-reg)
-	     (setf rulz (rule-restrict-initial-region rulz from-reg)))
+          ;(format t "~&rulz2 ~A" rulz)
+          (when (region-intersects (rule-result-region rulz) within)
 
-	   (if (region-intersects (rule-result-region rulz) to-reg)
-	     (setf rulz (rule-restrict-result-region rulz to-reg)))
+  	    (if (region-intersects (rule-initial-region rulz) from-reg)
+  	      (setf rulz (rule-restrict-initial-region rulz from-reg)))
+  
+  	    (if (region-intersects (rule-result-region rulz) to-reg)
+  	      (setf rulz (rule-restrict-result-region rulz to-reg)))
+  
+            ;(format t "~&rulz3 ~A" rulz)
+  
+  	    (setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
+  
+            (when (plusp num-wanted)
+  
+  	       (setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
+  
+                 (cond ((and (region-intersects (rule-initial-region rulz) from-reg)
+                             (region-intersects (rule-result-region rulz) to-reg))
 
-	   (when (region-intersects (rule-result-region rulz) within)
+			(setf step-rule (rule-restrict-initial-region rulz from-reg))
+                        (stepstore-push ret-steps (step-new :act-id nil
+							    :rule step-rule
+							    :kind 's
+							    :w (rule-num-wanted-changes step-rule)
+							    :u (rule-num-unwanted-changes step-rule))))
+  
+                       ((region-intersects (rule-initial-region rulz) from-reg)
 
-             (setf rulz (rule-restrict-result-region rulz within))
+			(setf step-rule (rule-restrict-initial-region rulz from-reg))
+                        (stepstore-push ret-steps (step-new :act-id nil 
+							    :rule step-rule
+							    :kind 'f
+							    :w (rule-num-wanted-changes step-rule)
+							    :u (rule-num-unwanted-changes step-rule))))
+  
+                       ((region-intersects (rule-result-region rulz) to-reg)
 
-	     (setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
-
-	     (when (plusp num-wanted)
-
-	       (setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
-
-               (cond ((and (region-intersects (rule-initial-region rulz) from-reg)
-                           (region-intersects (rule-result-region rulz) to-reg))
-                      (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 's :w num-wanted :u num-unwanted)))
-
-                     ((region-intersects (rule-initial-region rulz) from-reg)
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'f :w num-wanted :u num-unwanted)))
-
-                     ((region-intersects (rule-result-region rulz) to-reg)
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'b :w num-wanted :u num-unwanted)))
-
-		     (t
-                       (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a :w num-wanted :u num-unwanted)))
-               )
-	     ) ; end-when 4
-	   ) ; end-when 3
-	) ; end-when 2
+			(setf step-rule (rule-restrict-result-region rulz to-reg))
+                        (stepstore-push ret-steps (step-new :act-id nil 
+							    :rule step-rule
+							    :kind 'b
+							    :w (rule-num-wanted-changes step-rule)
+							    :u (rule-num-unwanted-changes step-rule))))
+  
+  		     (t
+                         (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a :w num-wanted :u num-unwanted)))
+                 )
+            ) ; end-when 4
+  	  ) ; end-when 3
+        ); end-when 2
       ) ; end-when 1
     ) ; end-loop
     ret-steps
-  )
+  ) ; end-let
 )
 
 ;;; Return the number of bits used by elements withn a group.

@@ -51,7 +51,7 @@
     (domainstore-get-plans domstr (regionscorr-new (list (region-from-str "0101")))
                                   (regionscorr-new (list (region-from-str "1111"))))
 
-    ;(format t "~&  domainstore-generate-plan OK")
+    (format t "~&  domainstore-generate-plan OK")
   )
 
   (format t "~&domainstore-tests done")

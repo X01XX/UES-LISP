@@ -386,6 +386,17 @@
     (format t "~&  region-list-same-num-bits-p OK")
   )
 
+  ;; Test region-edge-dif-mask.
+  (let (reg1 reg2 msk1)
+    (setf reg1 (region-from-str "X01X"))
+    (setf reg2 (region-from-str "X101"))
+
+    (setf msk1 (region-edge-dif-mask reg1 reg2))
+    (assert (mask-p msk1))
+    (assert (= (mask-num-ones msk1) 2))
+
+    (format t "~&  region-edge-dif-mask OK")
+  )
 
  (format t "~&region-tests done")
  t

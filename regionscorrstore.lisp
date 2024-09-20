@@ -60,7 +60,7 @@
 
   ;; Check for region in store that is a superset (or dup) of the new region.
   (loop for regy in (regionscorrstore-regionscorr-list storex) do
-    (if (regionscorr-superset-of :sup-regcorr regy :sub-regcorr regx)
+    (if (regionscorr-superset-of :sup-regscorr regy :sub-regscorr regx)
       (return-from regionscorrstore-push-nosubs false))
   )
 
@@ -68,7 +68,7 @@
   (let (del-regs)
     ;; Find regions that are a subset of the new region.
     (loop for regy in (regionscorrstore-regionscorr-list storex) do
-      (if (regionscorr-superset-of :sup-regcorr regx :sub-regcorr regy)
+      (if (regionscorr-superset-of :sup-regscorr regx :sub-regscorr regy)
         (push regy del-regs)
       )
     )
@@ -166,9 +166,9 @@
        )
 
     (loop for regy in (regionscorrstore-regionscorr-list storex) do
-        (cond ((regionscorr-superset-of :sup-regcorr regx :sub-regcorr regy) nil)
+        (cond ((regionscorr-superset-of :sup-regscorr regx :sub-regscorr regy) nil)
 	      ((regionscorr-intersects regy regx)
-	         (setf tmpstore (regionscorr-subtract :min-regcorr regy :sub-regcorr regx))
+	         (setf tmpstore (regionscorr-subtract :min-regscorr regy :sub-regscorr regx))
 		 (loop for regz in (regionscorrstore-regionscorr-list tmpstore) do
 		   (regionscorrstore-push-nosubs ret regz)
 		 )
@@ -355,6 +355,7 @@
   ;; Default return.
   nil
 )
+
 ;;; Return a regionscorrstore of intersections-of-intersection fragments.
 (defun regionscorrstore-intersections-of-intersections(store1) ; -> regionscorrstore
   (assert (regionscorrstore-p store1))

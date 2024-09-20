@@ -36,7 +36,7 @@
 )
 
 ;;; Add plan to the end of a planstore.
-(defun planstore-add-end (storex plnx) ; -> nothing, side-effect planstore changed.
+(defun _planstore-add-end (storex plnx) ; -> nothing, side-effect planstore changed.
   (assert (planstore-p storex))
   (assert (plan-p plnx))
 
@@ -83,21 +83,44 @@
   )
 )
 
+;;; Return the last plan for a given domain ID
+(defun planstore-last-domain-plan (storex dom-id) ; -> plan, or nil.
+  (assert (planstore-p storex))
+
+  (let (last-plan)
+    ;; Find last plan of the same domain id.
+    (loop for plny in (planstore-plan-list storex) do
+      (if (= (plan-dom-id plny) dom-id)
+        (setf last-plan plny))
+    )
+    last-plan
+  )
+)
+
+;;; Return last step of all plans in a planstore, for a particular domain.
+(defun planstore-last-domain-step (storex dom-id) ; -> step, or nil.
+  (let ((last-plan (planstore-last-domain-plan storex dom-id)))
+    (if last-plan
+      (plan-last-step last-plan)
+      nil
+    )
+  )
+)
+
 ;;; Add plan to the end of a planstore, check link to a previous plan for the same domain, if any.
 (defun planstore-add-end-link (storex plnx) ; -> nothing, side-effect planstore changed.
   (assert (planstore-p storex))
   (assert (plan-p plnx))
 
-  (let (last-plan)
-    ;; Find last plan of the same domain id.
-    (loop for plny in (planstore-plan-list storex) do
-      (if (= (plan-dom-id plny) (plan-dom-id plnx))
-	(setf last-plan plny))
-    )
+  (if (plan-is-empty plnx)
+    (return-from planstore-add-end-link))
+
+  (let ((last-plan (planstore-last-domain-plan storex (plan-dom-id plnx))))
     ;; Check link.
+    (format t "~&planstore-add-end-link: last plan: ~A" last-plan)
     (if last-plan
       (assert (region-eq (step-result-region (plan-last-step last-plan))
-                         (step-initial-region (plan-first-step last-plan)))))
+                         (step-initial-region (plan-first-step plnx)))))
   )
   (setf (planstore-plan-list storex) (append (planstore-plan-list storex) (list plnx)))
 )

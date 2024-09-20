@@ -30,9 +30,10 @@
 ;   (copy-step <instance>) copies a step instance.
 
 ;;; Return a new step.
+;;; A nil act-id indicates it will be assigned later.
 (defun step-new (&key act-id rule kind w u)
   (assert (rule-p rule))
-  (assert (>= act-id 0))
+  (assert (or (null act-id) (>= act-id 0)))
   (assert (or (eq kind 'a) (eq kind 'b) (eq kind 'f) (eq kind 's)))
   (assert (and (integerp w) (plusp w)))
   (assert (and (integerp u) (>= u 0)))
@@ -103,3 +104,34 @@
 
   (rule-result-region (step-rule stepx))
 )
+
+;;; Return a step with its rule initial region restricted bf a given region.
+(defun step-restrict-initial-region (stepx regx) ; -> step
+  (let* ((new-rule (rule-restrict-initial-region (step-rule stepx) regx))
+	 (w (rule-num-wanted-changes new-rule))
+	 (u (rule-num-unwanted-changes new-rule)))
+
+    (make-step :act-id (step-act-id stepx) 
+  	       :rule new-rule 
+	       :kind (step-kind stepx)
+	       :wanted-changes w
+	       :unwanted-changes u
+	       :net-changes (- w u))
+  )
+)
+
+;;; Return a step with its rule result region restricted bf a given region.
+(defun step-restrict-result-region (stepx regx) ; -> step
+  (let* ((new-rule (rule-restrict-result-region (step-rule stepx) regx))
+	 (w (rule-num-wanted-changes new-rule))
+	 (u (rule-num-unwanted-changes new-rule)))
+
+    (make-step :act-id (step-act-id stepx) 
+  	       :rule new-rule 
+	       :kind (step-kind stepx)
+	       :wanted-changes w
+	       :unwanted-changes u
+	       :net-changes (- w u))
+  )
+)
+

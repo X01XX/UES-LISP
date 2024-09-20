@@ -22,6 +22,8 @@
 (load #p "mask_t.lisp")
 (load #p "maskstore.lisp")
 (load #p "maskstore_t.lisp")
+(load #p "maskscorr.lisp")
+(load #p "maskscorr_t.lisp")
 
 (load #p "region.lisp")
 (load #p "region_t.lisp")
@@ -193,6 +195,9 @@
 
   (selectregions-tests)
   (selectregionsstore-tests)
+
+  (maskscorr-tests)
+  (maskscorr-tests)
 
   (format t "~&All tests done")
   t
