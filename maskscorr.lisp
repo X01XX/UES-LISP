@@ -1,8 +1,4 @@
-;;;; Implement a series of masks that correspond to a particular order.
-;;;;
-;;;; The masks may use different numbers of bits, depending on their position in a list.
-;;;;
-;;;; See the Domain concept in the Rust version of the project.
+;;;; Implement a series of masks, with bit-number values corresponding to a list of domains.
 
 (defvar true t)
 (defvar false nil)
@@ -50,7 +46,7 @@
 (defun maskscorr-str (mskscx) ; -> string.
   (assert (maskscorr-p mskscx))
 
-  (format nil "#S(MASKSCORR MASKSTORE ~A )" (maskscorr-maskstore mskscx))
+  (format nil "#S(MASKSCORR ~A )" (maskscorr-maskstore mskscx))
 )
 
 ;;; Return the number of masks in a maskscorr.
@@ -105,6 +101,7 @@
 (defun maskscorr-or (msksc1 msksc2) ; -> maskscorr.
   (assert (maskscorr-p msksc1))
   (assert (maskscorr-p msksc2))
+  (assert (maskscorr-congruent msksc1 msksc2))
 
   (let (mask-list)
     (loop for mskx in (maskscorr-mask-list msksc1)
@@ -120,6 +117,7 @@
 (defun maskscorr-and (msksc1 msksc2) ; -> maskscorr.
   (assert (maskscorr-p msksc1))
   (assert (maskscorr-p msksc2))
+  (assert (maskscorr-congruent msksc1 msksc2))
 
   (let (mask-list)
     (loop for mskx in (maskscorr-mask-list msksc1)
@@ -131,3 +129,16 @@
   )
 )
 
+;;; Return the first mask in a maskscorr.
+(defun maskscorr-first-mask (msksc1) ; -> mask
+  (assert (maskscorr-p msksc1))
+
+  (maskstore-first-mask (maskscorr-maskstore msksc1))
+)
+
+;;; Return the last mask in a maskscorr.
+(defun maskscorr-last-mask (msksc1) ; -> mask
+  (assert (maskscorr-p msksc1))
+
+  (maskstore-last-mask (maskscorr-maskstore msksc1))
+)

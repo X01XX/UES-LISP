@@ -35,8 +35,12 @@
 
 (load #p "rule.lisp")
 (load #p "rule_t.lisp")
+
 (load #p "rulestore.lisp")
 (load #p "rulestore_t.lisp")
+
+(load #p "rulescorr.lisp")
+(load #p "rulescorr_t.lisp")
 
 (load #p "group.lisp")
 (load #p "group_t.lisp")
@@ -197,7 +201,7 @@
   (selectregionsstore-tests)
 
   (maskscorr-tests)
-  (maskscorr-tests)
+  (rulescorr-tests)
 
   (format t "~&All tests done")
   t

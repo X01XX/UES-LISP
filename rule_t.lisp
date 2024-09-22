@@ -310,9 +310,8 @@
 
     (setf rul1 (rule-new-region-to-region reg1 reg2))
 
-    ;(format t "~&rul1 ~A" rul1)
     (assert (region-eq (rule-initial-region rul1) reg1))
-    (assert (region-eq (rule-result-region rul1) reg2))
+    (assert (region-eq (rule-result-region rul1) (region-from-str "0_1X01_x01x")))
 
     (format t "~&  rule-new-region-to-region OK")
   )
@@ -341,7 +340,7 @@
   )
 
   ; Test rule-combine-sequence.
-  (let (rul1 rul2 rul3 reg1 reg2)
+  (let (rul1 rul2 rul3 rula rulb)
     ; Test two rules that intersect.
     (setf rul1 (rule-from-str "[01/00/xx/11]"))
     (setf rul2 (rule-from-str "[11/xx/00/10]"))
@@ -359,9 +358,9 @@
     (assert (rule-eq rul3 (rule-from-str "[01/10/00/XX]")))
 
     ; Test 1->X
-    (setf reg1 (region-from-str "1111_1111"))
-    (setf reg2 (region-from-str "XXXX_XXXX"))
-    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    (setf rula (rule-from-str "[11/11/11/11_11/11/11/11]"))
+    (setf rulb (rule-from-str "[10/10/10/10_10/10/10/10]"))
+    (setf rul1 (rule-union rula rulb))
     (setf rul2 (rule-from-str "[11/10/00/01_X0/X1/XX/Xx]"))
 
     (setf rul3 (rule-combine-sequence rul1 rul2))
@@ -371,9 +370,9 @@
     (assert (region-eq (rule-result-region rul3)  (region-from-str "1001_01XX")))
 
     ; Test 0->X
-    (setf reg1 (region-from-str "0000_0000"))
-    (setf reg2 (region-from-str "XXXX_XXXX"))
-    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    (setf rula (rule-from-str "[00/00/00/00_00/00/00/00]"))
+    (setf rulb (rule-from-str "[01/01/01/01_01/01/01/01]"))
+    (setf rul1 (rule-union rula rulb))
     (setf rul2 (rule-from-str "[11/10/00/01_X0/X1/XX/Xx]"))
 
     (setf rul3 (rule-combine-sequence rul1 rul2))
@@ -420,7 +419,7 @@
     ;(format t "~&rul1       ~A" rul1)
 
     (setf care (rule-change-care-mask rul1))
-    ;(format t "~& care mask ~A" care)
+    (format t "~& care mask ~A" care)
 
     (assert (mask-eq care (mask-from-str "#b1_1011_0110")))
 

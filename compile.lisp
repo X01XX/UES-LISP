@@ -30,6 +30,7 @@
 (progn (sleep 1) (format t "~& ") (compile-file "pn.lisp"))
 (progn (sleep 1) (format t "~& ") (compile-file "square.lisp"))
 (progn (sleep 1) (format t "~& ") (compile-file "maskscorr.lisp"))
+(progn (sleep 1) (format t "~& ") (compile-file "rulescorr.lisp"))
 
 
 (progn (sleep 1) (format t "~& ") (compile-file "value_t.lisp"))
@@ -59,3 +60,4 @@
 (progn (sleep 1) (format t " ") (compile-file "planstore_t.lisp"))
 (progn (sleep 1) (format t " ") (compile-file "square_t.lisp"))
 (progn (sleep 1) (format t " ") (compile-file "maskscorr_t.lisp"))
+(progn (sleep 1) (format t " ") (compile-file "rulescorr_t.lisp"))

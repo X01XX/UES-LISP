@@ -80,6 +80,7 @@
 
 ;;; Return the first mask in a store.
 (defun maskstore-first-mask (storex) ; -> mask
+  ;(format t "~&maskstore-first-mask: ~A" storex)
   (assert (maskstore-p storex))
   (assert (maskstore-is-not-empty storex))
 

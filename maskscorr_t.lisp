@@ -7,8 +7,8 @@
     (setf msksc1 (maskscorr-new (list (mask-from-str "#x01") (mask-from-str "#x0110"))))
     (assert (maskscorr-p msksc1))
     (assert (= (maskscorr-length msksc1) 2))
-    (assert (mask-eq (maskstore-first-mask (maskscorr-maskstore msksc1)) (mask-from-str "#x01")))
-    (assert (mask-eq (maskstore-last-mask (maskscorr-maskstore msksc1)) (mask-from-str "#x0110")))
+    (assert (mask-eq (maskscorr-first-mask msksc1) (mask-from-str "#x01")))
+    (assert (mask-eq (maskscorr-last-mask  msksc1) (mask-from-str "#x0110")))
 
     (format t "~&  maskscorr-new OK")
   )

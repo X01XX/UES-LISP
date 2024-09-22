@@ -24,7 +24,6 @@
 (defun rulestore-new (rules) ; -> rulestore.
   (assert (listp rules))
   (assert (not (null rules)))
-  (assert (< (length rules) 3))
   (assert (rule-list-p rules))
 
   (make-rulestore :rule-list rules)
@@ -43,6 +42,7 @@
 )
 
 (defun rulestore-str (storex) ; -> string
+  ;(format t "~&rulestore-str")
   (assert (rulestore-p storex))
 
   (let ((ret "#S(RULESTORE ") (start t))

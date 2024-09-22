@@ -1,9 +1,9 @@
-; Implement a series of corresponding regions that intersect.
+;;;; Implement a series of regionscorr that intersect.
 
 (defvar true t)
 (defvar false nil)
 
-; Implement a store of regions.
+;;; Implement a store of regions.
 (defstruct (pathcorr (:print-function pathcorr-print))
   regionscorrstore  ; A store of of zero, or more, regionscorr.
 )

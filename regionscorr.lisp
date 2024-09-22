@@ -1,8 +1,4 @@
-;;;; Implement a series of regions that correspond to a particular order.
-;;;;
-;;;; The regions may use different numbers of bits, depending on their position in a list.
-;;;;
-;;;; See the Domain concept in the Rust version of the project.
+;;;; Implement a series of regions, with bit-number values corresponding to a list of domains.
 
 (defvar true t)
 (defvar false nil)
@@ -292,7 +288,7 @@
 )
 
 ;;; Return regionscorr X mask.
-(defun regionscorr-x-mask (regionscorr1) ; -> maskscorr
+(defun regionscorr-x-maskscorr (regionscorr1) ; -> maskscorr
   (assert (regionscorr-p regionscorr1))
 
   (let (mask-list)
@@ -304,7 +300,7 @@
 )
 
 ;;; Return regionscorr 1 mask.
-(defun regionscorr-1-mask (regionscorr1) ; -> maskscorr
+(defun regionscorr-1-maskscorr (regionscorr1) ; -> maskscorr
   (assert (regionscorr-p regionscorr1))
 
   (let (mask-list)
@@ -316,7 +312,7 @@
 )
 
 ;;; Return regionscorr 0 mask.
-(defun regionscorr-0-mask (regionscorr1) ; -> maskscorr
+(defun regionscorr-0-maskscorr (regionscorr1) ; -> maskscorr
   (assert (regionscorr-p regionscorr1))
 
   (let (mask-list)
@@ -364,11 +360,11 @@
   (assert (regionscorr-congruent regionscorr1 regionscorr2))
 
   (let ((to-ones (maskscorr-or
-		   (maskscorr-and (regionscorr-0-mask regionscorr1) (regionscorr-1-mask regionscorr2))
-		   (maskscorr-and (regionscorr-x-mask regionscorr1) (regionscorr-1-mask regionscorr2))))
+		   (maskscorr-and (regionscorr-0-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))
+		   (maskscorr-and (regionscorr-x-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))))
         (to-zeros (maskscorr-or
-		   (maskscorr-and (regionscorr-1-mask regionscorr1) (regionscorr-0-mask regionscorr2))
-		   (maskscorr-and (regionscorr-x-mask regionscorr1) (regionscorr-0-mask regionscorr2))))
+		   (maskscorr-and (regionscorr-1-maskscorr regionscorr1) (regionscorr-0-maskscorr regionscorr2))
+		   (maskscorr-and (regionscorr-x-maskscorr regionscorr1) (regionscorr-0-maskscorr regionscorr2))))
 	)
     (regionscorr-set-to-zeros (regionscorr-set-to-ones regionscorr1 to-ones) to-zeros)
   )

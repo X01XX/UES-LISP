@@ -68,31 +68,31 @@
     (format t "~&  regionscorr-subtract OK")
   )
 
-  ;; Test regionscorr-x-mask.
+  ;; Test regionscorr-x-maskscorr.
   (let (regcorr1 mskx)
     (setf regcorr1 (regionscorr-new (list (region-from-str "0X") (region-from-str "1X"))))
-    (setf mskx (regionscorr-x-mask regcorr1))
+    (setf mskx (regionscorr-x-maskscorr regcorr1))
     (assert (maskscorr-eq mskx (maskscorr-new (list (mask-from-str "#b01") (mask-from-str "#b01")))))
 
-    (format t "~&  regionscorr-x-mask OK")
+    (format t "~&  regionscorr-x-maskscorr OK")
   )
 
-  ;; Test regionscorr-1-mask.
+  ;; Test regionscorr-1-maskscorr.
   (let (regcorr1 mskx)
     (setf regcorr1 (regionscorr-new (list (region-from-str "0X") (region-from-str "1X"))))
-    (setf mskx (regionscorr-1-mask regcorr1))
+    (setf mskx (regionscorr-1-maskscorr regcorr1))
     (assert (maskscorr-eq mskx (maskscorr-new (list (mask-from-str "#b00") (mask-from-str "#b10")))))
 
-    (format t "~&  regionscorr-1-mask OK")
+    (format t "~&  regionscorr-1-maskscorr OK")
   )
 
-  ;; Test regionscorr-0-mask.
+  ;; Test regionscorr-0-maskscorr.
   (let (regcorr1 mskx)
     (setf regcorr1 (regionscorr-new (list (region-from-str "0X") (region-from-str "1X"))))
-    (setf mskx (regionscorr-0-mask regcorr1))
+    (setf mskx (regionscorr-0-maskscorr regcorr1))
     (assert (maskscorr-eq mskx (maskscorr-new (list (mask-from-str "#b10") (mask-from-str "#b00")))))
 
-    (format t "~&  regionscorr-0-mask OK")
+    (format t "~&  regionscorr-0-maskscorr OK")
   )
 
   ;; Test regionscorr-set-to-zeros.
