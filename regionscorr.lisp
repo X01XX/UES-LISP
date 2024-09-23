@@ -77,19 +77,7 @@
 (defun regionscorr-str (regionscorrx) ; -> string.
   (assert (regionscorr-p regionscorrx))
 
-  (if (regionscorr-is-empty regionscorrx)
-    (return-from regionscorr-str "#S(REGIONSCORR REGIONS NIL"))
-
-  (let ((ret "#S(REGIONSCORR REGIONS ") last-reg)
-
-    (loop for regx in (regionscorr-region-list regionscorrx) do
-      (if last-reg (setf ret (concatenate 'string ret ", ")))
-      (setf last-reg regx)
-      (setf ret (concatenate 'string ret (region-str regx)))
-    )
-    (setf ret (concatenate 'string ret ")"))
-    ret
-  )
+  (format nil "#S(REGIONSCORR ~A)" (regionscorr-regionstore regionscorrx))
 )
 
 ;;; Return true if a regionscorr contains a given region.

@@ -29,6 +29,7 @@
   (assert (step-list-p steps))
 
   (let ((planx (make-plan :dom-id id :stepstore (stepstore-new steps))))
+    ;(format t "~& plan-new: planx ~A" planx)
     (assert (plan-is-valid planx))
     planx
   )
@@ -102,6 +103,7 @@
 ;;; Return true if a plan is valid.
 ;;; That is, all steps link together.
 (defun plan-is-valid (planx) ; -> bool
+  ;(format t "~&plan-is-valid: ~A" planx)
   (assert (plan-p planx))
 
   (if (< (plan-length planx) 2)
@@ -111,7 +113,8 @@
   (let ((last-step))
     (loop for stepx in (plan-step-list planx) do
         (when last-step
-	  (if (region-neq (step-result-region last-step) (step-initial-region stepx))
+	  (when (region-neq (step-result-region last-step) (step-initial-region stepx))
+	    (format t "~&~A -> ~A ?" (step-result-region last-step) (step-initial-region stepx))
             (return-from plan-is-valid false))
 	)
 	(setf last-step stepx)
