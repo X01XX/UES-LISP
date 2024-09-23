@@ -127,8 +127,6 @@
 ;; Return true if a list is a list of plans.
 ;;; An empty list will return true.
 (defun plan-list-p (plnlst) ; -> bool
-  (assert (listp plnlst))
-
   ;(format t "~&plan-list-p: ~A" plnlst)
   (if (not (listp plnlst))
     (return-from plan-list-p false))

@@ -100,6 +100,9 @@
 (load #p "square.lisp")
 (load #p "square_t.lisp")
 
+(load #p "planscorr.lisp")
+(load #p "planscorr_t.lisp")
+
 (defvar true t)
 (defvar false nil)
 
@@ -202,6 +205,7 @@
 
   (maskscorr-tests)
   (rulescorr-tests)
+  (planscorr-tests)
 
   (format t "~&All tests done")
   t
