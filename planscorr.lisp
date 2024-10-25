@@ -70,7 +70,7 @@
   (loop for plnx1 in (planscorr-plan-list plnsc1)
         for plnx2 in (planscorr-plan-list plnsc2) do
 
-	(if (/= (plan-dom-id plnx1) (plan-dom-id plnx2))
+	(if (/= (plan-num-bits plnx1) (plan-num-bits plnx2))
 	  (return-from planscorr-congruent false))
   )
   true
@@ -113,7 +113,7 @@
   (assert (planscorr-p plnsc2))
   (assert (planscorr-congruent plnsc1 plnsc2))
 
-  (let (plans-list1 plans-list2)
+  (let (plans-list1 plans-list2 pln1 pln2)
 
     (loop for plnx1 in (planscorr-plan-list plnsc1)
           for plnx2 in (planscorr-plan-list plnsc2) do
@@ -132,5 +132,52 @@
     )
     (list (planscorr-new plans-list1) (planscorr-new plans-list2))
   )
+)
+
+;;; Return a planscorr initial regions.
+(defun planscorr-initial-regions (plnscr1) ; -> regionscorr
+  (assert (planscorr-p plnscr1))
+
+  (let ((ret (regionscorr-new nil)))
+    (loop for plnx in (planscorr-plan-list plnscr1) do
+      (regionscorr-add-end ret (plan-initial-region plnx))
+    )
+    ret
+  )
+)
+
+;;; Return a planscorr result regions.
+(defun planscorr-result-regions (plnscr1) ; -> regionscorr
+  (assert (planscorr-p plnscr1))
+
+  (let ((ret (regionscorr-new nil)))
+    (loop for plnx in (planscorr-plan-list plnscr1) do
+      (regionscorr-add-end ret (plan-result-region plnx))
+    )
+    ret
+  )
+)
+
+;;; Return true if a list is a list of planscorr.
+;;; An empty list will return true.
+(defun planscorr-list-p (plnlst) ; -> bool
+  ;(format t "~&planscorr-list-p: ~A" plnlst)
+  (if (not (listp plnlst))
+    (return-from planscorr-list-p false))
+
+  (loop for plnx in plnlst do
+    (if (not (planscorr-p plnx))
+      (return-from planscorr-list-p false))
+  )
+  true
+)
+
+;;; Return true if the result regions of a planscorr instance matches the initial regions of another.
+(defun planscorr-is-linked-to (plnscr1 plnscr2) ; -> bool
+  (assert (planscorr-p plnscr1))
+  (assert (planscorr-p plnscr2))
+  (assert (planscorr-congruent plnscr1 plnscr2))
+
+  (regionscorr-eq (planscorr-result-regions plnscr1) (planscorr-initial-regions plnscr2))
 )
 

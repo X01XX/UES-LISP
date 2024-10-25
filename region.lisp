@@ -93,14 +93,20 @@
 (defun region-1-mask (regx) ; -> mask
   (assert (region-p regx))
 
-  (mask-new (state-and (region-first-state regx) (region-second-state regx)))
+  (let ((nx (mask-value (mask-not (region-x-mask regx)))))
+      (mask-new (value-and nx (state-and
+	  (region-first-state regx)
+	  (region-second-state regx))))
+  )
 )
 
 ;;; Return the edge 0s mask of a region.
 (defun region-0-mask (regx) ; -> mask
   (assert (region-p regx))
 
-  (mask-new (value-and (state-not (region-first-state regx)) (state-not (region-second-state regx))))
+  (let ((nx (mask-value (mask-not (region-x-mask regx)))))
+    (mask-new (value-and nx (state-not (region-first-state regx)) (state-not (region-second-state regx))))
+  )
 )
 
 ;;; Return the second state in a region, really the far state from the first state.
@@ -125,8 +131,24 @@
 (defun region-str (regx)  ; -> string.
   (assert (region-p regx))
 
+    (let ((strs "#S(REGION "))
+      (setf strs (concatenate 'string strs (region-str-bits regx)))
+
+      (setf strs (concatenate 'string strs ")"))
+
+      (if (> (statestore-length (region-statestore regx)) 2)
+          (setf strs (concatenate 'string strs "+")))
+
+      strs
+    )
+)
+
+;;; Return a string representing just region bit positions.
+(defun region-str-bits (regx) ; -> string, like 010X.
+  (assert (region-p regx))
+
     (let (
-          (strs "#S(REGION ")
+          (strs "")
 	  (xmask (region-x-mask regx))
           (bit-pos (mask-msb (mask-new (state-value (statestore-first-state (region-statestore regx))))))
           (not-start nil)
@@ -161,10 +183,6 @@
              )
              (setf bit-pos (mask-shift bit-pos -1))
          ) ; end-while
-
-    (setf strs (concatenate 'string strs ")"))
-    (if (> (statestore-length (region-statestore regx)) 2)
-        (setf strs (concatenate 'string strs "+")))
 
     strs
     )

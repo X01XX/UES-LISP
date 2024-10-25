@@ -91,8 +91,8 @@
 
   (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
 	(wanted-changes (rule-wanted-changes rule-to-goal))
-	(unwanted-changes (rule-unwanted-changes rule-to-goal))
-	num-wanted num-unwanted
+        (unwanted-changes (rule-unwanted-changes rule-to-goal))
+        num-wanted num-unwanted
 	step-rule
        )
 
@@ -161,30 +161,24 @@
 			(setf step-rule (rule-restrict-initial-region rulz from-reg))
                         (stepstore-push ret-steps (step-new :act-id nil
 							    :rule step-rule
-							    :kind 's
-							    :w (rule-num-wanted-changes step-rule)
-							    :u (rule-num-unwanted-changes step-rule))))
+							    )))
   
                        ((region-intersects (rule-initial-region rulz) from-reg)
 
 			(setf step-rule (rule-restrict-initial-region rulz from-reg))
                         (stepstore-push ret-steps (step-new :act-id nil 
 							    :rule step-rule
-							    :kind 'f
-							    :w (rule-num-wanted-changes step-rule)
-							    :u (rule-num-unwanted-changes step-rule))))
+							    )))
   
                        ((region-intersects (rule-result-region rulz) to-reg)
 
 			(setf step-rule (rule-restrict-result-region rulz to-reg))
                         (stepstore-push ret-steps (step-new :act-id nil 
 							    :rule step-rule
-							    :kind 'b
-							    :w (rule-num-wanted-changes step-rule)
-							    :u (rule-num-unwanted-changes step-rule))))
+							    )))
   
   		     (t
-                         (stepstore-push ret-steps (step-new :act-id 0 :rule rulz :kind 'a :w num-wanted :u num-unwanted)))
+                         (stepstore-push ret-steps (step-new :act-id 0 :rule rulz)))
                  )
             ) ; end-when 4
   	  ) ; end-when 3

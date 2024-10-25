@@ -94,6 +94,10 @@
                                ((and (char= bit-i #\x) (char= bit-j #\x)) (setf b00-i "1") (setf b11-i "1"))
                                ((and (char= bit-i #\X) (char= bit-j #\x)) (setf b01-i "1") (setf b10-i "1"))
                                ((and (char= bit-i #\x) (char= bit-j #\X)) (setf b01-i "1") (setf b10-i "1"))
+                               ((and (char= bit-i #\0) (char= bit-j #\X)) (setf b01-i "1") (setf b00-i "1"))
+                               ((and (char= bit-i #\0) (char= bit-j #\x)) (setf b01-i "1") (setf b00-i "1"))
+                               ((and (char= bit-i #\1) (char= bit-j #\X)) (setf b10-i "1") (setf b11-i "1"))
+                               ((and (char= bit-i #\1) (char= bit-j #\x)) (setf b10-i "1") (setf b11-i "1"))
                                 (t (return-from rule-from-str-na (err-new "Invalid character or combination")))
                          ) ; end cond 3
                          ;; Add a bit position to the mask strings.
@@ -313,23 +317,27 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  (let (b00 b0x bxx bx0 b01 bx1 b11 b1x b10)
+  (let (b00 b0x bxx bx0 b01 bx1 b11 b1x b10 bxxnot)
 
     ; Make masks for each possible bit position, (0, 1, X) to (0, 1, X), 3 X 3 = 9 possibilities.
     (setf b00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
     (setf b0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
-    (setf bxx (mask-and (region-x-mask reg1) (region-x-mask reg2)))
+    (setf bxx (value-and (mask-and (region-x-mask reg1) (region-x-mask reg2))
+	         	 (value-not (state-xor (region-first-state reg1) (region-first-state reg2)))))
+
     (setf bx0 (mask-and (region-x-mask reg1) (region-0-mask reg2)))
     (setf b01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
     (setf bx1 (mask-and (region-x-mask reg1) (region-1-mask reg2)))
     (setf b11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
     (setf b1x (mask-and (region-1-mask reg1) (region-x-mask reg2)))
     (setf b10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
+    (setf bxxnot (value-and (mask-and (region-x-mask reg1) (region-x-mask reg2))
+			    (state-xor (region-first-state reg1) (region-first-state reg2))))
 
     (make-rule :b00 (mask-new (value-or b00 bxx bx0 b0x))
-               :b01 (mask-new (value-or b01 bx1 b0x))
+               :b01 (mask-new (value-or b01 bx1 b0x bxxnot))
                :b11 (mask-new (value-or b11 bxx bx1 b1x))
-               :b10 (mask-new (value-or b10 bx0 b1x)))
+               :b10 (mask-new (value-or b10 bx0 b1x bxxnot)))
   )
 )
 

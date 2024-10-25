@@ -95,3 +95,11 @@
   (car (last (maskstore-mask-list storex)))
 )
 
+;;; Add mask to the end of a maskstore.
+(defun maskstore-add-end (storex plnx) ; -> nothing, side-effect maskstore changed.
+  (assert (maskstore-p storex))
+  (assert (mask-p plnx))
+
+  (setf (maskstore-mask-list storex) (append (maskstore-mask-list storex) (list plnx)))
+)
+

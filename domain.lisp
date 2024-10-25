@@ -118,7 +118,7 @@
       )
       (when span-steps
 	(setf stepy (nth (random (length span-steps)) span-steps))
-	(return-from domain-get-plan (plan-new (domain-id domx) (list stepy)))
+	(return-from domain-get-plan (plan-new (list stepy)))
       )
 
       ;; Gather steps that intersect the from-reg or two-reg.
@@ -147,7 +147,7 @@
 	      (progn
 	        (setf planx (domain-get-plan domx (step-result-region stepy) to-reg with-reg (1- depth)))
 	        (if planx
-                  (return-from domain-get-plan (plan-link (plan-new (domain-id domx) (list stepy)) planx))
+                  (return-from domain-get-plan (plan-link (plan-new (list stepy)) planx))
                   (return-from domain-get-plan nil)
 	        )
 	      )
@@ -160,7 +160,7 @@
 	    (setf stepy (step-restrict-result-region stepy to-reg))
             (setf planx (domain-get-plan domx from-reg (step-initial-region stepy) with-reg (1- depth)))
 	    (if planx
-              (return-from domain-get-plan (plan-link planx (plan-new (domain-id domx) (list stepy)))) 
+              (return-from domain-get-plan (plan-link planx (plan-new (list stepy)))) 
               (return-from domain-get-plan nil))
           )
 	)

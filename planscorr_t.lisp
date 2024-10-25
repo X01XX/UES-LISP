@@ -14,13 +14,13 @@
 
   ;; Test planscorr-length.
   (let (plnsc1 plan1 plan2 step1 step2)
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/XX/01/Xx]") :kind 'f :w 1 :u 0))
-    (setf step2 (step-new :act-id 0 :rule (rule-from-str "[01/XX/11/XX]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1 step2)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/XX/01/Xx]")))
+    (setf step2 (step-new :act-id 0 :rule (rule-from-str "[01/XX/11/XX]")))
+    (setf plan1 (plan-new (list step1 step2)))
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/Xx]") :kind 'f :w 1 :u 0))
-    (setf step2 (step-new :act-id 0 :rule (rule-from-str "[11/XX]") :kind 'f :w 1 :u 0))
-    (setf plan2 (plan-new 1 (list step1 step2)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/Xx]")))
+    (setf step2 (step-new :act-id 0 :rule (rule-from-str "[11/XX]")))
+    (setf plan2 (plan-new (list step1 step2)))
 
     (setf plnsc1 (planscorr-new (list plan1 plan2)))
     (assert (= (planscorr-length plnsc1) 2))
@@ -30,38 +30,37 @@
 
   ;; Test planscorr-congruent.
   (let (plnsc1 plnsc2 step1 plan1 plan2)
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/XX/01/Xx]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/XX/01/Xx]")))
+    (setf plan1 (plan-new (list step1)))
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/Xx]") :kind 'f :w 1 :u 0))
-    (setf plan2 (plan-new 1 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/Xx]")))
+    (setf plan2 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1 plan2)))
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/XX/01/Xx]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/XX/01/Xx]")))
+    (setf plan1 (plan-new (list step1)))
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/X1]") :kind 'f :w 1 :u 0))
-    (setf plan2 (plan-new 2 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/X1]")))
+    (setf plan2 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1 plan2)))
 
-    (assert (planscorr-congruent plnsc1 plnsc1))
-    (assert (not (planscorr-congruent plnsc1 plnsc2)))
+    (assert (planscorr-congruent plnsc1 plnsc2))
 
     (format t "~&  planscorr-congruent OK")
   )
 
   ;; Test planscorr-are-sequence.
   (let (plnsc1 plnsc2 step1 plan1)
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/11/01/XX]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/11/01/XX]")))
+    (setf plan1 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1)))
     ;(format t "~&plnsc1 ~A" plnsc1)
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/11/11/XX]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/11/11/XX]")))
+    (setf plan1 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1)))
     ;(format t "~&plnsc2 ~A" plnsc2)
@@ -74,14 +73,14 @@
 
   ;; Test planscorr-can-be-linked.
   (let (plnsc1 plnsc2 step1 plan1)
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/00/01/XX]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/00/01/XX]")))
+    (setf plan1 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1)))
     ;(format t "~&plnsc1 ~A" plnsc1)
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/XX/11/00]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/XX/11/00]")))
+    (setf plan1 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1)))
     ;(format t "~&plnsc2 ~A" plnsc2)
@@ -95,14 +94,14 @@
   ;; Test planscorr-link.
   (let (plnsc1 plnsc2 step1 plan1 lnk plnsc1a plnsc2a)
      
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/00/01/XX]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[00/00/01/XX]")))
+    (setf plan1 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1)))
     ;(format t "~&plnsc1 ~A" plnsc1)
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/XX/11/00]") :kind 'f :w 1 :u 0))
-    (setf plan1 (plan-new 0 (list step1)))
+    (setf step1 (step-new :act-id 0 :rule (rule-from-str "[01/XX/11/00]")))
+    (setf plan1 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1)))
     ;(format t "~&plnsc2 ~A" plnsc2)

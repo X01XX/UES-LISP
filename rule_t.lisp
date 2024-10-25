@@ -305,13 +305,13 @@
 
   ; Test rule-new-region-to-region.
   (let (rul1 reg1 reg2)
-    (setf reg1 (region-from-str "000_111_xxx"))
-    (setf reg2 (region-from-str "01x_01x_01x"))
+    (setf reg1 (region-from-str "000_111_xxx_Xx"))
+    (setf reg2 (region-from-str "01x_01x_01x_xX"))
 
     (setf rul1 (rule-new-region-to-region reg1 reg2))
+    ;(format t "~&rul1 ~A" rul1)
 
-    (assert (region-eq (rule-initial-region rul1) reg1))
-    (assert (region-eq (rule-result-region rul1) (region-from-str "0_1X01_x01x")))
+    (assert (rule-eq rul1 (rule-from-str "[00/01/0x_10/11/1x_x0/x1/xx_Xx/Xx]")))
 
     (format t "~&  rule-new-region-to-region OK")
   )

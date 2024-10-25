@@ -4,7 +4,7 @@
 
  ; Test cngstps-new.
  (let (cngstpsx cngx stp1)
-   (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/10/00/01]") :kind 'a :w 1 :u 0))
+   (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/10/00/01]")))
 
    (setf cngx (change-new :b01 (mask-from-str "#b0001") :b10 (mask-from-str "#b0000")))
 

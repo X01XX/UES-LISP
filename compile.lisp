@@ -32,6 +32,7 @@
 (progn (format t "~& ") (compile-file "maskscorr.lisp"))
 (progn (format t "~& ") (compile-file "rulescorr.lisp"))
 (progn (format t "~& ") (compile-file "planscorr.lisp"))
+(progn (format t "~& ") (compile-file "planscorrstore.lisp"))
 
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
@@ -63,3 +64,4 @@
 (progn (format t " ") (compile-file "maskscorr_t.lisp"))
 (progn (format t " ") (compile-file "rulescorr_t.lisp"))
 (progn (format t " ") (compile-file "planscorr_t.lisp"))
+(progn (format t " ") (compile-file "planscorrstore_t.lisp"))

@@ -142,3 +142,12 @@
 
   (maskstore-last-mask (maskscorr-maskstore msksc1))
 )
+
+;;; Add a mask to the end of the mask list.
+(defun maskscorr-add-end (maskscorrx mskx) ; -> nothing, side-effect maskscorr changed.
+  (assert (maskscorr-p maskscorrx))
+  (assert (mask-p mskx))
+
+  (maskstore-add-end (maskscorr-masksstore maskscorrx) mskx)
+)
+

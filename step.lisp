@@ -7,13 +7,6 @@
 (defstruct (step (:print-function step-print))
   act-id	; An action ID, GE zero.
   rule		; A rule.
-  kind		; 'a = Asymmetrical.
-                ; 'b = Backward chaining.
-                ; 'f = Forward chaining.
-		; 's = Spans gap.
-  wanted-changes    ; number of wanted changes, GE 1.
-  unwanted-changes  ; number of unwanted changes, GE 0.
-  net-changes       ; wanted - unwanted changes. 
 )
 ; Functions automatically created by defstruct:
 ;
@@ -31,14 +24,11 @@
 
 ;;; Return a new step.
 ;;; A nil act-id indicates it will be assigned later.
-(defun step-new (&key act-id rule kind w u)
+(defun step-new (&key act-id rule)
   (assert (rule-p rule))
   (assert (or (null act-id) (>= act-id 0)))
-  (assert (or (eq kind 'a) (eq kind 'b) (eq kind 'f) (eq kind 's)))
-  (assert (and (integerp w) (plusp w)))
-  (assert (and (integerp u) (>= u 0)))
 
-  (make-step :act-id act-id :rule rule :kind kind :wanted-changes w :unwanted-changes u :net-changes (- w u))
+  (make-step :act-id act-id :rule rule)
 )
 
 ;;; Print a step.
@@ -53,10 +43,6 @@
     (let ((str "#S(STEP "))
         (setf str (concatenate 'string str (format nil "act-id ~D" (step-act-id stpx))))
         (setf str (concatenate 'string str (format nil " rule ~A" (rule-str (step-rule stpx)))))
-        (setf str (concatenate 'string str (format nil " kind ~A" (step-kind stpx))))
-        (setf str (concatenate 'string str (format nil " w ~D" (step-wanted-changes stpx))))
-        (setf str (concatenate 'string str (format nil " u ~D" (step-unwanted-changes stpx))))
-        (setf str (concatenate 'string str (format nil " n ~D" (step-net-changes stpx))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -107,31 +93,21 @@
 
 ;;; Return a step with its rule initial region restricted bf a given region.
 (defun step-restrict-initial-region (stepx regx) ; -> step
-  (let* ((new-rule (rule-restrict-initial-region (step-rule stepx) regx))
-	 (w (rule-num-wanted-changes new-rule))
-	 (u (rule-num-unwanted-changes new-rule)))
+  (let ((new-rule (rule-restrict-initial-region (step-rule stepx) regx)))
 
     (make-step :act-id (step-act-id stepx) 
   	       :rule new-rule 
-	       :kind (step-kind stepx)
-	       :wanted-changes w
-	       :unwanted-changes u
-	       :net-changes (- w u))
+    )
   )
 )
 
 ;;; Return a step with its rule result region restricted bf a given region.
 (defun step-restrict-result-region (stepx regx) ; -> step
-  (let* ((new-rule (rule-restrict-result-region (step-rule stepx) regx))
-	 (w (rule-num-wanted-changes new-rule))
-	 (u (rule-num-unwanted-changes new-rule)))
+  (let ((new-rule (rule-restrict-result-region (step-rule stepx) regx)))
 
     (make-step :act-id (step-act-id stepx) 
   	       :rule new-rule 
-	       :kind (step-kind stepx)
-	       :wanted-changes w
-	       :unwanted-changes u
-	       :net-changes (- w u))
+    )
   )
 )
 

@@ -5,7 +5,6 @@
 
 ;;; The plan struct.
 (defstruct (plan (:print-function plan-print))
-  dom-id           ; Domain ID.
   stepstore        ; A store of steps to go from one state to another.  May be empty.
 )
 ; Functions automatically created by defstruct:
@@ -23,12 +22,10 @@
 ;   (copy-plan <instance>) copies a plan instance.
 
 ;;; Return a new plan, made up of zero, or more, steps.
-(defun plan-new (id steps) ; -> plan.
-  (assert (integerp id))
-  (assert (>= id 0))
+(defun plan-new (steps) ; -> plan.
   (assert (step-list-p steps))
 
-  (let ((planx (make-plan :dom-id id :stepstore (stepstore-new steps))))
+  (let ((planx (make-plan :stepstore (stepstore-new steps))))
     ;(format t "~& plan-new: planx ~A" planx)
     (assert (plan-is-valid planx))
     planx
@@ -55,12 +52,13 @@
   (let ((strs "#S(PLAN ") (at-start true))
 
     (loop for stepx in (plan-step-list planx) do
-      (if at-start
+      (when at-start
         (setf at-start nil)
-        (setf strs (concatenate 'string strs " -> ")))
+        (setf strs (concatenate 'string strs (format nil "~A" (region-str-bits (step-initial-region stepx))))))
    
-      (setf strs (concatenate 'string strs (step-str stepx)))
+      (setf strs (concatenate 'string strs (format nil "-~D->~A" (step-act-id stepx) (region-str-bits (step-result-region stepx)))))
     )
+    (setf strs (concatenate 'string strs ")"))
     strs
   )
 )
@@ -185,7 +183,7 @@
 
       (push temp-step steps)
     )
-    (plan-new (plan-dom-id aplan) (reverse steps))
+    (plan-new (reverse steps))
   )
 )
 
@@ -213,7 +211,7 @@
 
       (push temp-step steps)
     )
-    (plan-new (plan-dom-id aplan) steps)
+    (plan-new steps)
   )
 )
 
@@ -221,9 +219,9 @@
 (defun plan-link (planx plany) ; -> plan, or nil.
   (assert (plan-p planx))
   (assert (plan-p plany))
-  (assert (= (plan-dom-id planx) (plan-dom-id plany)))
   (assert (plan-is-valid planx))
   (assert (plan-is-valid plany))
+  (assert (= (plan-num-bits planx) (plan-num-bits plany)))
 
   (let ((result-reg (step-result-region (plan-last-step planx)))
         (initial-reg (step-initial-region (plan-first-step plany))))
@@ -232,21 +230,114 @@
       (return-from plan-link nil))
 
     (if (region-eq result-reg initial-reg)
-      (return-from plan-link (plan-new (plan-dom-id planx) (append (plan-step-list planx) (plan-step-list plany)))))
+      (return-from plan-link (plan-new (append (plan-step-list planx) (plan-step-list plany)))))
 
     (let ((int-reg (region-intersection result-reg initial-reg)))
 
       (cond ((region-superset-of :sup result-reg :sub initial-reg)
-               (plan-new (plan-dom-id planx) (append (plan-step-list (plan-restrict-result-region planx int-reg)) (plan-step-list plany)))
+               (plan-new (append (plan-step-list (plan-restrict-result-region planx int-reg)) (plan-step-list plany)))
 	     )
             ((region-superset-of :sup initial-reg :sub result-reg)
-               (plan-new (plan-dom-id planx) (append (plan-step-list planx) (plan-step-list (plan-restrict-initial-region plany int-reg))))
+               (plan-new (append (plan-step-list planx) (plan-step-list (plan-restrict-initial-region plany int-reg))))
 	     )
 	    (t
-               (plan-new (plan-dom-id planx) (append (plan-step-list (plan-restrict-result-region planx int-reg))
-                                                     (plan-step-list (plan-restrict-initial-region plany int-reg))))
+               (plan-new (append (plan-step-list (plan-restrict-result-region planx int-reg))
+                                 (plan-step-list (plan-restrict-initial-region plany int-reg))))
 	    )
       )
+    )
+  )
+)
+
+;;; Return the number of bits used to define regions in a non-empty plan.
+(defun plan-num-bits (plnx) ; -> integer GT zero.
+  (assert (plan-p plnx))
+  (assert (plan-is-not-empty plnx))
+
+  (region-num-bits (plan-initial-region plnx))
+)
+
+;;; Return a plan, given a string of the form region-actnum->region-actnum->region ...
+(defun plan-from-str (plan-str) ; -> plan
+  (format t "~&plan-from-str: ~A" plan-str)
+  (let (token token-list token-list2)
+    ; Split string into <region>-<action number> tokens, plus region at end.
+    (loop for chr across plan-str do
+	(if (char= chr #\>)
+	  (progn
+	    ;(format t "~&token: ~A" token)
+	    (setf token-list (append token-list (list token)))
+	    (setf token nil)
+	  )
+          (setf token (concatenate 'string token (string chr)))
+	)
+    ) ; next chr
+    ;(format t "~&last token: ~A" token)
+    (setf token-list (append token-list (list token)))
+    
+    ; sanity checks.
+
+    ; Token list should be non-nil.
+    (if (null token-list)
+      (return-from plan-from-str nil))
+
+    ;(format t "~&token-list: ~A" token-list)
+
+    ; Split tokens between region and action, plus region at end.
+    (let (token)
+      (loop for tokenx in token-list do
+         (loop for chr across tokenx do
+	   (if (char= chr #\-)
+	     (progn
+	       ;(format t "~&token: ~A" token)
+	       (setf token-list2 (append token-list2 (list token)))
+	       (setf token nil)
+	     )
+             (setf token (concatenate 'string token (string chr)))
+	   )
+	 ) ;  next chr.
+	 (setf token-list2 (append token-list2 (list token)))
+	 (setf token nil)
+      ) ; next tokenx.
+      ;(format t "~&token-list2: ~A" token-list2)
+    )
+
+    ;; Tally up tokens and actions.
+    (let (regions actions reg1 reg2 actx rulx stepx steps planx)
+      (loop for itemx in token-list2
+	    for inx from 0 do
+
+	(if (evenp inx)
+	  (progn 
+	    ;(format t "~&  a region ~A" itemx)
+	    (push itemx regions)
+	  )
+	  (progn 
+	    ;(format t "~&  an action ~A" itemx)
+	    (push itemx actions)
+	  )
+	) ; end if
+	(when (and (= 2 (length regions)) (= 1 (length actions)))
+	  ;(format t "~&  figure step ~A -~D-> ~A" (second regions) (car actions) (car regions))
+
+	  (setf reg1 (region-from-str (second regions)))
+	  (setf actx (parse-integer (car actions)))
+	  (setf reg2 (region-from-str (car regions)))
+	  ;(format t "~&reg1 ~A -~D-> reg2 ~A" reg1 actx reg2)
+	  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
+	  (setf rulx (rule-new-region-to-region reg1 reg2))
+	  ;(format t "~&rule is: ~A" rulx)
+	  (setf stepx (step-new :act-id actx :rule rulx))
+	  (format t "~&step ~A" stepx)
+	  (push stepx steps)
+
+	  (setf regions (list (car regions)))
+	  (setf actions nil)
+	) ; end-when 
+      ) ; next itemx, inx.
+      (setf planx (plan-new (reverse steps)))
+      ;(format t "~&plan: ~A" planx)
+      planx
     )
   )
 )

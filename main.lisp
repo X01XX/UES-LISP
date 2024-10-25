@@ -103,6 +103,9 @@
 (load #p "planscorr.lisp")
 (load #p "planscorr_t.lisp")
 
+(load #p "planscorrstore.lisp")
+(load #p "planscorrstore_t.lisp")
+
 (defvar true t)
 (defvar false nil)
 
@@ -206,6 +209,7 @@
   (maskscorr-tests)
   (rulescorr-tests)
   (planscorr-tests)
+  (planscorrstore-tests)
 
   (format t "~&All tests done")
   t
