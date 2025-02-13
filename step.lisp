@@ -4,7 +4,7 @@
 
 ;;;; Implement the Step type.
 ;;;;
-(defstruct (step (:print-function step-print))
+(defstruct step
   act-id	; An action ID, GE zero.
   rule		; A rule.
 )
@@ -29,11 +29,6 @@
   (assert (or (null act-id) (>= act-id 0)))
 
   (make-step :act-id act-id :rule rule)
-)
-
-;;; Print a step.
-(defun step-print (instance stream depth)
-    (format stream (step-str instance))
 )
 
 ;;; Return a string representing a step

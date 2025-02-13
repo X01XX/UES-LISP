@@ -3,7 +3,7 @@
 ;;;; possibly with other changes.
 
 ;;; The cngstps struct.
-(defstruct (cngstps (:print-function cngstps-print))
+(defstruct cngstps
   change   ; A change, with a one-bit change.
   steps    ; A stepstore of steps that accomplish at least that change.
 )
@@ -50,12 +50,6 @@
     (setf str (concatenate 'string str ")"))
     str
   )
-)
-
-; Print a cngstps.
-(defun cngstps-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (cngstps-str instance))
 )
 
 ;;; Return the number of bits used is elements of a cngstps.

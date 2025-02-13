@@ -7,8 +7,8 @@
     (setf store1 (groupstore-new (list 
       (group-new :rules (rulestore-new (list
         (rule-union
-	  (rule-new (sample-new :initial (state-from-str "#x0") :result (state-from-str "#x1")))
-	  (rule-new (sample-new :initial (state-from-str "#xf") :result (state-from-str "#xe"))))))))))
+	  (rule-new (sample-new :initial (state-from "s0000") :result (state-from "s0001")))
+	  (rule-new (sample-new :initial (state-from "s1111") :result (state-from "s1110"))))))))))
  
     (assert (groupstore-p store1))
 

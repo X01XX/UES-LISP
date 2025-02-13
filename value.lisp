@@ -2,7 +2,7 @@
 
 ;;; The value struct.
 ;;; It holds a given number of bits.
-(defstruct (value (:print-function value-print))
+(defstruct value
   num-bits  ; Number of bits used.
   bits      ; Bits value, zero to 2^num-bits - 1.
 )
@@ -31,52 +31,44 @@
   (make-value :num-bits num-bits :bits bits)
 )
 
-;;; Given a string like "#x123", "#b1100", return a valid value.
+;;; Given a symbol, or string, like "v10", "v11_1100", 'v101, return a valid value.
 ;;; Underscore characters, which can be used as spacers, are ignored.
-(defun value-from-str (str) ; -> value.
-  (assert (stringp str))
-  (assert (> (length str) 2))
+;;; All bits must be specified, since the number of bits is kept in the num-bits field in the struct.
+(defun value-from (str) ; -> value.
+  ;(format t "~&value-from ~A ~A" (type-of str) str)
+  (if (symbolp str)
+      (setf str (symbol-name str)))
 
-  (let ((ret (value-from-str-na str)))
+  (assert (stringp str))
+  (assert (> (length str) 1))
+
+  (let ((ret (value-from-na str)))
     (cond ((err-p ret) (error (err-str ret)))
           ((value-p ret) ret)
            (t (error "Result is not a value"))))
 )
-;;; value-from-str no-abort (na).
-(defun value-from-str-na (str) ; -> value, or err.
-  ;(format t "~&value-from-str-na: ~A" str)
+;;; value-from no-abort (na).
+(defun value-from-na (str) ; -> value, or err.
+  ;(format t "~&value-from-na: ~A" str)
 
-  (let (valx bin hex (digit-num 0) str2 num-bits)
-    ; Check for base indicators.
-    (if (string= (subseq str 0 1) "#") 
-      (cond ((or (string= (subseq str 1 2) "b") (string= (subseq str 1 2) "B")) (setf bin t))
-            ((or (string= (subseq str 1 2) "x") (string= (subseq str 1 2) "X")) (setf hex t))
-	     (t (return-from value-from-str-na (err-new "Second character is not b, B, x or X")))
-      )
-      (return-from value-from-str-na (err-new "String does not begin with the # character"))
+  (let (str2 num-bits valx)
+
+    ;; Check for v prefix.
+    (if (not (string-equal (subseq str 0 1) "v")) 
+      (return-from value-from-na (err-new "String does not begin with the v character"))
     )
-    ;; Init second string.
-    (setf str2 (subseq str 0 2))
 
-    ;; Count digits, skip underscores.
-    (loop for chr across (subseq str 2) do
-      (cond ((char= chr #\_) nil)
-             (t (incf digit-num)
-		(if bin
-		  (if (not (and (char>= chr #\0) (char<= chr #\1)))
-		    (return-from value-from-str-na (err-new "Invalid binary digit")))
-		  (if (not (or
-		    (and (char>= chr #\0) (char<= chr #\9))
-		    (and (char>= chr #\a) (char<= chr #\f))
-		    (and (char>= chr #\A) (char<= chr #\F))))
-		      (return-from value-from-str-na (err-new "Invalid hexadecimal digit")))
-		)
-	        (setf str2 (concatenate 'string str2 (princ-to-string chr))))
+    ;; Count digits, count digits, accumulate digits, skip underscores.
+    (setf str2 "#b")
+    (setf num-bits 0)
+    (loop for chr across (subseq str 1) do
+      (when (char/= chr #\_)
+        (incf num-bits)
+	    (if (or (char= chr #\0) (char= chr #\1))
+	      (setf str2 (concatenate 'string str2 (princ-to-string chr)))
+		  (return-from value-from-na (err-new (format nil "Invalid binary digit ~A" chr))))
       )
     ) ; end loop
-
-    ;; Calc number bits.
-    (if bin (setf num-bits digit-num) (setf num-bits (* digit-num 4)))
 
     ;; Translate string to integer.
     (setf valx (read-from-string str2))
@@ -119,22 +111,6 @@
 (defun value-str (val) ; -> string.
   (assert (value-p val))
 
-  (if (zerop (mod (value-num-bits val) 4))
-    (value-str-hex val)
-    (value-str-bin val)
-  )
-)
-
-;;; Print a value.
-(defun value-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (value-str instance))
-)
-
-;;; Return a string representing a value in binary
-(defun value-str-bin (val) ; -> string.
-  (assert (value-p val))
-
   (let (str str-len val-len)
 
     (setf str (format nil (write-to-string (value-bits val) :base 2)))
@@ -145,26 +121,7 @@
       (setf str (concatenate 'string "0" str))
       (incf str-len)
     )
-    (concatenate 'string "#b" (string-add-underscores str))
-  )
-)
-
-;;; Return a string representing a value in hexadecimal
-(defun value-str-hex (val) ; -> string.
-  (assert (value-p val))
-  (assert (zerop (mod (value-num-bits val) 4)))
-
-  (let (str str-len val-len)
-
-    (setf str (format nil (write-to-string (value-bits val) :base 16)))
-    (setf str-len (length str))
-    (setf val-len (/ (value-num-bits val) 4))
-
-    (while (< str-len val-len)
-      (setf str (concatenate 'string "0" str))
-      (incf str-len)
-    )
-    (concatenate 'string "#x" (string-add-underscores str))
+    (concatenate 'string "v" (string-add-underscores str))
   )
 )
 

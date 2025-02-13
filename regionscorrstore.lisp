@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ; Implement a store of regions.
-(defstruct (regionscorrstore (:print-function regionscorrstore-print))
+(defstruct regionscorrstore
   regionscorr-list  ; A list of zero, or more, regionscorr.
 )
 ; Functions automatically created by defstruct:
@@ -27,12 +27,6 @@
   (assert (regionscorr-list-p regions))
 
   (make-regionscorrstore :regionscorr-list regions)
-)
-
-;;; Print a regionscorrstore.
-(defun regionscorrstore-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (regionscorrstore-str instance))
 )
 
 ;;; Push region into a regionscorrstore.
@@ -226,19 +220,19 @@
 ;;; Failure to find a path returns nil.
 ;;; The strategy is to keep dividing the problem into two smaller problems.
 ;;; Later, a path can be calculated from intersection to intersection.
-(defun regionscorrstore-find-path (pathcorr-options left-reg right-reg) ; -> path, or nil.
+(defun regionscorrstore-find-path (pathscorr-options left-reg right-reg) ; -> path, or nil.
   ;(format t "~&regionscorrstore-find-path ~A and ~A" left-reg right-reg)
-  (assert (regionscorrstore-p pathcorr-options))
+  (assert (regionscorrstore-p pathscorr-options))
   (assert (regionscorr-p left-reg))
   (assert (regionscorr-p right-reg))
   (assert (not (regionscorr-intersects left-reg right-reg)))
 
   ;; No point without at least one intersectionu of the left region.
-  (if (not (regionscorrstore-any-intersection pathcorr-options left-reg))
+  (if (not (regionscorrstore-any-intersection pathscorr-options left-reg))
     (return-from regionscorrstore-find-path nil))
 
   ;; No point without at least one intersection of the right region.
-  (if (not (regionscorrstore-any-intersection pathcorr-options right-reg))
+  (if (not (regionscorrstore-any-intersection pathscorr-options right-reg))
     (return-from regionscorrstore-find-path nil))
 
   ;; Regions should not intersect already.
@@ -246,11 +240,11 @@
     (return-from regionscorrstore-find-path nil))
 
   ;; Try to find a path between the regions.
-  (regionscorrstore-find-path2 pathcorr-options left-reg right-reg)
+  (regionscorrstore-find-path2 pathscorr-options left-reg right-reg)
 )
-(defun regionscorrstore-find-path2 (pathcorr-options left-reg right-reg) ; -> path, or nil. Probably should not call this function directly.
+(defun regionscorrstore-find-path2 (pathscorr-options left-reg right-reg) ; -> path, or nil. Probably should not call this function directly.
   ;(format t "~&regionscorrstore-find-path2 ~A and ~A" left-reg right-reg)
-  ;(assert (regionscorrstore-p pathcorr-options))
+  ;(assert (regionscorrstore-p pathscorr-options))
   ;(assert (regionscorr-p left-reg))
   ;(assert (regionscorr-p right-reg))
 
@@ -258,14 +252,14 @@
   ;; Look for one region that intersects both regions.
   (let (links ; Store of regions that intersect both given regions.
        )
-    (loop for regx in (regionscorrstore-regionscorr-list pathcorr-options) do
+    (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
       (if (and (and (regionscorr-neq regx left-reg) (regionscorr-intersects regx left-reg))
 	       (and (regionscorr-neq regx right-reg) (regionscorr-intersects regx right-reg)))
 	(push regx links)
       )
     )
     (if links
-      (return-from regionscorrstore-find-path2 (pathcorr-new (list left-reg (nth (random (length links)) links) right-reg)))
+      (return-from regionscorrstore-find-path2 (pathscorr-new (list left-reg (nth (random (length links)) links) right-reg)))
     )
   )
 
@@ -279,7 +273,7 @@
        )
 
     ;; Gather non-intersecting regions roughly between the two given regions.
-    (loop for regx in (regionscorrstore-regionscorr-list pathcorr-options) do
+    (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
       (if (and (not (regionscorr-intersects regx left-reg)) (not (regionscorr-intersects regx right-reg))
 	       (regionscorr-intersects regx glide-path))
 	(push regx links)
@@ -289,18 +283,18 @@
       ;; Choose a region to split the problem in two.
       (setf middle-region (nth (random (length links)) links))
  
-      (setf left-path (regionscorrstore-find-path2 pathcorr-options left-reg middle-region))
+      (setf left-path (regionscorrstore-find-path2 pathscorr-options left-reg middle-region))
       (if (null left-path)
         (return-from regionscorrstore-find-path2 nil))
 
-      (setf right-path (regionscorrstore-find-path2 pathcorr-options middle-region right-reg))
+      (setf right-path (regionscorrstore-find-path2 pathscorr-options middle-region right-reg))
       (if (null right-path)
         (return-from regionscorrstore-find-path2 nil))
 
       (if (regionscorr-eq (regionscorrstore-last-region left-path) (regionscorrstore-first-region right-path))
-        (return-from regionscorrstore-find-path2 (pathcorr-append left-path (regionscorrstore-cdr right-path))))
+        (return-from regionscorrstore-find-path2 (pathscorr-append left-path (regionscorrstore-cdr right-path))))
 
-      (return-from regionscorrstore-find-path2 (pathcorr-append left-path right-path))
+      (return-from regionscorrstore-find-path2 (pathscorr-append left-path right-path))
     )
   )
 
@@ -311,19 +305,19 @@
         right-path	; Path from next-region to the right region.
        )
 
-    (loop for regx in (regionscorrstore-regionscorr-list pathcorr-options) do
+    (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
 
       ;; Find regions that intersect the left region, and at least one other region.
       (when (and (regionscorr-neq regx left-reg) (regionscorr-intersects regx left-reg))
 	;; Check if the region intersects any other region, that left-reg does not intersect.
-	(if (regionscorrstore-other-intersections :store pathcorr-options :int-reg regx :not-reg left-reg)
+	(if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg left-reg)
 	  (push regx links)
 	)
       )
       ;; Find regions that intersect the right region, and at least one other region.
       (when (and (regionscorr-neq regx right-reg) (regionscorr-intersects regx right-reg))
 	;; Check if the region intersects any other region, that left-reg does not intersect.
-	(if (regionscorrstore-other-intersections :store pathcorr-options :int-reg regx :not-reg right-reg)
+	(if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg right-reg)
 	  (push regx links)
 	)	
       )
@@ -334,20 +328,20 @@
 
       ;; Process a region that intersects the left region.
       (when (regionscorr-intersects next-region left-reg)
-        (setf right-path (regionscorrstore-find-path2 pathcorr-options next-region right-reg))
-        (if (pathcorr-is-empty right-path)
+        (setf right-path (regionscorrstore-find-path2 pathscorr-options next-region right-reg))
+        (if (pathscorr-is-empty right-path)
           (return-from regionscorrstore-find-path2 right-path))
 
-        (pathcorr-add-start right-path left-reg)
+        (pathscorr-add-start right-path left-reg)
         (return-from regionscorrstore-find-path2 right-path)
       )
       ;; Process a region that intersects the right region.
       (when (regionscorr-intersects next-region right-reg)
-        (setf left-path (regionscorrstore-find-path2 pathcorr-options left-reg next-region))
-        (if (pathcorr-is-empty left-path)
+        (setf left-path (regionscorrstore-find-path2 pathscorr-options left-reg next-region))
+        (if (pathscorr-is-empty left-path)
           (return-from regionscorrstore-find-path2 left-path))
 
-        (pathcorr-add-end left-path right-reg)
+        (pathscorr-add-end left-path right-reg)
         (return-from regionscorrstore-find-path2 left-path)
       )
     )

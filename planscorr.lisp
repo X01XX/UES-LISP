@@ -7,7 +7,7 @@
 (defvar false nil)
 
 ; Implement a store of corresponding plans.
-(defstruct (planscorr (:print-function planscorr-print))
+(defstruct planscorr
   planstore  ; A planstore of zero, or more, plans.
 )
 ; Functions automatically created by defstruct:
@@ -32,17 +32,11 @@
   (make-planscorr :planstore (planstore-new plans))
 )
 
-;;; Print a planscorr.
-(defun planscorr-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (planscorr-str instance))
-)
-
 ;;; Return a string representing a planscorr.
 (defun planscorr-str (plansc) ; -> string.
   (assert (planscorr-p plansc))
 
-  (format nil "#S(PLANSCORR ~A)" (planscorr-planstore plansc))
+  (format nil "PC~A" (planstore-str (planscorr-planstore plansc)))
 )
 
 ;;; Return the number of plans in a planscorr.

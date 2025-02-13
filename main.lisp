@@ -74,8 +74,8 @@
 (load #p "regionscorr.lisp")
 (load #p "regionscorr_t.lisp")
 
-(load #p "pathcorr.lisp")
-(load #p "pathcorr_t.lisp")
+(load #p "pathscorr.lisp")
+(load #p "pathscorr_t.lisp")
 
 (load #p "regionscorrstore.lisp")
 (load #p "regionscorrstore_t.lisp")
@@ -106,56 +106,128 @@
 (load #p "planscorrstore.lisp")
 (load #p "planscorrstore_t.lisp")
 
+(load #p "need.lisp")
+(load #p "need_t.lisp")
+
+(load #p "needstore.lisp")
+(load #p "needstore_t.lisp")
+
+(load #p "sessiondata.lisp")
+(load #p "statescorr.lisp")
+(load #p "squarestore.lisp")
+
 (defvar true t)
 (defvar false nil)
 
 (defun main ()
-  (let (domx rule-to-goal steps from-reg to-reg care-mask wanted-changes cngstpsstore1)
-    (setf domx (domain-new :id 0 :actions
-		 (actionstore-new (list
-		    (action-new :id 0 :groups
-		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[00/XX/01/XX]")))))))
-		    (action-new :id 1 :groups
-		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[01/XX/11/XX]")))))))
-		    (action-new :id 2 :groups
-		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[11/XX/10/XX]")))))))
-		    (action-new :id 3 :groups
-		      (groupstore-new (list (group-new :rules 
-		     	(rulestore-new (list (rule-from-str "[Xx/Xx/11/XX]")))))))
-		    ))
-		 :current-state (state-from-str "#b0101")))
+  (run)
+)
 
-    (setf from-reg (region-from-str "0X10"))
-    (format t "~&from: ~A" from-reg)
+;;; (do-interactive-session nil)
+(defun default-session ()
+  (let (dmxs)
+    (setf dmxs (domainstore-new)) ; Init domainstore.
+    (domainstore-add-domain (state-from "v0000")) ; Add a domain.
+    (domainstore-add-domain (state-from "v00"))   ; Add a domain.
 
-    (setf to-reg (region-from-str "10XX"))
-    (format t "~&to:   ~A" to-reg)
-
-    (setf rule-to-goal (rule-new-region-to-region from-reg to-reg))
-    (format t "~& ~&rule-to-goal: ~A" rule-to-goal)
-
-    (setf care-mask (mask-not (region-x-mask to-reg)))
-
-    (setf wanted-changes (change-new :b01 (mask-new-and care-mask (rule-b01 rule-to-goal))
-                                     :b10 (mask-new-and care-mask (rule-b10 rule-to-goal))))
-
-    ;(format t "~&wanted changes ~A" wanted-changes)
-
-    (setf steps (domain-get-steps domx rule-to-goal (domain-max-region domx)))
-    (format t "~& ~&steps found:~&  ~A" steps)
-
-    (setf cngstpsstore1 (cngstpsstore-new wanted-changes))
-
-    (loop for stepx in (stepstore-step-list steps) do
-      (cngstpsstore-add cngstpsstore1 stepx)
-    )
-    (format t "~& ~&steps stored by single-bit changes:~&  ~A" cngstpsstore1)
-
-    true
+    (do-interactive-session dmxs)
   )
+)
+
+;;; Do commands against a given DomainList instance.
+(defun do-interactive-session (dmxs)
+  (multiple-value-bind (needs can-do cant-do) (generate-and-display-needs dmxs)
+    (command-loop dmxs needs can-do cant-do)
+  )
+)
+
+(defun generate-and-display-needs (dmxs) ; -> (values needs can-do cant-do)
+  (format t "~&generate-and-display-needs")
+  (assert (domainstore-p dmxs))
+
+  (let (needs can-do cant-do)
+    (multivalue-bind (needs can-do cant-do) (domainstore-get-needs dmxs)
+      (display-needs dmxs needs can-do cant-do)
+      (values needs can-do cant-do)
+    )
+  )
+)
+
+(defun command-loop (sessx needs can-do)
+  (format t "~&command-loop")
+  (assert (domainstore-p sessx))
+  (let (inp tokens token)
+    (loop 
+      (format t "~&Press Enter or type a command: ")
+      (setf inp (read-line *STANDARD-INPUT*))
+
+      ; Parse tokens from the input string
+      (setf tokens nil token nil)
+      (loop for char across inp do
+          ;(format t "c ~A" char)
+          (when (char= char #\ )
+              (if (not (null token))
+                  (push token tokens))
+              (setf token nil)
+          )
+          (when (char/= char #\ )
+              (if token
+                  (setf token (format nil "~A~A" token char))
+                  (setf token (format nil "~A" char)))
+          )
+      )
+      (when token
+        (push token tokens))
+
+      (setf tokens (reverse tokens))
+
+      (format t "~&tokens: ~A" tokens)
+
+      (if (or (string= (car tokens) #\q) (string= (car tokens) #\Q))
+	(return-from command-loop))
+
+      (if (null tokens)
+	;; Process needs.
+	(if can-do
+	  (do-any-need sessx needs can-do)
+	)
+      )
+    )
+  )
+) ; end command-loop
+
+(defun do-any-need (sessx needs can-do) 
+  (format t "~&do-any-needs")
+  (assert (sessiondata-p sessx))
+  (assert (needstore-p needs))
+  (assert (needstore-p can-do))
+)
+
+;;; Run a new session.
+(defun run (&optional fname) 
+    (if (null fname) (setf fname "default.kmp"))
+
+    (let ((in (open fname :if-does-not-exist nil)) (str "") sdx sdx-in)
+        (when in
+            (loop for line = (read-line in nil)
+                while line do
+                   (setf str (concatenate 'string str line))
+                   (setf str (concatenate 'string str (coerce (list #\NewLine) 'string)))
+            )
+            (close in)
+            ;(setf str (remove-comments str))
+            ;(format t "~&final: ~A" str)
+            (setf sdx-in (read-from-string str)) ; read in data, check that parentheses are balanced.
+            (when sdx-in
+                (pprint sdx-in)
+                (setf sdx (eval sdx-in))
+                ;(setf sdx (sessiondata-from sdx-in))
+                (format t "~&type sdx ~A" (type-of sdx))
+ ;              (format t "~&sdx ~A" sdx)
+            )
+        )
+        ;tokens
+    )
 )
 
 (defun all-tests ()
@@ -190,7 +262,7 @@
   (cngstpsstore-tests)
   (regionstore-tests)
 
-  (pathcorr-tests)
+  (pathscorr-tests)
 
   (regionscorr-tests)
   (regionscorrstore-tests)

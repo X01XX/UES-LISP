@@ -4,10 +4,9 @@
 (defvar false nil)
 
 ;;; The change struct.
-(defstruct (change (:print-function change-print))
-
-  b01  ; 0->1 mask.
-  b10  ; 1->0 mask.
+(defstruct change
+  m01  ; 0->1 mask.
+  m10  ; 1->0 mask.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,18 +23,12 @@
 ;   (copy-change <instance>) copies a change instance.
 
 ;;; Return a new change.
-(defun change-new (&key b01 b10) ; -> change.
-  (assert (mask-p b01))
-  (assert (mask-p b10))
-  (assert (= (mask-num-bits b01) (mask-num-bits b10)))
+(defun change-new (&key m01 m10) ; -> change.
+  (assert (mask-p m01))
+  (assert (mask-p m10))
+  (assert (= (mask-num-bits m01) (mask-num-bits m10)))
 
-  (make-change :b01 b01 :b10 b10)
-)
-
-;;; Print a change.
-(defun change-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (change-str instance))
+  (make-change :m01 m01 :m10 m10)
 )
 
 ;;; Return a string for a change.
@@ -43,9 +36,9 @@
   (change-p cngx)
 
   (let ((str "(0->1 "))
-    (setf str (concatenate 'string str (value-str (mask-value (change-b01 cngx)))))
+    (setf str (concatenate 'string str (value-str (mask-value (change-m01 cngx)))))
     (setf str (concatenate 'string str ", 1->0 "))
-    (setf str (concatenate 'string str (value-str (mask-value (change-b10 cngx)))))
+    (setf str (concatenate 'string str (value-str (mask-value (change-m10 cngx)))))
     (setf str (concatenate 'string str ")"))
     str
   )
@@ -55,16 +48,16 @@
 (defun change-num-changes (cngx) ; -> integer
   (change-p cngx)
 
-  (+ (mask-num-ones (change-b01 cngx))
-     (mask-num-ones (change-b10 cngx)))
+  (+ (mask-num-ones (change-m01 cngx))
+     (mask-num-ones (change-m10 cngx)))
 )
 
 ;;; Return true if there is at least one bit set to one in a change.
 (defun change-is-not-low (cngx) ; -> bool.
   (change-p cngx)
 
-  (if (or (mask-is-not-low (change-b01 cngx))
-          (mask-is-not-low (change-b10 cngx)))
+  (if (or (mask-is-not-low (change-m01 cngx))
+          (mask-is-not-low (change-m10 cngx)))
     true
     false)
 )
@@ -73,8 +66,8 @@
 (defun change-is-low (cngx) ; -> bool.
   (change-p cngx)
 
-  (if (and (mask-is-low (change-b01 cngx))
-           (mask-is-low (change-b10 cngx)))
+  (if (and (mask-is-low (change-m01 cngx))
+           (mask-is-low (change-m10 cngx)))
     true
     false)
 )
@@ -83,22 +76,22 @@
 (defun change-num-bits (cngx) ; -> integer.
   (change-p cngx)
 
-  (mask-num-bits (change-b01 cngx))
+  (mask-num-bits (change-m01 cngx))
 )
 
 ;;; Return a list of changes containing only one bit from a change.
 (defun change-split (cngx) ; -> list of changes.
   (change-p cngx)
 
-  (let (ret-lst b01 b10 (num-bits (change-num-bits cngx)))
-    (setf b01 (mask-split (change-b01 cngx)))
-    (loop for bitx in b01 do
-      (push (change-new :b01 bitx :b10 (mask-new (value-new :num-bits num-bits :bits 0))) ret-lst)
+  (let (ret-lst m01 m10 (num-bits (change-num-bits cngx)))
+    (setf m01 (mask-split (change-m01 cngx)))
+    (loop for bitx in m01 do
+      (push (change-new :m01 bitx :m10 (mask-new (value-new :num-bits num-bits :bits 0))) ret-lst)
     )
 
-    (setf b10 (mask-split (change-b10 cngx)))
-    (loop for bitx in b10 do
-      (push (change-new :b10 bitx :b01 (mask-new (value-new :num-bits num-bits :bits 0))) ret-lst)
+    (setf m10 (mask-split (change-m10 cngx)))
+    (loop for bitx in m10 do
+      (push (change-new :m10 bitx :m01 (mask-new (value-new :num-bits num-bits :bits 0))) ret-lst)
     )
     ret-lst
   )
@@ -110,6 +103,6 @@
   (change-p cng2)
   (assert (= (change-num-bits cng1) (change-num-bits cng2)))
 
-  (and (mask-eq (change-b01 cng1) (change-b01 cng2))
-       (mask-eq (change-b10 cng1) (change-b10 cng2)))
+  (and (mask-eq (change-m01 cng1) (change-m01 cng2))
+       (mask-eq (change-m10 cng1) (change-m10 cng2)))
 )

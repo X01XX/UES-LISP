@@ -1,5 +1,9 @@
 # Script for compiling lisp files to find problems.
 # .o files are deleted at end.
+# 
+# Some errors will cause this to hang on the gcl side.
+# return-from with invalid name.
+# illegal binding in let.
 
 /usr/bin/gcl -eval "(progn (load #p \"compile.lisp\") (quit))" > ./tmp.txt 2>&1
 

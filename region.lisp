@@ -5,7 +5,7 @@
 
 ;;; The region struct.
 ;;; It represents a 2^x by 2^y region of squares on a K-Map.
-(defstruct (region (:print-function region-print))
+(defstruct region
   statestore	; A store of one, or more, states, no state between two others.
 )
 ; Functions automatically created by defstruct:
@@ -131,10 +131,8 @@
 (defun region-str (regx)  ; -> string.
   (assert (region-p regx))
 
-    (let ((strs "#S(REGION "))
+    (let ((strs "r"))
       (setf strs (concatenate 'string strs (region-str-bits regx)))
-
-      (setf strs (concatenate 'string strs ")"))
 
       (if (> (statestore-length (region-statestore regx)) 2)
           (setf strs (concatenate 'string strs "+")))
@@ -188,32 +186,28 @@
     )
 )
 
-;;; Print a region.
-(defun region-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (region-str instance))
-)
-
 ;;; Return a region from evaluating a string.
 ;;; A region can be made of a single state.
 ;;; A token with an X, or x, will be defined with two states.
 ;;; An X will cause a 1 in the first state, a zero in the second.
 ;;; An x will cause a 0 in the first state, a one in the second state.
 ;;; So the states making up a region can be specified by the string representation.
-(defun region-from-str (strx) ; -> region.
-  (assert (stringp strx))
-  (assert (not (string= strx "")))
+(defun region-from (regx) ; -> region.
+  ;(format t "~&region-from ~A" regx)
+  (if (symbolp regx)
+     (setf regx (symbol-name regx)))
 
-  (let ((ret (region-from-str-na strx)))
+  (let ((ret (region-from-na regx)))
      (cond ((err-p ret) (error (err-str ret)))
            ((region-p ret) ret)
             (t (error "Result is not a region"))))
 )
-(defun region-from-str-na (strx) ; -> region, or err.
 
-  (let ((state-first "#b") (state-second "#b"))
+(defun region-from-na (strx) ; -> region, or err.
+
+  (let ((state-first "v") (state-second "v"))
     (loop for chr across strx do
-      (cond ((char= chr #\_) nil)
+      (cond ((or (char= chr #\_) (char= chr #\R) (char= chr #\r)) nil)
 	    ((char= chr #\0) (setf state-first (concatenate 'string state-first "0"))
 	                     (setf state-second  (concatenate 'string state-second  "0")))
 	    ((char= chr #\1) (setf state-first (concatenate 'string state-first "1"))
@@ -222,13 +216,13 @@
 	                     (setf state-second  (concatenate 'string state-second  "0")))
 	    ((char= chr #\x) (setf state-first (concatenate 'string state-first "0"))
 	                     (setf state-second  (concatenate 'string state-second  "1")))
-	    (t (return-from region-from-str-na (err-new "Invalid character"))))
+	    (t (return-from region-from-na (err-new (format nil "Invalid character ~A" chr)))))
     )
-    (if (= (length state-first) 2)
-      (return-from region-from-str-na (err-new "No valid character found")))
+    (if (= (length state-first) 1)
+      (return-from region-from-na (err-new "No valid character found")))
 
-    (region-new (statestore-new (list (state-new (value-from-str state-first))
-                                      (state-new (value-from-str state-second)))))
+    (region-new (statestore-new (list (state-new (value-from state-first))
+                                      (state-new (value-from state-second)))))
   )
 )
 
@@ -404,4 +398,5 @@
     true
   )
 )
+
 

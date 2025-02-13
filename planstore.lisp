@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ; Implement a store of plans.
-(defstruct (planstore (:print-function planstore-print))
+(defstruct planstore
   plan-list  ; A list of zero, or more, plans.
 )
 ; Functions automatically created by defstruct:
@@ -27,12 +27,6 @@
   (assert (plan-list-p plans))
 
   (make-planstore :plan-list plans)
-)
-
-;;; Print a planstore.
-(defun planstore-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (planstore-str instance))
 )
 
 ;;; Add plan to the end of a planstore.

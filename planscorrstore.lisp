@@ -8,7 +8,7 @@
 (defvar false nil)
 
 ; Implement a store of plans.
-(defstruct (planscorrstore (:print-function planscorrstore-print))
+(defstruct planscorrstore
   planscorr-list 	; A list of zero, or more, planscorr.
   value		; A value representing select regions the plans pass through.
 )
@@ -42,12 +42,6 @@
 ;;; Seh the value of a planscorrstore.
 (defun planscorrstore-set-value (storex val) ; -> nothing, side-effect planscorrstore-value changed.
   (setf (planscorrstore-value storex) val)
-)
-
-;;; Print a planscorrstore.
-(defun planscorrstore-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (planscorrstore-str instance))
 )
 
 ;;; Add planscorr to the end of a planscorrstore.

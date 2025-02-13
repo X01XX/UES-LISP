@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ; Implement a store of corresponding rules.
-(defstruct (rulescorr (:print-function rulescorr-print))
+(defstruct rulescorr
   rulestore  ; A rulestore of zero, or more, rules.
 )
 ; Functions automatically created by defstruct:
@@ -22,45 +22,39 @@
 ;   (copy-rulescorr <instance>) copies a rulescorr instance.
 
 ;;; Return a new rulescorr instance, from a list of rules.
-(defun rulescorr-new (rule-list) ; -> rulescorr, or nil.
+(defun rulescorr-new (rules) ; -> rulescorr, or nil.
   ;(format t "~&rulescorr-new: rules ~A" rules)
-  (assert (rule-list-p rule-list))
+  (assert (rules-list-p rules))
 
-  (make-rulescorr :rulestore (rulestore-new rule-list))
+  (make-rulescorr :rulestore (rulestore-new rules))
 )
 
 ;;; Create a new rulescorr instance from four maskcorrs.
-(defun rulescorr-new-from-maskscorrs (&key b00 b01 b11 b10) ; -> rulescorr
-  (assert (maskscorr-p b00))
-  (assert (maskscorr-p b01))
-  (assert (maskscorr-p b11))
-  (assert (maskscorr-p b10))
-  (assert (maskscorr-congruent b00 b01))
-  (assert (maskscorr-congruent b00 b11))
-  (assert (maskscorr-congruent b00 b10))
+(defun rulescorr-new-from-maskscorrs (&key m00 m01 m11 m10) ; -> rulescorr
+  (assert (maskscorr-p m00))
+  (assert (maskscorr-p m01))
+  (assert (maskscorr-p m11))
+  (assert (maskscorr-p m10))
+  (assert (maskscorr-congruent m00 m01))
+  (assert (maskscorr-congruent m00 m11))
+  (assert (maskscorr-congruent m00 m10))
 
   (let (rules-list)
-    (loop for b00x in (maskscorr-mask-list b00)
-          for b01x in (maskscorr-mask-list b01)
-          for b11x in (maskscorr-mask-list b11)
-          for b10x in (maskscorr-mask-list b10) do 
-      (setf rules-list (append rules-list (list (make-rule :b00 b00x :b01 b01x :b11 b11x :b10 b10x))))
+    (loop for m00x in (maskscorr-mask-list m00)
+          for m01x in (maskscorr-mask-list m01)
+          for m11x in (maskscorr-mask-list m11)
+          for m10x in (maskscorr-mask-list m10) do 
+      (setf rules-list (append rules-list (list (make-rule :m00 m00x :m01 m01x :m11 m11x :m10 m10x))))
     )
     (rulescorr-new rules-list)
   )
 )
 
 ;;; Return a list of rules from a rulescorr.
-(defun rulescorr-rule-list (rulscx) ; -> list of rules.
+(defun rulescorr-rules (rulscx) ; -> list of rules.
   (assert (rulescorr-p rulscx))
 
-  (rulestore-rule-list (rulescorr-rulestore rulscx))
-)
-
-;;; Print a rulescorr.
-(defun rulescorr-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (rulescorr-str instance))
+  (rulestore-rules (rulescorr-rulestore rulscx))
 )
 
 ;;; Return a string representing a rulescorr.
@@ -99,8 +93,8 @@
   (assert (rulescorr-p rulsc1))
   (assert (rulescorr-p rulsc2))
 
-  (loop for rul1 in (rulescorr-rule-list rulsc1)
-        for rul2 in (rulescorr-rule-list rulsc2) do
+  (loop for rul1 in (rulescorr-rules rulsc1)
+        for rul2 in (rulescorr-rules rulsc2) do
 	  (if (/= (rule-num-bits rul1) (rule-num-bits rul2))
 	    (return-from rulescorr-congruent false))
   )
@@ -114,8 +108,8 @@
   (assert (rulescorr-p rulsc2))
   (assert (rulescorr-congruent rulsc1 rulsc2))
 
-  (loop for rul1 in (rulescorr-rule-list rulsc1)
-        for rul2 in (rulescorr-rule-list rulsc2) do
+  (loop for rul1 in (rulescorr-rules rulsc1)
+        for rul2 in (rulescorr-rules rulsc2) do
     (if (not (rule-eq rul1 rul2))
       (return-from rulescorr-eq false))
   )
@@ -128,13 +122,13 @@
   (assert (rulescorr-p rulsc2))
   (assert (rulescorr-congruent rulsc1 rulsc2))
 
-  (let (rule-list)
-    (loop for rulx in (rulescorr-rule-list rulsc1)
-          for ruly in (rulescorr-rule-list rulsc2) do
-      (setf rule-list (append rule-list (list (rule-new (rule-or rulx ruly)))))
+  (let (rules)
+    (loop for rulx in (rulescorr-rules rulsc1)
+          for ruly in (rulescorr-rules rulsc2) do
+      (setf rules (append rules (list (rule-new (rule-or rulx ruly)))))
     )
 
-    (rulescorr-new rule-list)
+    (rulescorr-new rules)
   )
 )
 
@@ -144,13 +138,13 @@
   (assert (rulescorr-p rulsc2))
   (assert (rulescorr-congruent rulsc1 rulsc2))
 
-  (let (rule-list)
-    (loop for rulx in (rulescorr-rule-list rulsc1)
-          for ruly in (rulescorr-rule-list rulsc2) do
-      (setf rule-list (append rule-list (list (rule-new (rule-and rulx ruly)))))
+  (let (rules)
+    (loop for rulx in (rulescorr-rules rulsc1)
+          for ruly in (rulescorr-rules rulsc2) do
+      (setf rules (append rules (list (rule-new (rule-and rulx ruly)))))
     )
 
-    (rulescorr-new rule-list)
+    (rulescorr-new rules)
   )
 )
 
@@ -160,7 +154,7 @@
   (assert (rulescorr-p rulscx))
   (assert (rulescorr-is-not-empty rulscx))
 
-  (car (rulescorr-rule-list rulscx))
+  (car (rulescorr-rules rulscx))
 )
 
 ;;; Return the last rule in a rulescorr.
@@ -168,7 +162,7 @@
   (assert (rulescorr-p rulscx))
   (assert (rulescorr-is-not-empty rulscx))
 
-  (car (last (rulescorr-rule-list rulscx)))
+  (car (last (rulescorr-rules rulscx)))
 )
 
 ;;; Return a rule that has the minimun changes, to translate from one regionscorr to intersect another.
@@ -179,23 +173,23 @@
   (assert (regionscorr-p regsc2))
   (assert (regionscorr-congruent regsc1 regsc2))
 
-  (let (b00 b0x bxx bx0 b01 bx1 b11 b1x b10)
+  (let (m00 m0x mxx mx0 m01 mx1 m11 m1x m10)
 
     ; Make maskscorrs for each possible bit position, (0, 1, X) to (0, 1, X), 3 X 3 = 9 possibilities.
-    (setf b00 (maskscorr-and (regionscorr-0-maskscorr regsc1) (regionscorr-0-maskscorr regsc2)))
-    (setf b0x (maskscorr-and (regionscorr-0-maskscorr regsc1) (regionscorr-x-maskscorr regsc2)))
-    (setf bxx (maskscorr-and (regionscorr-x-maskscorr regsc1) (regionscorr-x-maskscorr regsc2)))
-    (setf bx0 (maskscorr-and (regionscorr-x-maskscorr regsc1) (regionscorr-0-maskscorr regsc2)))
-    (setf b01 (maskscorr-and (regionscorr-0-maskscorr regsc1) (regionscorr-1-maskscorr regsc2)))
-    (setf bx1 (maskscorr-and (regionscorr-x-maskscorr regsc1) (regionscorr-1-maskscorr regsc2)))
-    (setf b11 (maskscorr-and (regionscorr-1-maskscorr regsc1) (regionscorr-1-maskscorr regsc2)))
-    (setf b1x (maskscorr-and (regionscorr-1-maskscorr regsc1) (regionscorr-x-maskscorr regsc2)))
-    (setf b10 (maskscorr-and (regionscorr-1-maskscorr regsc1) (regionscorr-0-maskscorr regsc2)))
+    (setf m00 (maskscorr-and (regionscorr-0-maskscorr regsc1) (regionscorr-0-maskscorr regsc2)))
+    (setf m0x (maskscorr-and (regionscorr-0-maskscorr regsc1) (regionscorr-x-maskscorr regsc2)))
+    (setf mxx (maskscorr-and (regionscorr-x-maskscorr regsc1) (regionscorr-x-maskscorr regsc2)))
+    (setf mx0 (maskscorr-and (regionscorr-x-maskscorr regsc1) (regionscorr-0-maskscorr regsc2)))
+    (setf m01 (maskscorr-and (regionscorr-0-maskscorr regsc1) (regionscorr-1-maskscorr regsc2)))
+    (setf mx1 (maskscorr-and (regionscorr-x-maskscorr regsc1) (regionscorr-1-maskscorr regsc2)))
+    (setf m11 (maskscorr-and (regionscorr-1-maskscorr regsc1) (regionscorr-1-maskscorr regsc2)))
+    (setf m1x (maskscorr-and (regionscorr-1-maskscorr regsc1) (regionscorr-x-maskscorr regsc2)))
+    (setf m10 (maskscorr-and (regionscorr-1-maskscorr regsc1) (regionscorr-0-maskscorr regsc2)))
 
-    (rulescorr-new-from-maskscorrs :b00 (maskscorr-or b00 (maskscorr-or bxx (maskscorr-or bx0 b0x)))
-                                   :b01 (maskscorr-or b01 bx1)
-                                   :b11 (maskscorr-or b11 (maskscorr-or bxx (maskscorr-or bx1 b1x)))
-                                   :b10 (maskscorr-or b10 bx0))
+    (rulescorr-new-from-maskscorrs :m00 (maskscorr-or m00 (maskscorr-or mxx (maskscorr-or mx0 m0x)))
+                                   :m01 (maskscorr-or m01 mx1)
+                                   :m11 (maskscorr-or m11 (maskscorr-or mxx (maskscorr-or mx1 m1x)))
+                                   :m10 (maskscorr-or m10 mx0))
   )
 )
 

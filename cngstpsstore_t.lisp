@@ -5,8 +5,8 @@
   ; Test cngstpsstore-new.
   (let (store1 stp1 cngx)
 
-    (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/11/00/01]")))
-    (setf cngx (change-new :b01 (mask-from-str "#b0001") :b10 (mask-from-str "#b0100")))
+    (setf stp1 (step-new :act-id 0 :rule (rule-from "[01/11/00/01]")))
+    (setf cngx (change-new :m01 (mask-from "m0001") :m10 (mask-from "m0100")))
 
     (setf store1 (cngstpsstore-new cngx))
 
@@ -15,12 +15,12 @@
     (assert (= (cngstpsstore-num-steps store1) 1))
 
     ; Test adding a second change/steps, to the same cngstps instance.
-    (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/10/11/01]")))
+    (setf stp1 (step-new :act-id 0 :rule (rule-from "[01/10/11/01]")))
     (assert (cngstpsstore-add store1 stp1))
     (assert (= (cngstpsstore-num-steps store1) 3))
 
     ; Test adding a second change/steps, with a new change.
-    (setf stp1 (step-new :act-id 0 :rule (rule-from-str "[01/10/11/11]")))
+    (setf stp1 (step-new :act-id 0 :rule (rule-from "[01/10/11/11]")))
     (assert (cngstpsstore-add store1 stp1))
     ;(format t "~&store1: ~A" store1)
     (assert (= (cngstpsstore-num-steps store1) 4))

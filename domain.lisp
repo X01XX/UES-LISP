@@ -4,7 +4,7 @@
 
 ;;;; Implement the Action type.
 ;;;;
-(defstruct (domain (:print-function domain-print))
+(defstruct domain
   id		; A number id, GE zero.
   actions	; A actionstore.
   current-state	; The current state of the domain. Actions change this.
@@ -24,17 +24,19 @@
 ;   (copy-domain <instance>) copies a domain instance.
 
 ;;; Return a new domain.
-(defun domain-new (&key id actions current-state)
-  (assert (actionstore-p actions))
-  (assert (>= id ))
+(defun domain-new (&key id initial-state)
+  (assert (state-p initial-state))
+  (assert (>= id 0))
 
-  (make-domain :id id :actions actions :current-state current-state)
+  (make-domain :id id :actions (actionstore-new nil) :current-state initial-state)
 )
 
-;;; Print a domain.
-(defun domain-print (instance stream depth)
-    ;(assert (zerop depth))
-    (format stream (domain-str instance))
+;;; Set a damain id.
+(defun domain-set-id (domx id) ; -> nothing.  Side effect, domain id is changed.
+  (assert (domain-p domx))
+  (assert (>= id 0))
+
+  (setf (domain-id domx) id)
 )
 
 ;;; Return a string representing a domain
@@ -44,6 +46,7 @@
     (let ((str "#S(DOMAIN "))
         (setf str (concatenate 'string str (format nil "id ~D" (domain-id domx))))
         (setf str (concatenate 'string str (format nil " actions ~A" (actionstore-str (domain-actions domx)))))
+        (setf str (concatenate 'string str (format nil " current-state ~A" (domain-current-state domx))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -169,3 +172,50 @@
     ) ; end-let
   ) ; end-let
 )
+
+(defun domain-get-needs (domx) ; ->  needstore.
+  (assert (domain-p domx))
+  (let ((needs (needstore-new nil)))
+    (loop for actx in (domain-actions domx) do
+      (needs-append (action-get-needs actx (domain-current-state domx)))
+    )
+    needs
+  )
+)
+
+(defun domain-add-action (domx actx)
+  (assert (domain-p domx))
+  (assert (action-p actx))
+
+  (action-set-id actx (actionstore-length (domain-actions domx)))
+  (actionstore-push (domain-actions domx) actx)    
+)
+
+;;; Return a domain from a string.
+(defun domain-from (symbols) ; -> domain
+    (format t "~&domain-from: ~A" symbols)
+    (assert (listp symbols))
+
+    ;(assert (eq (car symbols) 'QUOTE))
+    ;(setf symbols (second symbols))
+
+    (assert (eq (car symbols) 'DOM))
+    (setf symbols (cdr symbols))
+
+    (let (actions domx actx)
+        (loop for tokx in symbols do
+            (format t "~&domain-from ~A ~A" (type-of tokx) tokx)
+            (setf actx (action-from tokx))
+            (action-set-id actx (length actions))
+            (push actx actions)
+        )
+        (assert (not (null actions)))
+
+        (setf domx (domain-new :id 0 :initial-state (state-random (action-num-bits (car actions)))))
+        (loop for actx in (reverse actions) do
+             (domain-add-action domx actx)
+        )
+        domx
+    )
+)
+

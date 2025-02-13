@@ -31,15 +31,47 @@
   )
 )
 
+;;; Add a selectregions instance.
+;;; Do not call this until all domains are added.
+;;; If a selectregions instance has zero values, it will be ignored.
+(defun domainstore-add-selectregions (storex sregsx) ; nothing, side effect domainstore changed.
+  (assert (domainstore-p storex))
+  (assert (selectregions-p sregsx))
+
+  ;; Check values.
+  (if (and (zerop (selectregions-positive sregsx))
+           (zerop (selectregions-negative sregsx)))
+      (return-from domainstore-add-selectregions))
+
+  (assert (= (domainstore-length storex) (selectregions-length sregsx)))
+
+  ;; Check that selectregions are congruent with domains.
+  (loop for domx in (domainstore-domains storex)
+        for regsx in (selectregions-region-list sregsx) do
+    (assert (= (domain-num-bits domx) (region-num-bits regsx)))
+  )
+
+  ;; Check for duplicate selectregions.
+  (loop for sregsy in (selectregionsstore-selectregions-list (domainstore-initial-selectregionsstore storex)) do
+
+    (when (regionscorr-eq (selectregions-regionscorr sregsx) (selectregions-regionscorr sregsy))
+
+      (setf (selectregions-positive sregsy) (+ (selectregions-positive sregsy) (selectregions-positive sregsx)))
+      (setf (selectregions-negative sregsy) (+ (selectregions-negative sregsy) (selectregions-negative sregsx)))
+      (return-from domainstore-add-selectregions)
+    )
+  )
+  (selectregionsstore-push (domainstore-initial-selectregionsstore storex) sregsx)
+)
+
 ;;; Push a new domain into a domainstore.
 ;;; Enforce domain-id = index in domain list.
-(defun domainstore-add-domain (storex domx) ; -> bool, true if added.
-  (format t "~&domainstore add domain ~d" (domainstore-length storex))
+(defun domainstore-add-domain (storex initial-state) ; -> bool, true if added.
   (assert (domainstore-p storex))
-  (assert (domain-p domx))
+  (assert (state-p initial-state))
 
-  (domain-set-id domx (domainstore-length storex))
-  (push domx (domainstore-domains storex))
+  (setf (domainstore-domains storex) (append (domainstore-domains storex) 
+      (domain-new (length (domainstore-domains storex)) initial-state)))
   true
 )
 
@@ -70,6 +102,11 @@
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
       (setf ret (concatenate 'string ret (domain-str domx)))
     )
+    (setf ret (concatenate 'string ret "~& initial-selectregions:"))
+
+    (loop for sregsx in (domainstore-initial-selectregions storex) do
+      (setf ret (concatenate 'string ret (selectregions-str sregsx)))
+    )
 
     (setf ret (concatenate 'string ret ")"))
 
@@ -84,6 +121,59 @@
   (assert (domain-p domx))
 
   (if (member domx (domainstore-domains storex) :test #'domain-eq) true false)
+)
+
+;;; Calculate selectregions, aftec all domains are added, after all selectrecions are added.
+(defun domainstore-calc-select (storex) ; -> nothing, side-effect, domainstore select regions changed.
+  (assert (domainstore-p storex))
+
+  (let ((regionscorrstorex (regionscorrstore-new nil)) fragments (selectregionfragments (selectregionsstore-new nil)) vals)
+
+    ;; Gather selectregions regionscorr into a regionscorrstore.
+    (loop for selectregionsx in (selectregionsstore-selectregions-list (domainstore-initial-selectregionsstore storex)) do
+      (regionscorrstore-push regionscorrstorex (selectregions-regionscorr selectregionsx))
+    )
+    ;; Generate fragments.
+    (setf fragments (regionscorrstore-intersections-of-intersections regionscorrstorex))
+
+    ;; Generate selectregions with values.
+    (loop for regionscorrx in (regionscorrstore-regionscorr-list fragments) do
+        (setf vals (selectregionsstore-values (domainstore-initial-selectregionsstore storex) regionscorrx))
+	(selectregionsstore-push selectregionfragments (selectregions-new2 regionscorrx (car vals) (second vals)))
+    )
+    (setf (domainstore-selectregionsstore-fragments storex) selectregionfragments)
+    ;(format t "~&fragment selectregions: ~A" selectregionfragments)
+  )
+
+  ;; Calc non-negative regionscorrs.
+  (let ((regionscorrstore-non-negative (regionscorrstore-new (list (domainstore-max-regions storex)))))
+
+    ;; Subtract non-negative selectregions regionscorr from max domain regions.
+    (loop for selectregionsx in (selectregionsstore-selectregions-list (domainstore-initial-selectregionsstore storex)) do
+
+      (when (< (selectregions-negative selectregionsx) 0)
+
+	(setf regionscorrstore-non-negative (regionscorrstore-subtract-regionscorr regionscorrstore-non-negative 
+		(selectregions-regionscorr selectregionsx)))
+      )
+    )
+
+    ;; Double check.
+    (loop for regionscorrx in (regionscorrstore-regionscorr-list regionscorrstore-non-negative) do
+
+      (loop for selectregionsx in (selectregionsstore-selectregions-list (domainstore-initial-selectregionsstore storex)) do
+	 (when (and (< (selectregions-negative selectregionsx) 0) 
+	            (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx)))
+	   (format t "~&~A intersects ~A" regionscorrx selectregionsx)
+	   (assert (not (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx))))
+	 )
+      )
+    )
+
+    ;; Store non-negative selectregions.
+    (setf (domainstore-non-negative-regionscorrstore storex) regionscorrstore-non-negative)
+    ;(format t "~&non-negative selectregions: ~A" (domainstore-non-negative-regionscorrstore storex))
+  )
 )
 
 ;;; Return a regionscorrstore of the maximum regions of each domain, in order.
@@ -121,14 +211,14 @@
   (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
 
-  (let (last-regs pathx last-int cur-int) 
+  (let (last-regs from-to superset aplanstr pathx (all-plans (planstore-new nil)) from-to-int last-int cur-int) 
 
     (setf pathx (regionscorrstore-find-path (domainstore-non-negative-regionscorrstore storex) from-regs to-regs))
     (format t "~&pathx ~A" pathx)
 
-    (setf last-regs (car (pathscorr-regionscorr-list pathx)))
-    (setf last-int (car (pathscorr-regionscorr-list pathx)))
-    (loop for regsx in (cdr (pathscorr-regionscorr-list pathx)) do
+    (setf last-regs (car (pathcorr-regionscorr-list pathx)))
+    (setf last-int (car (pathcorr-regionscorr-list pathx)))
+    (loop for regsx in (cdr (pathcorr-regionscorr-list pathx)) do
       ;(format t "~&last regs ~A regs ~A" last-regs regsx)
       (when (not (regionscorr-superset-of :sup-regscorr regsx :sub-regscorr last-regs))
 	(setf cur-int (regionscorr-intersection last-regs regsx))
@@ -202,31 +292,26 @@
 )
 
 ;;; Return a domainstore from a string.
-(defun domainstore-from (symbols) ; -> domainstore
-    (format t "~&domainstore-from: ~A" symbols)
-    (assert (listp symbols)) 
+(defun domainstore-from (str) ; -> domainstore
+    (format t "~&domainstore-from")
 
-    ;(assert (eq (car symbols) 'QUOTE))                                                              
-    ;(setf symbols (second symbols))
+    (let ((str2 (string-right-trim '(#\Space #\NewLine) (string-left-trim '(#\Space #\NewLine) str))) rest-tokens tokens rest-str)
 
-    (if (string/= "DS" (symbol-name (car symbols)))
-         (error "symbols should start with DS"))
-                
-    (setf symbols (second symbols))
+        (setf tokens (read-from-string str2))
+        (format t "~&domainstore-from: tokens ~A" tokens)
 
-    (let (domains ret domx)                                                                                   
-        (loop for tokx in symbols do
-            (format t "~&domainstore-from ~A ~A" (type-of tokx) tokx)
-            (setf domx (domain-from tokx))
-            (if domx
-                (push  domx domains)
-                (error (format nil "~&domain-from returned nil from ~A" (list 'quote tokx))))
-        ) 
-        (setf ret (domainstore-new))
-        (loop for domx in (reverse domains) do
-            (domainstore-add-domain ret domx)
-        )
-        ret
+        (cond ((string= (string-upcase (car tokens)) "DS")
+                (setf rest-tokens (car (cdr tokens)))                                                                                  
+          
+
+                (loop for tokx in rest-tokens do
+                  (format t "~&domainstore-from: tokx: ~A" tokx)
+;                  (cond ((string= (string-upcase (car tokx)) "DOMAIN") ; s/b one, or more.
+;                           (format t "~&tokx: ~s" tokx)
+;                        )
+;                        (t (format t "Unknown token ~A" tokx) nil))
+                )
+             )   
+             (t nil))
     )   
 )
-

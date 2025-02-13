@@ -16,7 +16,7 @@
 ;;;;
 ;;;; The rules will be a union of the rules of the two squares.
 ;;;;
-(defstruct (group (:print-function group-print))
+(defstruct group
     region    ; Region defined by two* compatible squares.
     rulestore ; The combined rule of two* compatible squares.
 )
@@ -57,11 +57,6 @@
   (make-group :region (rulestore-initial-region rules) :rulestore rules)
 )
 
-;;; Print a group.
-(defun group-print (instance stream depth)
-    ;(assert (zerop depth))
-    (format stream (group-str instance)))
-
 ;;; Return a string representing a group
 (defun group-str (agrp)
     (assert (group-p agrp))
@@ -100,9 +95,9 @@
     (setf to-reg (rule-result-region rule-to-goal))
     ;(format t "~&group-get-steps: from: ~A to: ~A within: within ~A" from-reg to-reg within)
 
-    ;(format t "~&rules ~A" (rulestore-rule-list (group-rulestore grpx)))
+    ;(format t "~&rules ~A" (rulestore-rules (group-rulestore grpx)))
 
-    (loop for ruly in (rulestore-rule-list (group-rulestore grpx)) do
+    (loop for ruly in (rulestore-rules (group-rulestore grpx)) do
 
       (when (or (value-is-not-low (mask-and (rule-b01 ruly) (change-b01 wanted-changes)))
                 (value-is-not-low (mask-and (rule-b10 ruly) (change-b10 wanted-changes))))

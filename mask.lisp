@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ;;; The mask struct.
-(defstruct (mask (:print-function mask-print))
+(defstruct mask
   value ; A value, where bits set to one have some meaning.
 )
 ; Functions automatically created by defstruct:
@@ -32,13 +32,7 @@
 (defun mask-str (msk)  ; -> string.
   (assert (mask-p msk))
 
-  (format nil "#S(MASK ~A)" (value-str (mask-value msk)))
-)
-
-;;; Print a mask.
-(defun mask-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (mask-str instance))
+  (format nil "~A" (concatenate 'string "m" (subseq (value-str (mask-value msk)) 1)))
 )
 
 ;;; Return the number of bits used by a mask.
@@ -58,10 +52,14 @@
 )
 
 ;;; Return a mask from a string.
-(defun mask-from-str (str) ; -> string
+(defun mask-from (str) ; -> string
   (assert (stringp str))
+  (setf str (string-right-trim '(#\Space #\_ #\,) str))
+  (setf str (string-left-trim '(#\Space #\_ #\,) str))
   
-  (mask-new (value-from-str str))
+  (assert (string-equal (subseq str 0 1) "m"))
+
+  (mask-new (value-from (concatenate 'string "v" (subseq str 1))))
 )
 
 ;;; Return a mask with the most significant bit set to one.
@@ -226,4 +224,5 @@
   )
   true
 )
+
 

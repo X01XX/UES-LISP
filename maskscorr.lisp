@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ; Implement a store of corresponding masks.
-(defstruct (maskscorr (:print-function maskscorr-print))
+(defstruct maskscorr
   maskstore  ; A maskstore of zero, or more, masks.
 )
 ; Functions automatically created by defstruct:
@@ -34,12 +34,6 @@
   (assert (maskscorr-p mskscx))
 
   (maskstore-mask-list (maskscorr-maskstore mskscx))
-)
-
-;;; Print a maskscorr.
-(defun maskscorr-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (maskscorr-str instance))
 )
 
 ;;; Return a string representing a maskscorr.

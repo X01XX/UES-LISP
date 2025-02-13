@@ -23,11 +23,11 @@
 ;;;
 ;;;   Backward-chaining would seem to disallow X->0 and X->1, but successful backward-chaining
 ;;;   is converted to forward-chaining to run a plan.
-(defstruct (rule (:print-function rule-print))
-  b00  ; A mask, where each bit set to one represents a 0->0 bit position before/after for a sample.
-  b01  ; A mask, where each bit set to one represents a 0->1 bit position before/after for a sample.
-  b11  ; A mask, where each bit set to one represents a 1->1 bit position before/after for a sample.
-  b10  ; A mask, where each bit set to one represents a 1->0 bit position before/after for a sample.
+(defstruct rule
+  m00  ; A mask, where each bit set to one represents a 0->0 bit position before/after for a sample.
+  m01  ; A mask, where each bit set to one represents a 0->1 bit position before/after for a sample.
+  m11  ; A mask, where each bit set to one represents a 1->1 bit position before/after for a sample.
+  m10  ; A mask, where each bit set to one represents a 1->0 bit position before/after for a sample.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -47,117 +47,128 @@
 (defun rule-new (smpl) ; -> rule.
   (assert (sample-p smpl))
 
-  (let ((b00 (mask-new (value-and (value-not (state-value (sample-initial smpl))) (value-not (state-value (sample-result smpl))))))
-        (b01 (mask-new (value-and (value-not (state-value (sample-initial smpl))) (state-value (sample-result smpl)))))
-        (b11 (mask-new (value-and (state-value (sample-initial smpl)) (state-value (sample-result smpl)))))
-        (b10 (mask-new (value-and (state-value (sample-initial smpl)) (value-not (state-value (sample-result smpl))))))
+  (let ((m00 (mask-new (value-and (value-not (state-value (sample-initial smpl))) (value-not (state-value (sample-result smpl))))))
+        (m01 (mask-new (value-and (value-not (state-value (sample-initial smpl))) (state-value (sample-result smpl)))))
+        (m11 (mask-new (value-and (state-value (sample-initial smpl)) (state-value (sample-result smpl)))))
+        (m10 (mask-new (value-and (state-value (sample-initial smpl)) (value-not (state-value (sample-result smpl))))))
        )
-    (make-rule :b00 b00 :b01 b01 :b11 b11 :b10 b10)
+    (make-rule :m00 m00 :m01 m01 :m11 m11 :m10 m10)
   )
 )
 
 ;;; Return a rule from a token, like "[00/01/11/10/x0/X0/x1/X1/XX/xx/Xx/xX]"
 ;;; XX == xx, x to x.
 ;;; Xx == xX, x to x-not.
-(defun rule-from-str (str) ; -> rule.
-  (assert (stringp str))
+(defun rule-from (rulx) ; -> rule.
+  ;(format t "~&rule-from: ~A" rulx)
+  (if (symbolp rulx)
+     (setf rulx (symbol-name rulx)))
 
-  (let ((ret (rule-from-str-na str)))
+  (let ((ret (rule-from-na rulx)))
     (cond ((err-p ret) (error (err-str ret)))
           ((rule-p ret) ret)
            (t (error "Result is not a rule")))
   )
 )
-(defun rule-from-str-na (strx) ; -> rule or err.
-    (if (< (length strx) 4)
-        (return-from rule-from-str-na (err-new "String is too short")))
+
+(defun rule-from-na (strx) ; -> rule or err.
+  ;(format t "~&rule-from-na: ~A" strx)
+    (if (< (length strx) 3)
+        (return-from rule-from-na (err-new "String is too short")))
 
     (if (not (string-equal (subseq strx 0 1) "["))
-        (return-from rule-from-str-na (err-new "String should start with a right bracket")))
+        (return-from rule-from-na (err-new "String must begin with a [")))
+        
+    (if (not (string-equal (subseq strx (1- (length strx))) "]"))
+        (return-from rule-from-na (err-new "String must end with a ]")))
+        
+    (let ((m00 "m") (m01 "m") (m11 "m") (m10 "m") bit-i bit-j m00-i m01-i m11-i m10-i)
 
-    (let ((b00 "#b") (b01 "#b") (b11 "#b") (b10 "#b") bit-i bit-j b00-i b01-i b11-i b10-i)
         (loop for chr across (subseq strx 1) do
+ 
+            ;; Check for invalid character.
+            (if (null (or (char= chr #\]) (char= chr #\_) (char= chr #\/) (char= chr #\0) (char= chr #\1) (char= chr #\X) (char= chr #\x)))
+               (return-from rule-from-na (err-new "Invalid character")))
 
-            (cond ((or (char= chr #\/) (char= chr #\_) (char= chr #\])) ; Check for separator or end-of-rule, process token.
+            (if (and (or (char= chr #\0) (char= chr #\1)) bit-i bit-j)
+                   (return-from rule-from-na (err-new "Too many characters in a bit position")))
 
-		  (cond ((and bit-i bit-j)
+            (if (and (or (char= chr #\]) (char= chr #\_) (char= chr #\/)) (or (null bit-i) (null bit-j)))
+                   (return-from rule-from-na (err-new "Too few characters in a bit position")))
+
+		    (when (and bit-i bit-j)
 	            
                          ;; Set mask strings.
-                         (setf b00-i "0" b01-i "0" b11-i "0" b10-i "0")
-                         (cond ((and (char= bit-i #\0) (char= bit-j #\0)) (setf b00-i "1"))
-                               ((and (char= bit-i #\0) (char= bit-j #\1)) (setf b01-i "1"))
-                               ((and (char= bit-i #\1) (char= bit-j #\1)) (setf b11-i "1"))
-                               ((and (char= bit-i #\1) (char= bit-j #\0)) (setf b10-i "1"))
-                               ((and (or (char= bit-i #\X) (char= bit-i #\x)) (char= bit-j #\0)) (setf b10-i "1") (setf b00-i "1"))
-                               ((and (or (char= bit-i #\X) (char= bit-i #\x)) (char= bit-j #\1)) (setf b01-i "1") (setf b11-i "1"))
-                               ((and (char= bit-i #\X) (char= bit-j #\X)) (setf b00-i "1") (setf b11-i "1"))
-                               ((and (char= bit-i #\x) (char= bit-j #\x)) (setf b00-i "1") (setf b11-i "1"))
-                               ((and (char= bit-i #\X) (char= bit-j #\x)) (setf b01-i "1") (setf b10-i "1"))
-                               ((and (char= bit-i #\x) (char= bit-j #\X)) (setf b01-i "1") (setf b10-i "1"))
-                               ((and (char= bit-i #\0) (char= bit-j #\X)) (setf b01-i "1") (setf b00-i "1"))
-                               ((and (char= bit-i #\0) (char= bit-j #\x)) (setf b01-i "1") (setf b00-i "1"))
-                               ((and (char= bit-i #\1) (char= bit-j #\X)) (setf b10-i "1") (setf b11-i "1"))
-                               ((and (char= bit-i #\1) (char= bit-j #\x)) (setf b10-i "1") (setf b11-i "1"))
-                                (t (return-from rule-from-str-na (err-new "Invalid character or combination")))
+                         (setf m00-i "0" m01-i "0" m11-i "0" m10-i "0")
+                         (cond ((and (char= bit-i #\0) (char= bit-j #\0)) (setf m00-i "1"))
+                               ((and (char= bit-i #\0) (char= bit-j #\1)) (setf m01-i "1"))
+                               ((and (char= bit-i #\1) (char= bit-j #\1)) (setf m11-i "1"))
+                               ((and (char= bit-i #\1) (char= bit-j #\0)) (setf m10-i "1"))
+                               ((and (or (char= bit-i #\X) (char= bit-i #\x)) (char= bit-j #\0)) (setf m10-i "1") (setf m00-i "1"))
+                               ((and (or (char= bit-i #\X) (char= bit-i #\x)) (char= bit-j #\1)) (setf m01-i "1") (setf m11-i "1"))
+                               ((and (char= bit-i #\X) (char= bit-j #\X)) (setf m00-i "1") (setf m11-i "1"))
+                               ((and (char= bit-i #\x) (char= bit-j #\x)) (setf m00-i "1") (setf m11-i "1"))
+                               ((and (char= bit-i #\X) (char= bit-j #\x)) (setf m01-i "1") (setf m10-i "1"))
+                               ((and (char= bit-i #\x) (char= bit-j #\X)) (setf m01-i "1") (setf m10-i "1"))
+                               ((and (char= bit-i #\0) (char= bit-j #\X)) (setf m01-i "1") (setf m00-i "1"))
+                               ((and (char= bit-i #\0) (char= bit-j #\x)) (setf m01-i "1") (setf m00-i "1"))
+                               ((and (char= bit-i #\1) (char= bit-j #\X)) (setf m10-i "1") (setf m11-i "1"))
+                               ((and (char= bit-i #\1) (char= bit-j #\x)) (setf m10-i "1") (setf m11-i "1"))
+                                (t (return-from rule-from-na (err-new "Invalid character or combination")))
                          ) ; end cond 3
                          ;; Add a bit position to the mask strings.
-                         (setf b00 (concatenate 'string b00 b00-i))
-                         (setf b01 (concatenate 'string b01 b01-i))
-                         (setf b11 (concatenate 'string b11 b11-i))
-                         (setf b10 (concatenate 'string b10 b10-i))
+                         (setf m00 (concatenate 'string m00 m00-i))
+                         (setf m01 (concatenate 'string m01 m01-i))
+                         (setf m11 (concatenate 'string m11 m11-i))
+                         (setf m10 (concatenate 'string m10 m10-i))
       
                          (setf bit-i nil bit-j nil) ; Init for next bit position.
+		    ) ; end when
 
-		        )
-		        ((or bit-i bit-j) 
-                         (return-from rule-from-str-na (err-new "Too few characters in bit position")))
-		        (t nil)
-		  ) ; end cond 2
-
-                  (when (char= chr #\]) ; End-of-rule.
-
-		     ;; Return new rule.
-                     (return-from rule-from-str-na
-                                      (make-rule :b00 (mask-from-str b00)
-                                                 :b01 (mask-from-str b01)
-                                                 :b11 (mask-from-str b11)
-                                                 :b10 (mask-from-str b10)))
-                  ))
-                  ((null bit-i) (setf bit-i chr)) ; Set first char of bit position.
-                  ((null bit-j) (setf bit-j chr)) ; Set second char of bit position.
-                  (t 
-                     (return-from rule-from-str-na (err-new "Too many characters in a bit position")))
-            ) ; end-cond 1
+            (cond ((char= chr #\]) ; Check for end-of-rule.
+		             ;; Return new rule.
+                     (return-from rule-from-na
+                         (make-rule :m00 (mask-from m00)
+                                    :m01 (mask-from m01)
+                                    :m11 (mask-from m11)
+                                    :m10 (mask-from m10)))
+                  )
+                ((or (char= chr #\/) (char= chr #\_))) ; Check for separators.
+                ((null bit-i) (setf bit-i chr)) ; Set first char of bit position.
+                ((null bit-j) (setf bit-j chr)) ; Set second char of bit position.
+                (t 
+                   (return-from rule-from-na (err-new "Unknown problem")))
+            )
 
         ) ; end loop
-        (err-new "Missing closing bracket?")
+        (err-new "Did not usderstand string")
     ) ; end let
 )
 
-;;; Return a string representation of a rule.
+;;; Return a string representation of a rule, like [01/10/XX].
 (defun rule-str (rulx) ; -> string.
   (assert (rule-p rulx))
 
   (let ((strs "[")
-        (b00 (rule-b00 rulx))
-        (b01 (rule-b01 rulx))
-        (b11 (rule-b11 rulx))
-        (b10 (rule-b10 rulx))
+        (m00 (rule-m00 rulx))
+        (m01 (rule-m01 rulx))
+        (m11 (rule-m11 rulx))
+        (m10 (rule-m10 rulx))
         bitval
-        (bit-pos (mask-msb (rule-b00 rulx))) 
+        (bit-pos (mask-msb (rule-m00 rulx))) 
         (not-start nil)
-	  (cnt (mask-num-bits (rule-b00 rulx)))
+	  (cnt (mask-num-bits (rule-m00 rulx)))
        )
 
        (loop while (not (mask-zerop bit-pos)) do
 	     (setf bitval 0)
-           (if (not (value-zerop (mask-and bit-pos b00)))
+           (if (not (value-zerop (mask-and bit-pos m00)))
                (setf bitval 1))
-           (if (not (value-zerop (mask-and bit-pos b01)))
+           (if (not (value-zerop (mask-and bit-pos m01)))
                (incf bitval 2))
-           (if (not (value-zerop (mask-and bit-pos b11)))
+           (if (not (value-zerop (mask-and bit-pos m11)))
                (incf bitval 4))
-           (if (not (value-zerop (mask-and bit-pos b10)))
+           (if (not (value-zerop (mask-and bit-pos m10)))
                (incf bitval 8))
 
            (if not-start (if (zerop (mod cnt 4))
@@ -193,10 +204,20 @@
     )
 )
 
-;;; Print a rule.
-(defun rule-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (rule-str instance))
+;;; Return a string representation of a rule, like 01X->10x.
+(defun rule-str2 (rulx) ; -> string.
+  (assert (rule-p rulx))
+
+  (let ((initial (rule-initial-region rulx))
+	(result  (rule-result-region rulx))
+	;(x-not-x-mask (mask-new (mask-and (rule-m01 rulx) (rule-m10 rulx))))
+	(ret-str ""))
+
+    (setf ret-str (concatenate 'string ret-str (region-str-bits initial)))
+    (setf ret-str (concatenate 'string ret-str "->"))
+    (setf ret-str (concatenate 'string ret-str (region-str-bits result)))
+    ret-str
+  )
 )
 
 ;;; Return the Boolean "or", or union, of two rules.
@@ -205,10 +226,10 @@
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (make-rule :b00 (mask-new-or (rule-b00 rul1) (rule-b00 rul2))
-             :b01 (mask-new-or (rule-b01 rul1) (rule-b01 rul2))
-             :b11 (mask-new-or (rule-b11 rul1) (rule-b11 rul2))
-             :b10 (mask-new-or (rule-b10 rul1) (rule-b10 rul2)))
+  (make-rule :m00 (mask-new-or (rule-m00 rul1) (rule-m00 rul2))
+             :m01 (mask-new-or (rule-m01 rul1) (rule-m01 rul2))
+             :m11 (mask-new-or (rule-m11 rul1) (rule-m11 rul2))
+             :m10 (mask-new-or (rule-m10 rul1) (rule-m10 rul2)))
 )
 
 ;;; Return true if a rule is a valid union, that is no 1X, or 0X, bit positions.
@@ -216,8 +237,8 @@
   (assert (rule-p rul))
 
   (and
-    (value-zerop (mask-and (rule-b00 rul) (rule-b01 rul)))
-    (value-zerop (mask-and (rule-b11 rul) (rule-b10 rul)))
+    (value-zerop (mask-and (rule-m00 rul) (rule-m01 rul)))
+    (value-zerop (mask-and (rule-m11 rul) (rule-m10 rul)))
   )
 )
 
@@ -227,10 +248,10 @@
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (make-rule :b00 (mask-new-and (rule-b00 rul1) (rule-b00 rul2))
-             :b01 (mask-new-and (rule-b01 rul1) (rule-b01 rul2))
-             :b11 (mask-new-and (rule-b11 rul1) (rule-b11 rul2))
-             :b10 (mask-new-and (rule-b10 rul1) (rule-b10 rul2)))
+  (make-rule :m00 (mask-new-and (rule-m00 rul1) (rule-m00 rul2))
+             :m01 (mask-new-and (rule-m01 rul1) (rule-m01 rul2))
+             :m11 (mask-new-and (rule-m11 rul1) (rule-m11 rul2))
+             :m10 (mask-new-and (rule-m10 rul1) (rule-m10 rul2)))
 )
 
 ;;; Return true if a rule is a valid intersection, that is no bit position is zero for all four masks.
@@ -238,9 +259,9 @@
   (assert (rule-p rul))
 
     (mask-is-high (mask-new-or
-		    (rule-b00 rul)
-		      (mask-new-or (rule-b01 rul)
-			 (mask-new-or (rule-b11 rul) (rule-b10 rul)))))
+		    (rule-m00 rul)
+		      (mask-new-or (rule-m01 rul)
+			 (mask-new-or (rule-m11 rul) (rule-m10 rul)))))
 )
 
 ;;; Return true if two rules are equal.
@@ -249,15 +270,15 @@
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (and (mask-eq (rule-b00 rul1) (rule-b00 rul2))
-       (mask-eq (rule-b01 rul1) (rule-b01 rul2))
-       (mask-eq (rule-b11 rul1) (rule-b11 rul2))
-       (mask-eq (rule-b10 rul1) (rule-b10 rul2)))
+  (and (mask-eq (rule-m00 rul1) (rule-m00 rul2))
+       (mask-eq (rule-m01 rul1) (rule-m01 rul2))
+       (mask-eq (rule-m11 rul1) (rule-m11 rul2))
+       (mask-eq (rule-m10 rul1) (rule-m10 rul2)))
 )
 
 ;;; Ruturn the number of bits used by a rules masks.
 (defun rule-num-bits (rulx) ; -> a number.
-  (mask-num-bits (rule-b00 rulx))
+  (mask-num-bits (rule-m00 rulx))
 )
 
 ;;; Return the initial region of a rule.
@@ -265,8 +286,8 @@
   (assert (rule-p rulx))
 
   (let (
-    (sta1 (state-new (mask-or (rule-b10 rulx) (rule-b11 rulx))))
-    (sta2 (state-new (value-not (mask-or (rule-b01 rulx) (rule-b00 rulx))))))
+    (sta1 (state-new (mask-or (rule-m10 rulx) (rule-m11 rulx))))
+    (sta2 (state-new (value-not (mask-or (rule-m01 rulx) (rule-m00 rulx))))))
 
     (if (state-eq sta1 sta2)
       (region-new (statestore-new (list sta1)))
@@ -279,8 +300,14 @@
   (assert (rule-p rulx))
 
   (let (
-    (sta1 (state-new (mask-or (rule-b11 rulx) (rule-b01 rulx))))
-    (sta2 (state-new (value-not (mask-or (rule-b00 rulx) (rule-b10 rulx))))))
+    (sta1 (state-new (mask-or (rule-m11 rulx) (rule-m01 rulx))))
+    (sta2 (state-new (value-not (mask-or (rule-m00 rulx) (rule-m10 rulx)))))
+    (x-not-x (mask-and (rule-m01 rulx) (rule-m10 rulx))))
+
+    ;; The initial region for a rule will have all X positions represented by a capitol X.
+    ;; To indicate X->x, the result region position needs to be changed to lower-case.
+    (setf sta1 (state-new (value-xor x-not-x (state-value sta1))))
+    (setf sta2 (state-new (value-xor x-not-x (state-value sta2))))
 
     (if (state-eq sta1 sta2)
       (region-new (statestore-new (list sta1)))
@@ -294,16 +321,16 @@
   (assert (rule-p sup-rule))
   (assert (= (rule-num-bits sub-rule) (rule-num-bits sup-rule)))
 
-  (if (not (mask-subset-of :sub-mask (rule-b00 sub-rule) :sup-mask (rule-b00 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m00 sub-rule) :sup-mask (rule-m00 sup-rule)))
     (return-from rule-subset-of false))
 
-  (if (not (mask-subset-of :sub-mask (rule-b01 sub-rule) :sup-mask (rule-b01 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m01 sub-rule) :sup-mask (rule-m01 sup-rule)))
     (return-from rule-subset-of false))
 
-  (if (not (mask-subset-of :sub-mask (rule-b11 sub-rule) :sup-mask (rule-b11 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m11 sub-rule) :sup-mask (rule-m11 sup-rule)))
     (return-from rule-subset-of false))
 
-  (if (not (mask-subset-of :sub-mask (rule-b10 sub-rule) :sup-mask (rule-b10 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m10 sub-rule) :sup-mask (rule-m10 sup-rule)))
     (return-from rule-subset-of false))
 
   true
@@ -317,27 +344,27 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  (let (b00 b0x bxx bx0 b01 bx1 b11 b1x b10 bxxnot)
+  (let (m00 b0x bxx bx0 m01 bx1 m11 b1x m10 bxxnot)
 
     ; Make masks for each possible bit position, (0, 1, X) to (0, 1, X), 3 X 3 = 9 possibilities.
-    (setf b00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
+    (setf m00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
     (setf b0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
     (setf bxx (value-and (mask-and (region-x-mask reg1) (region-x-mask reg2))
 	         	 (value-not (state-xor (region-first-state reg1) (region-first-state reg2)))))
 
     (setf bx0 (mask-and (region-x-mask reg1) (region-0-mask reg2)))
-    (setf b01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
+    (setf m01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
     (setf bx1 (mask-and (region-x-mask reg1) (region-1-mask reg2)))
-    (setf b11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
+    (setf m11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
     (setf b1x (mask-and (region-1-mask reg1) (region-x-mask reg2)))
-    (setf b10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
+    (setf m10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
     (setf bxxnot (value-and (mask-and (region-x-mask reg1) (region-x-mask reg2))
 			    (state-xor (region-first-state reg1) (region-first-state reg2))))
 
-    (make-rule :b00 (mask-new (value-or b00 bxx bx0 b0x))
-               :b01 (mask-new (value-or b01 bx1 b0x bxxnot))
-               :b11 (mask-new (value-or b11 bxx bx1 b1x))
-               :b10 (mask-new (value-or b10 bx0 b1x bxxnot)))
+    (make-rule :m00 (mask-new (value-or m00 bxx bx0 b0x))
+               :m01 (mask-new (value-or m01 bx1 b0x bxxnot))
+               :m11 (mask-new (value-or m11 bxx bx1 b1x))
+               :m10 (mask-new (value-or m10 bx0 b1x bxxnot)))
   )
 )
 
@@ -350,10 +377,10 @@
   (let (msk-in rulz)
     (setf msk-in (mask-not msk-out))
  
-    (setf rulz (make-rule :b00 (rule-b00 rulex)
-                          :b01 (rule-b01 rulex)
-                          :b11 (mask-new-and (rule-b11 rulex) msk-in)
-                          :b10 (mask-new-and (rule-b10 rulex) msk-in)))
+    (setf rulz (make-rule :m00 (rule-m00 rulex)
+                          :m01 (rule-m01 rulex)
+                          :m11 (mask-new-and (rule-m11 rulex) msk-in)
+                          :m10 (mask-new-and (rule-m10 rulex) msk-in)))
 
     (assert (rule-is-valid-intersection rulz))
     rulz
@@ -369,10 +396,10 @@
   (let (msk-in rulz)
     (setf msk-in (mask-not msk-out))
  
-    (setf rulz (make-rule :b00 (mask-new-and (rule-b00 rulex) msk-in)
-                          :b01 (mask-new-and (rule-b01 rulex) msk-in)
-                          :b11 (rule-b11 rulex)
-                          :b10 (rule-b10 rulex)))
+    (setf rulz (make-rule :m00 (mask-new-and (rule-m00 rulex) msk-in)
+                          :m01 (mask-new-and (rule-m01 rulex) msk-in)
+                          :m11 (rule-m11 rulex)
+                          :m10 (rule-m10 rulex)))
 
     (assert (rule-is-valid-intersection rulz))
     rulz
@@ -387,10 +414,10 @@
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
   (assert (region-intersects (rule-result-region rul1) (rule-initial-region rul2)))
 
-  (make-rule :b00 (mask-new-or (mask-new-and (rule-b00 rul1) (rule-b00 rul2)) (mask-new-and (rule-b01 rul1) (rule-b10 rul2))) 
-             :b01 (mask-new-or (mask-new-and (rule-b01 rul1) (rule-b11 rul2)) (mask-new-and (rule-b00 rul1) (rule-b01 rul2))) 
-             :b11 (mask-new-or (mask-new-and (rule-b11 rul1) (rule-b11 rul2)) (mask-new-and (rule-b10 rul1) (rule-b01 rul2))) 
-             :b10 (mask-new-or (mask-new-and (rule-b10 rul1) (rule-b00 rul2)) (mask-new-and (rule-b11 rul1) (rule-b10 rul2)))) 
+  (make-rule :m00 (mask-new-or (mask-new-and (rule-m00 rul1) (rule-m00 rul2)) (mask-new-and (rule-m01 rul1) (rule-m10 rul2))) 
+             :m01 (mask-new-or (mask-new-and (rule-m01 rul1) (rule-m11 rul2)) (mask-new-and (rule-m00 rul1) (rule-m01 rul2))) 
+             :m11 (mask-new-or (mask-new-and (rule-m11 rul1) (rule-m11 rul2)) (mask-new-and (rule-m10 rul1) (rule-m01 rul2))) 
+             :m10 (mask-new-or (mask-new-and (rule-m10 rul1) (rule-m00 rul2)) (mask-new-and (rule-m11 rul1) (rule-m10 rul2)))) 
 )
 
 ;;; Return the combination of two rules.
@@ -419,10 +446,10 @@
 	 (zeros (mask-new (state-not (region-low-state regint))))
 	 (ones  (mask-new (state-value (region-high-state regint)))))
 
-    (make-rule :b00 (mask-new-and (rule-b00 rulx) zeros)
-	       :b01 (mask-new-and (rule-b01 rulx) zeros)
-	       :b11 (mask-new-and (rule-b11 rulx) ones)
-	       :b10 (mask-new-and (rule-b10 rulx) ones))
+    (make-rule :m00 (mask-new-and (rule-m00 rulx) zeros)
+	       :m01 (mask-new-and (rule-m01 rulx) zeros)
+	       :m11 (mask-new-and (rule-m11 rulx) ones)
+	       :m10 (mask-new-and (rule-m10 rulx) ones))
   )
 )
 
@@ -438,10 +465,10 @@
 	 (zeros (mask-new (state-not (region-low-state regint))))
 	 (ones  (mask-new (state-value (region-high-state regint)))))
 
-    (make-rule :b00 (mask-new-and (rule-b00 rulx) zeros)
-	       :b01 (mask-new-and (rule-b01 rulx) ones)
-	       :b11 (mask-new-and (rule-b11 rulx) ones)
-	       :b10 (mask-new-and (rule-b10 rulx) zeros))
+    (make-rule :m00 (mask-new-and (rule-m00 rulx) zeros)
+	       :m01 (mask-new-and (rule-m01 rulx) ones)
+	       :m11 (mask-new-and (rule-m11 rulx) ones)
+	       :m10 (mask-new-and (rule-m10 rulx) zeros))
   )
 )
 
@@ -459,8 +486,8 @@
   (assert (rule-p rulx))
 
   (let ((care-mask (rule-change-care-mask rulx)))
-    (change-new :b01 (mask-new-and (rule-b01 rulx) care-mask)
-                :b10 (mask-new-and (rule-b10 rulx) care-mask))
+    (change-new :m01 (mask-new-and (rule-m01 rulx) care-mask)
+                :m10 (mask-new-and (rule-m10 rulx) care-mask))
   )
 )
 
@@ -475,8 +502,8 @@
   (assert (rule-p rulx))
 
   (let ((care-mask (rule-change-care-mask rulx)))
-    (change-new :b01 (mask-new-and (rule-b00 rulx) care-mask)
-                :b10 (mask-new-and (rule-b11 rulx) care-mask))
+    (change-new :m01 (mask-new-and (rule-m00 rulx) care-mask)
+                :m10 (mask-new-and (rule-m11 rulx) care-mask))
   )
 )
 
@@ -487,8 +514,8 @@
 
 ;;; Return the intersection of a rule and a change, as a change.
 (defun rule-intersection-change (rulx cngx) ; -> change
-    (change-new :b01 (mask-new-and (rule-b01 rulx) (change-b01 cngx))
-                :b10 (mask-new-and (rule-b10 rulx) (change-b10 cngx)))
+    (change-new :m01 (mask-new-and (rule-m01 rulx) (change-m01 cngx))
+                :m10 (mask-new-and (rule-m10 rulx) (change-m10 cngx)))
 )
 
 ;;; Return true if two rules run in a given order results in
@@ -499,18 +526,18 @@
   (assert (change-p wanted))
   (assert (= (rule-num-bits first) (rule-num-bits next)))
   (assert (= (rule-num-bits first) (change-num-bits wanted)))
-  (assert (value-is-low (mask-and (change-b01 wanted) (change-b10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
-  (assert (value-is-not-low (mask-or (change-b01 wanted) (change-b10 wanted)))) ; At least one change should be needed.
+  (assert (value-is-low (mask-and (change-m01 wanted) (change-m10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
+  (assert (value-is-not-low (mask-or (change-m01 wanted) (change-m10 wanted)))) ; At least one change should be needed.
   
   (let ((rule-comb (rule-combine-sequence first next))
-	(msk01 (mask-new-and (rule-b01 first) (change-b01 wanted)))
-	(msk10 (mask-new-and (rule-b10 first) (change-b10 wanted)))
+	(msk01 (mask-new-and (rule-m01 first) (change-m01 wanted)))
+	(msk10 (mask-new-and (rule-m10 first) (change-m10 wanted)))
        )
 
-    (if (mask-is-not-low (mask-new-and (rule-b01 rule-comb) msk01))
+    (if (mask-is-not-low (mask-new-and (rule-m01 rule-comb) msk01))
       (return-from rule-sequence-blocks-changes false))
 
-    (if (mask-is-not-low (mask-new-and (rule-b10 rule-comb) msk10))
+    (if (mask-is-not-low (mask-new-and (rule-m10 rule-comb) msk10))
       (return-from rule-sequence-blocks-changes false))
 
     true
@@ -524,8 +551,8 @@
   (assert (change-p wanted))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
   (assert (= (rule-num-bits rul1) (change-num-bits wanted)))
-  (assert (value-is-low (mask-and (change-b01 wanted) (change-b10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
-  (assert (value-is-not-low (mask-or (change-b01 wanted) (change-b10 wanted)))) ; At least one change should be needed.
+  (assert (value-is-low (mask-and (change-m01 wanted) (change-m10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
+  (assert (value-is-not-low (mask-or (change-m01 wanted) (change-m10 wanted)))) ; At least one change should be needed.
   (assert (change-is-not-low (rule-intersection-change rul1 wanted)))
   (assert (change-is-not-low (rule-intersection-change rul2 wanted)))
 
@@ -535,13 +562,13 @@
 
 ;;; Return true if a list is a list of rules.
 ;;; An empty list will return true.
-(defun rule-list-p (rullst) ; -> bool
+(defun rules-list-p (rullst) ; -> bool
   (if (not (listp rullst))
-    (return-from rule-list-p false))
+    (return-from rules-list-p false))
 
   (loop for rulx in rullst do
     (if (not (rule-p rulx))
-      (return-from rule-list-p false))
+      (return-from rules-list-p false))
   )
   true
 )

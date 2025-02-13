@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ;;; The plan struct.
-(defstruct (plan (:print-function plan-print))
+(defstruct plan
   stepstore        ; A store of steps to go from one state to another.  May be empty.
 )
 ; Functions automatically created by defstruct:
@@ -37,12 +37,6 @@
   (assert (plan-p planx))
 
   (stepstore-step-list (plan-stepstore planx))
-)
-
-;;; Print a plan.
-(defun plan-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (plan-str instance))
 )
 
 ;;; Return a string representing a plan.
@@ -258,8 +252,8 @@
 )
 
 ;;; Return a plan, given a string of the form region-actnum->region-actnum->region ...
-(defun plan-from-str (plan-str) ; -> plan
-  (format t "~&plan-from-str: ~A" plan-str)
+(defun plan-from (plan-str) ; -> plan
+  ;(format t "~&plan-from: ~A" plan-str)
   (let (token token-list token-list2)
     ; Split string into <region>-<action number> tokens, plus region at end.
     (loop for chr across plan-str do
@@ -279,7 +273,7 @@
 
     ; Token list should be non-nil.
     (if (null token-list)
-      (return-from plan-from-str nil))
+      (return-from plan-from nil))
 
     ;(format t "~&token-list: ~A" token-list)
 
@@ -320,15 +314,15 @@
 	(when (and (= 2 (length regions)) (= 1 (length actions)))
 	  ;(format t "~&  figure step ~A -~D-> ~A" (second regions) (car actions) (car regions))
 
-	  (setf reg1 (region-from-str (second regions)))
+	  (setf reg1 (region-from (second regions)))
 	  (setf actx (parse-integer (car actions)))
-	  (setf reg2 (region-from-str (car regions)))
+	  (setf reg2 (region-from (car regions)))
 	  ;(format t "~&reg1 ~A -~D-> reg2 ~A" reg1 actx reg2)
 	  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 	  (setf rulx (rule-new-region-to-region reg1 reg2))
 	  ;(format t "~&rule is: ~A" rulx)
 	  (setf stepx (step-new :act-id actx :rule rulx))
-	  (format t "~&step ~A" stepx)
+	  ;(format t "~&step ~A" (step-str stepx))
 	  (push stepx steps)
 
 	  (setf regions (list (car regions)))

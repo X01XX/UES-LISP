@@ -5,7 +5,7 @@
 (defvar false nil)
 
 ;;; The state struct.
-(defstruct (state (:print-function state-print))
+(defstruct state
   value  ; A value.
 )
 ; Functions automatically created by defstruct:
@@ -30,23 +30,24 @@
 )
 
 ;;; Return a state from a string.
-(defun state-from-str (str) ; -> state.
-  (assert (stringp str))
+(defun state-from (stax) ; -> state.
+    ;(format t "&~&state-from ~A ~A" (type-of stax) stax)
+    (if (symbolp stax)
+       (setf stax (symbol-name stax)))
 
-  (state-new (value-from-str str))
+    (let (pass)
+
+        (setf pass (concatenate 'string "v" (subseq stax 1))) 
+
+        (state-new (value-from pass))
+   )
 )
 
 ;;; Return a string for a state.
 (defun state-str (sta)  ; -> string.
   (assert (state-p sta))
 
-  (format nil "#S(STATE ~A)" (value-str (state-value sta)))
-)
-
-;;; Print a state.
-(defun state-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (state-str instance))
+  (format nil "s~A" (subseq (value-str (state-value sta)) 1))
 )
 
 ;;; Return the number of bits used by a state.
@@ -154,5 +155,16 @@
       (return-from state-list-p false))
   )
   true
+)
+
+;;; Return a random state of a given number of bits.
+(defun state-random (num-bits) ; -> state
+    (assert (integerp num-bits))
+    (assert (> num-bits 0))
+
+    (let ((max (expt 2 num-bits)) rand-num)
+        (setf rand-num (random max))
+        (state-new (value-new :num-bits num-bits :bits rand-num))
+    )
 )
 

@@ -1,6 +1,6 @@
 ;;;; Implement the sample struct.
 ;;;; It represents a initial state and a result of some action.
-(defstruct (sample (:print-function sample-print))
+(defstruct sample
   initial ; A state, before an action.
   result  ; A state, after an action.
 )
@@ -27,12 +27,6 @@
 
 ; Return a string to represent a sample.
 (defun sample-str (smpl) ; -> string.
-  (format nil "#S(SAMPLE ~A->~A)" (sample-initial smpl) (sample-result smpl))
-)
-
-; Print a sample.
-(defun sample-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (sample-str instance))
+  (format nil "#S(SAMPLE ~A->~A)" (state-str (sample-initial smpl)) (state-str (sample-result smpl)))
 )
 

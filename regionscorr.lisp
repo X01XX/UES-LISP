@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ; Implement a store of corresponding regions.
-(defstruct (regionscorr (:print-function regionscorr-print))
+(defstruct regionscorr
   regionstore  ; A regionstore of zero, or more, regions.
 )
 ; Functions automatically created by defstruct:
@@ -33,13 +33,7 @@
 (defun regionscorr-region-list (regionscorrx) ; -> list of regions.
   (assert (regionscorr-p regionscorrx))
 
-  (regionstore-region-list (regionscorr-regionstore regionscorrx))
-)
-
-;;; Print a regionscorr.
-(defun regionscorr-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (regionscorr-str instance))
+  (regionstore-regions (regionscorr-regionstore regionscorrx))
 )
 
 ;;; Add region to the end of a regionscorr.
@@ -77,7 +71,7 @@
 (defun regionscorr-str (regionscorrx) ; -> string.
   (assert (regionscorr-p regionscorrx))
 
-  (format nil "#S(REGIONSCORR ~A)" (regionscorr-regionstore regionscorrx))
+  (format nil "(RC ~A)" (regionstore-str2 (regionscorr-regionstore regionscorrx)))
 )
 
 ;;; Return true if a regionscorr contains a given region.
@@ -201,7 +195,7 @@
       (setf tmp-regs (region-subtract :min-reg regx :sub-reg regy))
 
       ; Produce a new regionscorr for each remainder region.
-      (loop for regz in (regionstore-region-list tmp-regs) do
+      (loop for regz in (regionstore-regions tmp-regs) do
 
 	(setf new-regs (regionscorr-new nil))
 
@@ -356,4 +350,35 @@
 	)
     (regionscorr-set-to-zeros (regionscorr-set-to-ones regionscorr1 to-ones) to-zeros)
   )
+)
+
+
+;;; Translate a string into a regioncorr.
+;;; Like [], [1010], or [101, 1000].
+(defun regionscorr-from (rcx) ; -> regionscorr or error.
+   ;(format t "~&regionscorr-from: ~A" rcx)
+
+   (when (listp rcx)
+      (if (string-not-equal (symbol-name (car rcx)) "RC")
+        (return-from regionscorr-from (err-new "Tokens should begin with RC")))
+      (setf rcx (second rcx))   
+   )
+
+   (when (stringp rcx)
+
+      (if (not (string-equal (subseq rcx 0 3) "RC["))
+        (return-from regionscorr-from (err-new "String must begin with RC[")))
+                
+      (if (not (string-equal (subseq rcx (1- (length rcx))) "]"))
+        (return-from regionscorr-from (err-new "String must end with a ]")))
+ 
+     (if (= (length rcx) 4)
+        (return-from regionscorr-from (make-regionscorr :regionstore (regionstore-new nil))))
+  
+     (setf rcx (subseq rcx 2 ))
+   )   
+
+   ;(format t "~&regionscorr-from2: ~A" rcx)
+
+    (make-regionscorr :regionstore (regionstore-from rcx))
 )

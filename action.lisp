@@ -4,9 +4,11 @@
 
 ;;;; Implement the Action type.
 ;;;;
-(defstruct (action (:print-function action-print))
-  id		; A number id, GE zero.
-  groups	; A groupstore.
+(defstruct action
+  id		  ; A number id, GE zero.
+  groups	  ; A groupstore.
+  squares     ; A Squarestore.
+  base-rules  ; A list of rulestores to use in generating samples.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -23,16 +25,55 @@
 ;   (copy-action <instance>) copies a action instance.
 
 ;;; Return an action.
-(defun action-new (&key id groups)
-  (assert (groupstore-p groups))
+(defun action-new (&key id rules)
+  (assert (rulestore-list-p rules))
   (assert (>= id 0))
 
-  (make-action :id id :groups groups)
+  (let (rulsx rulsy)
+
+    ;; Check each rulestore is not empty.
+    (loop for rulsx in rules do
+        (assert (rulestore-is-not-empty rulsx))
+    )
+
+    ;; Check each rule, within each rulestore, has the same initial region.
+    (loop for rulsx in rules do
+        (when (> (rulestore-length rulsx) 1)
+        )
+    )
+
+    ;; Check rules for consistency.
+    (loop for inx from 0 below (1- (length rules)) do
+      (setf rulsx (nth inx (rules-region-list rules)))
+
+      (loop for iny from (1+ inx) below (length rules) do                                             
+        (setf rulsy (nth iny (rules-region-list rules)))
+
+        (when (region-intersects (rulestore-initial-region rulsx) (rulestore-initial-region rulsy))
+          (if (null (rulestore-intersection rulsx rulsy))
+              (error "invalid intersection of rulestores"))
+        )
+      )
+    )
+
+    (make-action :id id :groups (groupstore-new nil) :squares (squarestore-new) :base-rules rules)
+  )
 )
 
-;;; Print a action.
-(defun action-print (instance stream depth)
-    (format stream (action-str instance))
+;;; Set the id.
+(defun action-set-id (actx id)
+    (assert (action-p actx))
+    (assert (integerp id))
+    (assert (>= id 0))
+
+    (setf (action-id actx) id)
+)
+
+;;; Return the number of bits used by an action.
+(defun action-num-bits (actx) ; -> number bits used
+    (assert (action-p actx))
+
+    (rulestore-num-bits (car (action-base-rules actx)))
 )
 
 ;;; Return a string representing a action
@@ -83,4 +124,42 @@
     )
     ret-steps
   )
+)
+
+(defun action-get-needs (actx cur-state) ; -> NeedStore.
+  (assert (action-p actx))
+  (assert (state-p cur-state))
+
+  (let ((needs (needstore-new nil)))
+    needs
+  )
+)
+
+;;; Return a action from a string.
+;;; Thi action ID defaulst to zero, the caller may need to set it.
+(defun action-from (symbols) ; -> action
+    (format t "~&action-from: ~A" symbols)
+    (assert (listp symbols))
+
+    ;(assert (eq (car symbols) 'QUOTE))
+    ;(setf symbols (second symbols))
+
+    (assert (eq (car symbols) 'ACT))
+    (setf symbols (cdr symbols))
+
+    (let (rulestores pos sname)
+        (loop for tokx in symbols do
+            (format t "~&action-from ~A ~A" (type-of tokx) tokx)
+            (cond ((symbolp tokx)
+                   (setf sname (symbol-name tokx))
+                   (setf pos (position #\/ sname))
+                   (if pos
+                       (format t "~&state found ~A sample ~D times" (subseq sname 0 pos)
+                                (read-from-string (subseq sname (1+ pos))))
+                       (format t "~&state found ~A" tokx)
+                  ))
+                  (t (push (rulestore-from tokx) rulestores)))
+        )
+        (action-new :id 0 :rules (reverse rulestores))
+    )
 )

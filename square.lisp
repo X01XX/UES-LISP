@@ -155,6 +155,11 @@
     ) ; end let
 ) ; end square-add-result
 
+;;; Return the most recent result of a square.
+(defun square-most-recent-result (sqrx) ; -> state.
+  (aref (square-results sqrx) (mod (1- (square-count sqrx)) 4))
+)
+
 ;;; Return a string representing a square.
 (defun square-str (asqr)  ; -> string
     (assert (square-p asqr))

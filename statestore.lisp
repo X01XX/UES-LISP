@@ -4,7 +4,7 @@
 (defvar false nil)
 
 ;;; The statestore struct.
-(defstruct (statestore (:print-function statestore-print))
+(defstruct statestore
   state-list  ; A list of zero, or more, non-duplicate, same number bits, states.
 )
 ; Functions automatically created by defstruct:
@@ -27,12 +27,6 @@
   (assert (state-list-p states))
 
   (make-statestore :state-list states)
-)
-
-;;; Print a statestore.
-(defun statestore-print (instance stream depth)
-  ;(assert (zerop depth))
-  (format stream (statestore-str instance))
 )
 
 ;;; Push a new state into a statestore, suppress dups.
@@ -67,7 +61,7 @@
 (defun statestore-str (storex) ; -> string.
   (assert (statestore-p storex))
 
-  (let ((ret "#S(STATESTORE ") (start t))
+  (let ((ret "(") (start t))
 
     (loop for stax in (statestore-state-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
@@ -198,4 +192,21 @@
   )
   ;; Store already at the minimum needed.
   storex
+)
+
+(defun statestore-from (symbols) ; -> statestore
+    ;(format t "&~&statestore-from ~A" symbols)
+
+    (assert (listp symbols))                                                                                                                    
+
+    ;(assert (eq (car symbols) 'QUOTE))
+    ;(setf symbols (second symbols))
+
+    (let (states)
+        (loop for tokx in symbols do
+            ;(format t "~&statestore-from ~A ~A" (type-of tokx) tokx)
+            (push (state-from tokx) states)
+        ) 
+        (statestore-new (reverse states))
+    )
 )

@@ -1,0 +1,5 @@
+;;; Ititialize a sessiondata instance.
+(defun sd (&rest args) ; -> sessiondata
+    (format t "~&sd")
+    (pprint args)
+)
