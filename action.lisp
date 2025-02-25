@@ -127,38 +127,49 @@
 )
 
 (defun action-get-needs (actx cur-state) ; -> NeedStore.
+  ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
   (assert (action-p actx))
   (assert (state-p cur-state))
 
   (let ((needs (needstore-new nil)))
+    (if (not (groupstore-state-in-group (action-groups actx) cur-state))
+        (needstore-push needs (need-new
+                                 :act-id (action-id actx)
+                                 :kind *sample-state*
+                                 :reason *state-not-in-group*
+                                 :target cur-state
+                              )
+        )
+    )
+    ;(format t "~&action-get-needs: returning: ~A" (needstore-str needs))
     needs
   )
 )
 
-;;; Return a action from a string.
+;;; Return an action instance, given a list of symbols.
 ;;; Thi action ID defaulst to zero, the caller may need to set it.
 (defun action-from (symbols) ; -> action
-    (format t "~&action-from: ~A" symbols)
+    ;(format t "~&action-from: ~A" (type-of symbols))
     (assert (listp symbols))
-
-    ;(assert (eq (car symbols) 'QUOTE))
-    ;(setf symbols (second symbols))
-
+    (assert (not (null symbols)))
+    (assert (symbolp (car symbols)))
     (assert (eq (car symbols) 'ACT))
+
     (setf symbols (cdr symbols))
 
     (let (rulestores pos sname)
         (loop for tokx in symbols do
-            (format t "~&action-from ~A ~A" (type-of tokx) tokx)
+            ;(format t "~&action-from ~A ~A" (type-of tokx) tokx)
             (cond ((symbolp tokx)
                    (setf sname (symbol-name tokx))
                    (setf pos (position #\/ sname))
-                   (if pos
-                       (format t "~&state found ~A sample ~D times" (subseq sname 0 pos)
-                                (read-from-string (subseq sname (1+ pos))))
-                       (format t "~&state found ~A" tokx)
-                  ))
-                  (t (push (rulestore-from tokx) rulestores)))
+                   ;(if pos
+                   ;    (format t "~&state found ~A sample ~D times" (subseq sname 0 pos)
+                   ;             (read-from-string (subseq sname (1+ pos))))
+                   ;    (format t "~&state found ~A" tokx)
+                   ;)
+                  )
+                  (t (push (rulestore-from-str tokx) rulestores)))
         )
         (action-new :id 0 :rules (reverse rulestores))
     )

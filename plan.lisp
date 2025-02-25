@@ -314,10 +314,9 @@
 	(when (and (= 2 (length regions)) (= 1 (length actions)))
 	  ;(format t "~&  figure step ~A -~D-> ~A" (second regions) (car actions) (car regions))
 
-	  (setf reg1 (region-from (second regions)))
+	  (setf reg1 (region-from-str (second regions)))
 	  (setf actx (parse-integer (car actions)))
-	  (setf reg2 (region-from (car regions)))
-	  ;(format t "~&reg1 ~A -~D-> reg2 ~A" reg1 actx reg2)
+	  (setf reg2 (region-from-str (car regions)))
 	  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 	  (setf rulx (rule-new-region-to-region reg1 reg2))
 	  ;(format t "~&rule is: ~A" rulx)

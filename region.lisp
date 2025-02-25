@@ -84,6 +84,7 @@
 
 ;;; Return the x mask of a region.
 (defun region-x-mask (regx) ; -> mask
+  ;(format t "~&region-x-mask ~A" (type-of regx))
   (assert (region-p regx))
 
   (mask-new (state-xor (region-high-state regx) (region-low-state regx)))
@@ -93,20 +94,16 @@
 (defun region-1-mask (regx) ; -> mask
   (assert (region-p regx))
 
-  (let ((nx (mask-value (mask-not (region-x-mask regx)))))
-      (mask-new (value-and nx (state-and
+  (mask-new (state-and
 	  (region-first-state regx)
-	  (region-second-state regx))))
-  )
+	  (region-second-state regx)))
 )
 
 ;;; Return the edge 0s mask of a region.
 (defun region-0-mask (regx) ; -> mask
   (assert (region-p regx))
 
-  (let ((nx (mask-value (mask-not (region-x-mask regx)))))
-    (mask-new (value-and nx (state-not (region-first-state regx)) (state-not (region-second-state regx))))
-  )
+  (mask-new (value-and (state-not (region-first-state regx)) (state-not (region-second-state regx))))
 )
 
 ;;; Return the second state in a region, really the far state from the first state.
@@ -186,28 +183,43 @@
     )
 )
 
-;;; Return a region from evaluating a string.
+;;; Return a region instance from a symbol.
+;;; Like r1010, r1X10x.
 ;;; A region can be made of a single state.
 ;;; A token with an X, or x, will be defined with two states.
 ;;; An X will cause a 1 in the first state, a zero in the second.
 ;;; An x will cause a 0 in the first state, a one in the second state.
-;;; So the states making up a region can be specified by the string representation.
-(defun region-from (regx) ; -> region.
-  ;(format t "~&region-from ~A" regx)
-  (if (symbolp regx)
-     (setf regx (symbol-name regx)))
+;;; So the states making up a region can be specified by the symbol representation.
+(defun region-from (symx) ; -> region.
+  ;(format t "~&region-from ~A" (type-of symx))
+  (assert (symbolp symx))
 
-  (let ((ret (region-from-na regx)))
-     (cond ((err-p ret) (error (err-str ret)))
-           ((region-p ret) ret)
-            (t (error "Result is not a region"))))
+  (let ((strx (symbol-name symx)))
+    ;; Check for r prefix.
+    (if (not (string-equal (subseq strx 0 1) "r"))
+	  (return-from region-from (err-new (format nil "region-from: Region ~A Should begin with a r character" strx))))
+
+    (let ((ret (region-from-str strx)))
+      (cond ((err-p ret) (error (err-str ret)))
+            ((region-p ret) ret)
+             (t (error "Region is not valid"))))
+  )
 )
+;;; Return a region instance from a string.
+(defun region-from-str (strx) ; -> region instance.
+  ;(format t "~&region-from-str ~A" (type-of strx))
+  (assert (stringp strx))
 
-(defun region-from-na (strx) ; -> region, or err.
+  ;; Check for r prefix.
+  (if (not (string-equal (subseq strx 0 1) "r"))
+	 (return-from region-from-str (err-new (format nil "region-from-str: Region ~A Should begin with an r character" strx))))
+
+  (setf strx (subseq strx 1))
 
   (let ((state-first "v") (state-second "v"))
     (loop for chr across strx do
-      (cond ((or (char= chr #\_) (char= chr #\R) (char= chr #\r)) nil)
+      (cond
+	    ((char= chr #\_) nil)
 	    ((char= chr #\0) (setf state-first (concatenate 'string state-first "0"))
 	                     (setf state-second  (concatenate 'string state-second  "0")))
 	    ((char= chr #\1) (setf state-first (concatenate 'string state-first "1"))
@@ -216,13 +228,13 @@
 	                     (setf state-second  (concatenate 'string state-second  "0")))
 	    ((char= chr #\x) (setf state-first (concatenate 'string state-first "0"))
 	                     (setf state-second  (concatenate 'string state-second  "1")))
-	    (t (return-from region-from-na (err-new (format nil "Invalid character ~A" chr)))))
+	    (t (return-from region-from-str (err-new (format nil "region-from-str: Invalid character ~A" chr)))))
     )
     (if (= (length state-first) 1)
-      (return-from region-from-na (err-new "No valid character found")))
+      (return-from region-from-str (err-new "region-from-str: No valid character found")))
 
-    (region-new (statestore-new (list (state-new (value-from state-first))
-                                      (state-new (value-from state-second)))))
+    (region-new (statestore-new (list (state-new (value-from-str state-first))
+                                      (state-new (value-from-str state-second)))))
   )
 )
 
@@ -399,4 +411,12 @@
   )
 )
 
+;;; Return a change containing unwanted changes in acheiving a region as a goal.
+(defun region-unwanted-changes (regx) ; -> change
+  (assert (region-p regx))
+
+  (change-new :m01 (region-0-mask regx)
+              :m10 (region-1-mask regx)
+  )
+)
 

@@ -5,7 +5,7 @@
 
 ;;; Implement a store of masks.
 (defstruct needstore
-  need-list  ; A list of zero, or more, non-duplicate, same number bits, needs.
+  needs  ; A list of zero, or more, non-duplicate, same number bits, needs.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,17 +26,17 @@
   ;(format t "~&needstore-new ~A" needs)
   (assert (need-list-p needs))
 
-  (make-needstore :need-list needs)
+  (make-needstore :needs needs)
 )
 
 ;;; Return a string representing a needstore list.
-(defun needstore-str (alist)
-; (format t "~&needstore-str for ~A" alist)
-    (assert (needstore-p alist))
+(defun needstore-str (storex)
+; (format t "~&needstore-str for ~A" storex)
+    (assert (needstore-p storex))
 
     (let ((str "("))
 
-        (loop for needx in alist
+        (loop for needx in (needstore-needs storex)
               for count from 0 do
 
                  (when (plusp count)
@@ -82,5 +82,65 @@
 
     (format t "~&needstore-tests OK")
     'OK
+)
+
+;;; Append two needstores.
+;;; Preserve order.
+(defun needstore-append (store1 store2) ; -> needstore                                                                               
+  ;(format t "~&needstore-append: ~A ~A" (needstore-str store1) (needstore-str store2))
+  (assert (needstore-p store1))
+  (assert (needstore-p store2))
+
+  (let ((ret (make-needstore :needs (needstore-needs store1))))
+
+    ;; Add store2 needs.
+    (loop for nedx in (needstore-needs store2) do
+      (needstore-add-end ret nedx)
+    )   
+    ;(format t "~&needstore-append: result ~A" (needstore-str ret))
+    ret 
+  )
+)
+
+;;; Return true if a needstore is empty.
+(defun needstore-is-empty (storex) ; -> bool
+  (assert (needstore-p storex))
+
+  (null (needstore-needs storex))
+)
+
+;;; Return true if a needstore is not empty.
+(defun needstore-is-not-empty (storex) ; -> bool
+  (assert (needstore-p storex))
+
+  (not (null (needstore-needs storex)))
+)
+
+;;; Push need into a needstore.
+(defun needstore-push (storex nedx) ; -> nothing, side-effect needstore is changed.
+  (assert (needstore-p storex))
+  (assert (need-p nedx))
+
+  (push nedx (needstore-needs storex))
+)
+
+;;; Add need to the end of a needstore.
+(defun needstore-add-end (storex nedx) ; -> nothing, side-effect needstore changed.
+  ;(format t "~&needstore-add-end: ~A ~A" (needstore-str storex) (need-str nedx))
+  (assert (needstore-p storex))
+  (assert (need-p nedx))
+
+  (setf (needstore-needs storex) (append (needstore-needs storex) (list nedx)))
+  ;(format t "~&needstore-add-end: result ~A" (needstore-str storex))
+)
+
+;;; Set the need dom-id for all needs in a needstore.
+(defun needstore-set-dom-id (storex val) ; -> side-effect, needs dom-id changed.
+  (assert (needstore-p storex))
+  (assert (and (integerp val) (>= val 0)))
+
+  (loop for nedx in (needstore-needs storex) do
+    (setf (need-dom-id nedx) val)
+  )
 )
 

@@ -6,7 +6,7 @@
  (let (cngstpsx cngx stp1)
    (setf stp1 (step-new :act-id 0 :rule (rule-from "[01/10/00/01]")))
 
-   (setf cngx (change-new :m01 (mask-from "m0001") :m10 (mask-from "m0000")))
+   (setf cngx (change-new :m01 (mask-from 'm0001) :m10 (mask-from 'm0000)))
 
    ; Test creating a cngstps.
    (setf cngstpsx (cngstps-new cngx))

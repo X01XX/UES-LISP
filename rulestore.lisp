@@ -134,18 +134,18 @@
 
 ;;; Translate a string into a rulestore.
 ;;; Like [], [[01/10]], or [[01/10], [00/11/11]].
-(defun rulestore-from (rsx) ; -> rulestore
-   (format t "~&rulestore-from1 ~A" rsx)
+(defun rulestore-from-str (rsx) ; -> rulestore
+   ;(format t "~&rulestore-from-str1 ~A" rsx)
    (when (stringp rsx)
 
       (if (not (string-equal (subseq rsx 0 1) "["))
-        (return-from rulestore-from (err-new "String must begin with a [")))
+        (return-from rulestore-from-str (err-new "String must begin with a [")))
             
       (if (not (string-equal (subseq rsx (1- (length rsx))) "]"))
-        (return-from rulestore-from (err-new "String must end with a ]")))
+        (return-from rulestore-from-str (err-new "String must end with a ]")))
  
      (if (= (length rsx) 2)
-        (return-from rulestore-from (make-rulestore :rules nil)))
+        (return-from rulestore-from-str (make-rulestore :rules nil)))
   
      (setf rsx (parse-str (subseq rsx 1 (1- (length rsx)))))
    )

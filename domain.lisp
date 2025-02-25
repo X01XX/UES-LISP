@@ -174,11 +174,11 @@
 )
 
 (defun domain-get-needs (domx) ; ->  needstore.
+  ;(format t "~&domain-get-needs: ~A" (type-of domx))
   (assert (domain-p domx))
-  (let ((needs (needstore-new nil)))
-    (loop for actx in (domain-actions domx) do
-      (needs-append (action-get-needs actx (domain-current-state domx)))
-    )
+
+  (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx))))
+    (needstore-set-dom-id needs (domain-id domx))
     needs
   )
 )
@@ -191,20 +191,19 @@
   (actionstore-push (domain-actions domx) actx)    
 )
 
-;;; Return a domain from a string.
-(defun domain-from (symbols) ; -> domain
-    (format t "~&domain-from: ~A" symbols)
+;;; Return a domain instance, given a list of symbols.
+(defun domain-from (symbols) ; -> domain instance.
+    ;(format t "~&domain-from: ~A" (type-of symbols))
     (assert (listp symbols))
-
-    ;(assert (eq (car symbols) 'QUOTE))
-    ;(setf symbols (second symbols))
-
+    (assert (not (null symbols)))
+    (assert (symbolp (car symbols)))
     (assert (eq (car symbols) 'DOM))
+
     (setf symbols (cdr symbols))
 
     (let (actions domx actx)
         (loop for tokx in symbols do
-            (format t "~&domain-from ~A ~A" (type-of tokx) tokx)
+            ;(format t "~&domain-from ~A ~A" (type-of tokx) tokx)
             (setf actx (action-from tokx))
             (action-set-id actx (length actions))
             (push actx actions)

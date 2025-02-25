@@ -4,17 +4,17 @@
 
   ; Test rule-new.
   (let (rulx sta1 sta2)
-    (setf sta1 (state-from "s0101"))
-    (setf sta2 (state-from "s0110"))
+    (setf sta1 (state-from 's0101))
+    (setf sta2 (state-from 's0110))
 
     ; Test making a rule.
     (setf rulx (rule-new (sample-new :initial sta1 :result sta2)))
     (assert (rule-p rulx))
 
-    (assert (mask-eq (rule-m00 rulx) (mask-from "m1000")))
-    (assert (mask-eq (rule-m01 rulx) (mask-from "m0010")))
-    (assert (mask-eq (rule-m11 rulx) (mask-from "m0100")))
-    (assert (mask-eq (rule-m10 rulx) (mask-from "m0001")))
+    (assert (mask-eq (rule-m00 rulx) (mask-from 'm1000)))
+    (assert (mask-eq (rule-m01 rulx) (mask-from 'm0010)))
+    (assert (mask-eq (rule-m11 rulx) (mask-from 'm0100)))
+    (assert (mask-eq (rule-m10 rulx) (mask-from 'm0001)))
 
     (format t "~&  rule-new OK")
   )
@@ -22,32 +22,32 @@
   ; Test rule-from.
   (let (rulx errx)
     ; Test string too short.
-    (setf errx (rule-from-na "[]"))
+    (setf errx (rule-from-str "[]"))
     (assert (and (err-p errx) (string= (err-str errx) "String is too short")))
 
     ; Test malformed bit position. is not b, B, x or X.
-    (setf errx (rule-from-na "[00/1]"))
+    (setf errx (rule-from-str "[00/1]"))
     (assert (and (err-p errx) (string= (err-str errx) "Too few characters in a bit position")))
 
     ; Test string for invalid combination.
-    (setf errx (rule-from-na "[00/1M]"))
+    (setf errx (rule-from-str "[00/1M]"))
     (assert (and (err-p errx) (string= (err-str errx) "Invalid character")))
 
     ; Test string for invalid combination.
-    (setf errx (rule-from-na "[000]"))
+    (setf errx (rule-from-str "[000]"))
     (assert (and (err-p errx) (string= (err-str errx) "Too many characters in a bit position")))
 
     ; Test string for invalid combination.
-    (setf errx (rule-from-na "[00/01"))
+    (setf errx (rule-from-str "[00/01"))
     (assert (and (err-p errx) (string= (err-str errx) "String must end with a ]")))
 
     ; Test rule generation.
     (setf rulx (rule-from "[00/01/11/10_X0/X1/X0/X1_XX/XX/Xx/xX]"))
     (assert (and (rule-p rulx)))
-    (assert (mask-eq (rule-m00 rulx) (mask-from "m1000_1010_1100")))
-    (assert (mask-eq (rule-m01 rulx) (mask-from "m0100_0101_0011")))
-    (assert (mask-eq (rule-m11 rulx) (mask-from "m0010_0101_1100")))
-    (assert (mask-eq (rule-m10 rulx) (mask-from "m0001_1010_0011")))
+    (assert (mask-eq (rule-m00 rulx) (mask-from 'm1000_1010_1100)))
+    (assert (mask-eq (rule-m01 rulx) (mask-from 'm0100_0101_0011)))
+    (assert (mask-eq (rule-m11 rulx) (mask-from 'm0010_0101_1100)))
+    (assert (mask-eq (rule-m10 rulx) (mask-from 'm0001_1010_0011)))
 
     (format t "~&  rule-from OK")
   )
@@ -208,7 +208,7 @@
     (setf rul1 (rule-from "[00/01/11/10_x0/x1/Xx/XX]"))
     (setf reg1 (rule-initial-region rul1))
 
-    (assert (region-eq reg1 (region-from "0011_xxxx")))
+    (assert (region-eq reg1 (region-from 'r0011_xxxx)))
 
     (format t "~&  rule-initial-region OK")
   )
@@ -301,13 +301,13 @@
 
   ; Test rule-new-region-to-region.
   (let (rul1 reg1 reg2)
-    (setf reg1 (region-from "000_111_xxx_Xx"))
-    (setf reg2 (region-from "01x_01x_01x_xX"))
+    (setf reg1 (region-from 'r000_111_xxx_Xx))
+    (setf reg2 (region-from 'r01x_01x_01x_xX))
 
     (setf rul1 (rule-new-region-to-region reg1 reg2))
-    ;(format t "~&rul1 ~A" rul1)
+    (format t "~&rul1 ~A" (rule-str rul1))
 
-    (assert (rule-eq rul1 (rule-from "[00/01/0x_10/11/1x_x0/x1/xx_Xx/Xx]")))
+    (assert (rule-eq rul1 (rule-from "[00/01/00_10/11/11/x0_x1/xx/XX/XX]")))
 
     (format t "~&  rule-new-region-to-region OK")
   )
@@ -316,7 +316,7 @@
   ; Test rule-mask-off-ones.
   (let (rul1 rul2 msk1)
     (setf rul1 (rule-from "[X1/X0/XX/Xx]"))
-    (setf msk1 (mask-from "m1111"))
+    (setf msk1 (mask-from 'm1111))
     (setf rul2 (rule-mask-off-ones rul1 msk1))
     ;(format t "~&rul2 ~A" rul2)
     (assert (rule-eq rul2 (rule-from "[01/00/00/01]")))
@@ -327,7 +327,7 @@
   ; Test rule-mask-off-zeros.
   (let (rul1 rul2 msk1)
     (setf rul1 (rule-from "[X1/X0/XX/Xx]"))
-    (setf msk1 (mask-from "m1111"))
+    (setf msk1 (mask-from 'm1111))
     (setf rul2 (rule-mask-off-zeros rul1 msk1))
     ;(format t "~&rul2 ~A" rul2)
     (assert (rule-eq rul2 (rule-from "[11/10/11/10]")))
@@ -362,8 +362,8 @@
     (setf rul3 (rule-combine-sequence rul1 rul2))
     ;(format t "~&rul3 ~A" rul3)
 
-    (assert (region-eq (rule-initial-region rul3) (region-from "1111_1111")))
-    (assert (region-eq (rule-result-region rul3)  (region-from "1001_01XX")))
+    (assert (region-eq (rule-initial-region rul3) (region-from 'r1111_1111)))
+    (assert (region-eq (rule-result-region rul3)  (region-from 'r1001_01XX)))
 
     ; Test 0->X
     (setf rula (rule-from "[00/00/00/00_00/00/00/00]"))
@@ -374,15 +374,15 @@
     (setf rul3 (rule-combine-sequence rul1 rul2))
     ;(format t "~&rul3 ~A" rul3)
 
-    (assert (region-eq (rule-initial-region rul3) (region-from "0000_0000")))
-    (assert (region-eq (rule-result-region rul3)  (region-from "1001_01XX")))
+    (assert (region-eq (rule-initial-region rul3) (region-from 'r0000_0000)))
+    (assert (region-eq (rule-result-region rul3)  (region-from 'r1001_01XX)))
 
     (format t "~&  rule-combine-sequence OK")
   )
 
   ; Test rule-restrict-initial-region.
   (let (rul1 rul2 reg1)
-    (setf reg1 (region-from "0x____1x____0x____1x____01x______01x______01x______01x"))
+    (setf reg1 (region-from 'r0x____1x____0x____1x____01x______01x______01x______01x))
     (setf rul1 (rule-from  "[00/00_11/11_01/01_10/10_x0/x0/x0_x1/x1/x1_xx/xx/xx_Xx/Xx/Xx]"))
 
     (setf rul2 (rule-restrict-initial-region rul1 reg1))
@@ -396,7 +396,7 @@
   ; Test rule-restrict-result-region.
   (let (rul1 rul2 reg1)
     (setf rul1 (rule-from  "[00/00_11/11_01/01_10/10_x0/x0_x1/x1_xx/xx/xx_Xx/Xx/Xx]"))
-    (setf reg1 (region-from "0x____1x____1x____0x____0x____1x____01x______01x"))
+    (setf reg1 (region-from 'r0x____1x____1x____0x____0x____1x____01x______01x))
 
     (setf rul2 (rule-restrict-result-region rul1 reg1))
     ;(format t "~&rul2 ~A" rul2)
@@ -406,25 +406,10 @@
     (format t "~&  rule-restrict-result-region OK")
   )
 
-  ; Test rule-change-care-mask.
-  (let (rul1 reg1 reg2 care)
-    (setf reg1 (region-from "000_111_xxx"))
-    (setf reg2 (region-from "01x_01x_01x"))
-
-    (setf rul1 (rule-new-region-to-region reg1 reg2))
-    ;(format t "~&rul1       ~A" rul1)
-
-    (setf care (rule-change-care-mask rul1))
-
-    (assert (mask-eq care (mask-from "m1_1011_0110")))
-
-    (format t "~&  rule-change-care-mask OK")
-  )
-
   ; Test rule-wanted-changes.
   (let (rul1 reg1 reg2 wanted)
-    (setf reg1 (region-from "000_111_xxx"))
-    (setf reg2 (region-from "01x_01x_01x"))
+    (setf reg1 (region-from 'r000_111_xxx))
+    (setf reg2 (region-from 'r01x_01x_01x))
 
     (setf rul1 (rule-new-region-to-region reg1 reg2))
     ;(format t "~&rul1       ~A" rul1)
@@ -434,34 +419,15 @@
 
     ;                                                     "000_111_xxx"
     ;                                                     "01x_01x_01x"
-    (assert (mask-eq (change-m01 wanted) (mask-from "m010_000_010")))
-    (assert (mask-eq (change-m10 wanted) (mask-from "m000_100_100")))
+    (assert (mask-eq (change-m01 wanted) (mask-from 'm010_000_010)))
+    (assert (mask-eq (change-m10 wanted) (mask-from 'm000_100_100)))
 
     (format t "~&  rule-wanted-changes OK")
   )
 
-  ; Test rule-unwanted-changes.
-  (let (rul1 reg1 reg2 unwanted)
-    (setf reg1 (region-from "000_111_xxx"))
-    (setf reg2 (region-from "01x_01x_01x"))
-
-    (setf rul1 (rule-new-region-to-region reg1 reg2))
-    ;(format t "~&rul1       ~A" rul1)
-
-    (setf unwanted (rule-unwanted-changes rul1))
-    ;(format t "~& unwanted ~A" unwanted)
-
-    ;                                                       "000_111_xxx"
-    ;                                                       "01x_01x_01x"
-    (assert (mask-eq (change-m01 unwanted) (mask-from "m100_000_100")))
-    (assert (mask-eq (change-m10 unwanted) (mask-from "m000_010_010")))
-
-    (format t "~&  rule-unwanted-changes OK")
-  )
-
   ; Test rule-order-bad.
   (let (rul1 rul2 wanted bx)
-    (setf wanted (change-new :m01 (mask-from "m10") :m10 (mask-from "m01")))
+    (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/00]"))
     (setf rul2 (rule-from "[11/10]"))
     ;(format t "~&rul1        ~A" rul1)
@@ -472,74 +438,74 @@
 ;   (format t "~& rule order is bad ~A ~A bad is ~A" rul1 rul2 bx)
     (assert (not bx))
 
-    (setf wanted (change-new :m01 (mask-from "m01") :m10 (mask-from "m10")))
+    (setf wanted (change-new :m01 (mask-from 'm01) :m10 (mask-from 'm10)))
     (setf rul1 (rule-from "[10/00]"))
     (setf rul2 (rule-from "[00/01]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert (not bx))
 
-    (setf wanted (change-new :m01 (mask-from "m0") :m10 (mask-from "m1")))
+    (setf wanted (change-new :m01 (mask-from 'm0) :m10 (mask-from 'm1)))
     (setf rul1 (rule-from "[10]"))
     (setf rul2 (rule-from "[10]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert (not bx))
 
-    (setf wanted (change-new :m01 (mask-from "m01") :m10 (mask-from "m10")))
+    (setf wanted (change-new :m01 (mask-from 'm01) :m10 (mask-from 'm10)))
     (setf rul1 (rule-from "[10/00]"))
     (setf rul2 (rule-from "[01/01]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert bx)
 
-    (setf wanted (change-new :m01 (mask-from "m01") :m10 (mask-from "m10")))
+    (setf wanted (change-new :m01 (mask-from 'm01) :m10 (mask-from 'm10)))
     (setf rul1 (rule-from "[10/00]"))
     (setf rul2 (rule-from "[11/01]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert bx)
 
-    (setf wanted (change-new :m01 (mask-from "m1") :m10 (mask-from "m0")))
+    (setf wanted (change-new :m01 (mask-from 'm1) :m10 (mask-from 'm0)))
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[01]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert (not bx))
 
-    (setf wanted (change-new :m01 (mask-from "m10") :m10 (mask-from "m01")))
+    (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/00]"))
     (setf rul2 (rule-from "[00/10]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert bx)
 
-    (setf wanted (change-new :m01 (mask-from "m10") :m10 (mask-from "m01")))
+    (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/00]"))
     (setf rul2 (rule-from "[10/10]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
     (assert bx)
 
-    (setf wanted (change-new :m01 (mask-from "m1") :m10 (mask-from "m0")))
+    (setf wanted (change-new :m01 (mask-from 'm1) :m10 (mask-from 'm0)))
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[00]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
 
-    (setf wanted (change-new :m01 (mask-from "m1") :m10 (mask-from "m0")))
+    (setf wanted (change-new :m01 (mask-from 'm1) :m10 (mask-from 'm0)))
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[01]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
 
-    (setf wanted (change-new :m01 (mask-from "m1") :m10 (mask-from "m0")))
+    (setf wanted (change-new :m01 (mask-from 'm1) :m10 (mask-from 'm0)))
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[11]"))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
 
-    (setf wanted (change-new :m01 (mask-from "m1") :m10 (mask-from "m0")))
+    (setf wanted (change-new :m01 (mask-from 'm1) :m10 (mask-from 'm0)))
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[10]"))
 
@@ -551,7 +517,7 @@
   ; Test rule-mutually-exclusive.
   (let (rul1 rul2 wanted bx)
 
-    (setf wanted (change-new :m01 (mask-from "m10") :m10 (mask-from "m01")))
+    (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/01]"))
     (setf rul2 (rule-from "[10/10]"))
 
@@ -559,14 +525,14 @@
     ;(format t "~& rule mutually-exclusive ~A ~A is ~A" rul1 rul2 bx)
     (assert bx)
 
-    (setf wanted (change-new :m01 (mask-from "m10") :m10 (mask-from "m01")))
+    (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/01]"))
     (setf rul2 (rule-from "[11/10]"))
 
     (setf bx (rule-mutually-exclusive rul1 rul2 wanted))
     (assert (not bx))
 
-    (setf wanted (change-new :m01 (mask-from "m10") :m10 (mask-from "m01")))
+    (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/11]"))
     (setf rul2 (rule-from "[00/10]"))
 

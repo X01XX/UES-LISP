@@ -142,19 +142,15 @@
   true
 )
 
-;;; Translate a string into a statecorr.
-;;; Like [], [1010], or [101, 1000].
+;;; Translate a list of symbols into a statescorr instance.
+;;; Like (SC ()), (SC (1010)), or (SC (101, 1000)).
 (defun statescorr-from (symbols) ; -> statescorr or error.
-    (format t "~&statescorr-from ~A" symbols)
+    ;(format t "~&statescorr-from ~A" (type-of symbols))
     (assert (listp symbols))
+    (assert (not (null symbols)))
+    (assert (symbolp (car symbols)))
+    (assert (eq (car symbols) 'SC))     
 
-    ;(assert (eq (car symbols) 'QUOTE))
-    ;(setf symbols (second symbols))
-    ;(format t "~&statescorr-from ~A ~A" (type-of symbols) symbols)
-
-    (if (string/= "SC" (symbol-name (car symbols)))
-         (error "symbols should start with SC"))
-                
     (setf symbols (second symbols))
 
     (statescorr-new (statestore-from symbols))

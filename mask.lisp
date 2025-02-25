@@ -51,15 +51,31 @@
   (value-eq (mask-value msk1) (mask-value msk2))
 )
 
-;;; Return a mask from a string.
-(defun mask-from (str) ; -> string
-  (assert (stringp str))
-  (setf str (string-right-trim '(#\Space #\_ #\,) str))
-  (setf str (string-left-trim '(#\Space #\_ #\,) str))
-  
-  (assert (string-equal (subseq str 0 1) "m"))
+;;; Return a mask instance from a symbol.
+(defun mask-from (symx) ; -> mask.
+    ;(format t "~&mask-from ~A" (type-of symx))
+    (assert (symbolp symx))
 
-  (mask-new (value-from (concatenate 'string "v" (subseq str 1))))
+    (let ((mskx (symbol-name symx)))
+
+        (if (not (string-equal (subseq mskx 0 1) "m"))
+           (return-from mask-from (err "mask ~A should begin with an m character")))
+
+        (mask-from-str mskx) 
+   )   
+)
+
+;;; Return a mask instance from a string.
+(defun mask-from-str (mskx) ; -> mask.
+    ;(format t "~&mask-from ~A" (type-of mskx))
+    (assert (stringp mskx))
+    ;(setf str (string-right-trim '(#\Space #\_ #\,) str))
+    ;(setf str (string-left-trim '(#\Space #\_ #\,) str))
+
+    (if (not (string-equal (subseq mskx 0 1) "m"))
+       (return-from mask-from-str (err "mask ~A should begin with an m character")))
+
+    (mask-new (value-from-str (concatenate 'string "v" (subseq mskx 1)))) 
 )
 
 ;;; Return a mask with the most significant bit set to one.

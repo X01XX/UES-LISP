@@ -28,8 +28,8 @@
   ;; Test rulescorr-new-regionscorr-to-regionscorr.
   (let (rulsc1 regionscorr1 regionscorr2)
     
-    (setf regionscorr1 (regionscorr-new (list (region-from "000111") (region-from "XXX"))))
-    (setf regionscorr2 (regionscorr-new (list (region-from "01X01X") (region-from "01X"))))
+    (setf regionscorr1 (regionscorr-new (list (region-from 'r000111) (region-from 'rXXX))))
+    (setf regionscorr2 (regionscorr-new (list (region-from 'r01X01X) (region-from 'r01X))))
     (setf rulsc1 (rulescorr-new-regionscorr-to-regionscorr regionscorr1 regionscorr2))
     ;(format t "~&rulsc1 ~A" rulsc1)
     (assert (= (rulescorr-length rulsc1) 2))

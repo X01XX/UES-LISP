@@ -34,7 +34,7 @@
 ;;; Push a new domain into a domainstore.
 ;;; Enforce domain-id = index in domain list.
 (defun domainstore-add-domain (storex domx) ; -> bool, true if added.
-  (format t "~&domainstore add domain ~d" (domainstore-length storex))
+  ;(format t "~&domainstore add domain ~d" (domainstore-length storex))
   (assert (domainstore-p storex))
   (assert (domain-p domx))
 
@@ -190,33 +190,31 @@
   )
 )
 
-(defun domainstore-get-needs (dmxs) ; -> (values needs can-do cant-do)
+(defun domainstore-get-needs (dmxs) ; -> (values can-do cant-do)
+  ;(format t "~&domainstore-get-needs ~A" (type-of dmxs))
   (assert (domainstore-p dmxs))
-  (let ((needs (needstore-new nil)) can-do cant-do)
+  (let ((needs (needstore-new nil)) (can-do (needstore-new nil)) (cant-do (needstore-new nil)))
     (loop for domx in (domainstore-domains dmxs) do
-      (needs-append (domain-get-needs domx))
+      (setf needs (needstore-append needs (domain-get-needs domx)))
     )
     ; TODO process needs to get can-do, cant-do.
-    (values needs can-do cant-do)
+    (values needs cant-do)
   )
 )
 
-;;; Return a domainstore from a string.
-(defun domainstore-from (symbols) ; -> domainstore
-    (format t "~&domainstore-from: ~A" symbols)
+;;; Return a domainstore instance, given a list of symbols.
+(defun domainstore-from (symbols) ; -> domainstore instance.
+    ;(format t "~&domainstore-from: ~A" (type-of symbols))
     (assert (listp symbols)) 
+    (assert (not (null symbols)))
+    (assert (symbolp (car symbols)))
+    (assert (eq (car symbols) 'DS))
 
-    ;(assert (eq (car symbols) 'QUOTE))                                                              
-    ;(setf symbols (second symbols))
-
-    (if (string/= "DS" (symbol-name (car symbols)))
-         (error "symbols should start with DS"))
-                
     (setf symbols (second symbols))
 
     (let (domains ret domx)                                                                                   
         (loop for tokx in symbols do
-            (format t "~&domainstore-from ~A ~A" (type-of tokx) tokx)
+            ;(format t "~&domainstore-from ~A ~A" (type-of tokx) tokx)
             (setf domx (domain-from tokx))
             (if domx
                 (push  domx domains)

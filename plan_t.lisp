@@ -20,15 +20,15 @@
     (setf plan1 (plan-new (list step1 step2)))
 
     ;; Test valid restriction.
-    (setf plan2 (plan-restrict-initial-region plan1 (region-from "x00x")))
+    (setf plan2 (plan-restrict-initial-region plan1 (region-from 'rx00x)))
     (assert (plan-p plan2))
 
     (assert (= (plan-length plan2) 2))
-    (assert (region-eq (plan-initial-region plan2) (region-from "000x")))
-    (assert (region-eq (plan-result-region plan2) (region-from "101x")))
+    (assert (region-eq (plan-initial-region plan2) (region-from 'r000x)))
+    (assert (region-eq (plan-result-region plan2) (region-from 'r101x)))
 
     ;; Test invalid restriction.
-    (setf plan2 (plan-restrict-initial-region plan1 (region-from "100x")))
+    (setf plan2 (plan-restrict-initial-region plan1 (region-from 'r100x)))
     (assert (null plan2))
 
     (format t "~&  plan-restrict-initial-region OK")
@@ -41,14 +41,14 @@
     (setf plan1 (plan-new (list step1 step2)))
 
     ;; Test valid restriction.
-    (setf plan2 (plan-restrict-result-region plan1 (region-from "10x1")))
+    (setf plan2 (plan-restrict-result-region plan1 (region-from 'r10x1)))
     (assert (plan-p plan2))
     (assert (= (plan-length plan2) 2))
-    (assert (region-eq (plan-initial-region plan2) (region-from "0000")))
-    (assert (region-eq (plan-result-region plan2) (region-from "1011")))
+    (assert (region-eq (plan-initial-region plan2) (region-from 'r0000)))
+    (assert (region-eq (plan-result-region plan2) (region-from 'r1011)))
 
     ;; Test invalid restriction.
-    (setf plan2 (plan-restrict-result-region plan1 (region-from "00x1")))
+    (setf plan2 (plan-restrict-result-region plan1 (region-from 'r00x1)))
     (assert (null plan2))
 
     (format t "~&  plan-restrict-result-region OK")
@@ -77,8 +77,8 @@
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from "0X0X")))
-    (assert (region-eq (plan-result-region plan3) (region-from "1X1X")))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r0X0X)))
+    (assert (region-eq (plan-result-region plan3) (region-from 'r1X1X)))
 
     ;; Test plans with result region superset result region.
     (setf step1 (step-new :act-id 0 :rule (rule-from "[00/XX/01/XX]")))
@@ -91,8 +91,8 @@
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from "010X")))
-    (assert (region-eq (plan-result-region plan3) (region-from "111X")))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r010X)))
+    (assert (region-eq (plan-result-region plan3) (region-from 'r111X)))
 
     ;; Test plans with result region superset initial region.
     (setf step1 (step-new :act-id 0 :rule (rule-from "[00/X1/01/XX]")))
@@ -105,8 +105,8 @@
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from "0X0X")))
-    (assert (region-eq (plan-result-region plan3) (region-from "111X")))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r0X0X)))
+    (assert (region-eq (plan-result-region plan3) (region-from 'r111X)))
 
     ;; Test result region and initial region intersect, but neither is superset.
     (setf step1 (step-new :act-id 0 :rule (rule-from "[00/X1/01/XX]")))
@@ -119,8 +119,8 @@
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from "0X01")))
-    (assert (region-eq (plan-result-region plan3) (region-from "1110")))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r0X01)))
+    (assert (region-eq (plan-result-region plan3) (region-from 'r1110)))
 
     (format t "~&  plan-link OK")
   )
@@ -128,7 +128,7 @@
   ;; Test plan-from.
   (let (plan1)
 
-    (setf plan1 (plan-from "0x1-0>1x0-1>010"))
+    (setf plan1 (plan-from "r0x1-0>r1x0-1>r010"))
     ;(format t "~&plan-from result: ~A" (plan-str plan1))
 
     (format t "~&  plan-from OK")

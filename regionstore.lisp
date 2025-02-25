@@ -205,33 +205,20 @@
   )
 )
 
-;;; Translate a string into a regionstore.
-;;; Like [], [1010], or [101, 1000].
-(defun regionstore-from (rsx) ; -> regionstore or error.
-   (format t "~&regionstore-from")
-   (when (stringp rsx)
+;;; Return a regionstore instance, given a list of symbols.
+;;; Like (), (r1010), or (r101, r1000).
+(defun regionstore-from (symbols) ; -> regionstore instance.
+  ;(format t "~&regionstore-from: ~A ~A" (type-of symbols) symbols)
+  (assert (listp symbols))
+  (assert (or (null symbols) (symbolp (car symbols))))
 
-      (if (not (string-equal (subseq rsx 0 1) "["))
-        (return-from regionstore-from (err-new "String must begin with a [")))
-                
-      (if (not (string-equal (subseq rsx (1- (length rsx))) "]"))
-        (return-from regionstore-from (err-new "String must end with a ]")))
- 
-     (if (= (length rsx) 2)                                                                                           
-        (return-from regionstore-from (make-regionstore :regions nil)))
-  
-     (setf rsx (parse-str (subseq rsx 1 (1- (length rsx)))))
-   )   
-
-   (assert (listp rsx))
-
-    (let (regions)
-        (loop for tokx in rsx do
-            ;(format t "~&regionstore-from2 ~A ~A" (type-of tokx) tokx)
-            (push (region-from tokx) regions)
-        )   
-        (regionstore-new (reverse regions))
-    )
+  (let (regions)
+    (loop for tokx in symbols do
+      ;(format t "~&regionstore-from2 ~A ~A" (type-of tokx) tokx)
+      (push (region-from tokx) regions)
+    )   
+    (regionstore-new (reverse regions))
+  )
 )
 
 ;;; Return the largest intersections of regions within a regionstore.

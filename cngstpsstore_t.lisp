@@ -6,7 +6,7 @@
   (let (store1 stp1 cngx)
 
     (setf stp1 (step-new :act-id 0 :rule (rule-from "[01/11/00/01]")))
-    (setf cngx (change-new :m01 (mask-from "m0001") :m10 (mask-from "m0100")))
+    (setf cngx (change-new :m01 (mask-from 'm0001) :m10 (mask-from 'm0100)))
 
     (setf store1 (cngstpsstore-new cngx))
 

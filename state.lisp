@@ -29,18 +29,29 @@
   (make-state :value value)
 )
 
-;;; Return a state from a string.
-(defun state-from (stax) ; -> state.
-    ;(format t "&~&state-from ~A ~A" (type-of stax) stax)
-    (if (symbolp stax)
-       (setf stax (symbol-name stax)))
+;;; Return a state instance from a symbol.
+(defun state-from (symx) ; -> state.
+    ;(format t "~&state-from ~A" (type-of symx))
+    (assert (symbolp symx))
 
-    (let (pass)
+    (let ((stax (symbol-name symx)))
 
-        (setf pass (concatenate 'string "v" (subseq stax 1))) 
+        (if (not (string-equal (subseq stax 0 1) "s"))
+           (return-from state-from (err "State ~A should begin with an s character")))
 
-        (state-new (value-from pass))
+        (state-from-str stax) 
    )
+)
+
+;;; Return a state instance from a string.
+(defun state-from-str (strx) ; -> state.
+    ;(format t "~&state-from ~A" (type-of strx))
+    (assert (stringp strx))
+
+    (if (not (string-equal (subseq strx 0 1) "s"))
+       (return-from state-from-str (err "State ~A should begin with an s character")))
+
+    (state-new (value-from-str (concatenate 'string "v" (subseq strx 1)))) 
 )
 
 ;;; Return a string for a state.

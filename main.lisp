@@ -127,43 +127,55 @@
 (defun default-session ()
   (let (dmxs)
     (setf dmxs (domainstore-new)) ; Init domainstore.
-    (domainstore-add-domain (state-from "v0000")) ; Add a domain.
-    (domainstore-add-domain (state-from "v00"))   ; Add a domain.
+    (domainstore-add-domain (state-from 's0000)) ; Add a domain.
+    (domainstore-add-domain (state-from 's00))   ; Add a domain.
 
     (do-interactive-session dmxs)
   )
 )
 
-;;; Do commands against a given DomainList instance.
-(defun do-interactive-session (dmxs)
-  (multiple-value-bind (needs can-do cant-do) (generate-and-display-needs dmxs)
-    (command-loop dmxs needs can-do cant-do)
+;;; Do commands against a given sessiondata instance.
+(defun do-interactive-session (sessx)
+  (assert (sessiondata-p sessx))
+  (command-loop sessx)
+)
+
+(defun display-needs (sessx can-do cant-do)
+    ;(format t "~&sessx ~A can-do ~A cant-do ~A" (type-of sessx) (type-of can-do) (type-of cant-do))
+    (assert (sessiondata-p sessx))
+    (assert (needstore-p can-do))
+    (assert (needstore-p cant-do))
+
+    (format t "~&Needs that cannot be done")
+    (format t "~&~A" (needstore-str cant-do))
+    (format t "~&Needs that can be done")
+    (format t "~&~A" (needstore-str can-do))
+)
+
+(defun generate-and-display-needs (sessx) ; -> (values can-do cant-do)
+  ;(format t "~&generate-and-display-needs ~A" (type-of sessx))
+  (assert (sessiondata-p sessx))
+
+  (multiple-value-bind (can-do cant-do) (sessiondata-get-needs sessx)
+    (display-needs sessx can-do cant-do)
+    (values can-do cant-do)
   )
 )
 
-(defun generate-and-display-needs (dmxs) ; -> (values needs can-do cant-do)
-  (format t "~&generate-and-display-needs")
-  (assert (domainstore-p dmxs))
+(defun command-loop (sessx)
+  (format t "~&command-loop ~A" (type-of sessx))
+  (assert (sessiondata-p sessx))
 
-  (let (needs can-do cant-do)
-    (multivalue-bind (needs can-do cant-do) (domainstore-get-needs dmxs)
-      (display-needs dmxs needs can-do cant-do)
-      (values needs can-do cant-do)
-    )
-  )
-)
-
-(defun command-loop (sessx needs can-do)
-  (format t "~&command-loop")
-  (assert (domainstore-p sessx))
   (let (inp tokens token)
     (loop 
-      (format t "~&Press Enter or type a command: ")
-      (setf inp (read-line *STANDARD-INPUT*))
+      (multiple-value-bind (can-do cant-do) (generate-and-display-needs sessx)
 
-      ; Parse tokens from the input string
-      (setf tokens nil token nil)
-      (loop for char across inp do
+        (format t "~&Press Enter or type a command: ")
+        (setf inp (read-line *STANDARD-INPUT*))
+
+        ; Parse tokens from the input string
+        (setf tokens nil token nil)
+        (loop for char across inp do
           ;(format t "c ~A" char)
           (when (char= char #\ )
               (if (not (null token))
@@ -175,31 +187,31 @@
                   (setf token (format nil "~A~A" token char))
                   (setf token (format nil "~A" char)))
           )
-      )
-      (when token
-        (push token tokens))
+        )
+        (when token
+          (push token tokens))
 
-      (setf tokens (reverse tokens))
+        (setf tokens (reverse tokens))
 
-      (format t "~&tokens: ~A" tokens)
+        ;(format t "~&tokens: ~A" tokens)
 
-      (if (or (string= (car tokens) #\q) (string= (car tokens) #\Q))
-	(return-from command-loop))
+        (if (string-equal (car tokens) #\q)
+          (return-from command-loop))
 
-      (if (null tokens)
-	;; Process needs.
-	(if can-do
-	  (do-any-need sessx needs can-do)
-	)
-      )
-    )
-  )
+        (if (null tokens)
+	      ;; Process needs.
+	      (if (needstore-is-not-empty can-do)
+	        (do-any-need sessx can-do)
+	      )
+        )
+      ) ; end multiple-value-bind
+    ) ; end loop
+  ) ; end let
 ) ; end command-loop
 
-(defun do-any-need (sessx needs can-do) 
-  (format t "~&do-any-needs")
+(defun do-any-need (sessx can-do) 
+  ;(format t "~&do-any-need")
   (assert (sessiondata-p sessx))
-  (assert (needstore-p needs))
   (assert (needstore-p can-do))
 )
 
@@ -225,8 +237,8 @@
                 (format t "~&type sdx ~A" (type-of sdx))
  ;              (format t "~&sdx ~A" sdx)
             )
+            (do-interactive-session sdx)
         )
-        ;tokens
     )
 )
 

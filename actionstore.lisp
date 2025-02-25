@@ -116,4 +116,17 @@
   )
 )
 
+;;; Return needs for all actions.
+(defun actionstore-get-needs (actsx cur-state) ; ->  needstore.
+  ;(format t "~&actionstore-get-needs: ~A ~A" (type-of actsx) (type-of cur-state))
+  (assert (actionstore-p actsx))
+  (assert (state-p cur-state))
 
+  (let ((needs (needstore-new nil)))
+    (loop for actx in (actionstore-actions actsx) do
+      (setf needs (needstore-append needs (action-get-needs actx cur-state)))
+    )
+    ;(format t "~&actionstore-get-needs: returning ~A" (needstore-str needs))
+    needs
+  )
+)       

@@ -4,6 +4,8 @@
 (defvar *get-first-sample-of-state* 1009)
 (defvar *resample-state*            1013)
 (defvar *get-sample-in-region*      1019)
+(defvar *sample-state* 1023)
+(defvar *kinds* (list *get-first-sample-of-state* *resample-state* *get-sample-in-region* *sample-state*))
 
 ;;; Define need reasons
 (defvar *state-not-in-group* 2003)
@@ -12,6 +14,7 @@
 (defvar *limit-group*        2027)
 (defvar *test-region*        2039)
 (defvar *change-defining-squares* 2053)
+(defvar *reasons* (list *state-not-in-group* *group-set-pnc* *form-group* *limit-group* *test-region* *change-defining-squares*))
 
 (defstruct need
     (dom-id 0)
@@ -21,8 +24,8 @@
     (reason 0)
     target
     info
-    region
-    plan
+    (region nil)
+    (plan nil)
 )
 
 ; Functions automatically created by defstruct:
@@ -38,14 +41,12 @@
 ; (typep <instance> 'need) -> t
 
 ; Return a new need instance.
-(defun need-new (&key dom-id act-id kind reason target region (info "No info"))
+(defun need-new (&key (dom-id 0) act-id kind reason target (region nil) (info "No info"))
     (assert (integerp dom-id))
     (assert (integerp act-id))
     (assert (numberp kind))
-    (assert (>= kind *get-first-sample-of-state*))
-    (assert (<= kind *get-sample-in-region*))
-    (assert (>= reason *state-not-in-group*))
-    (assert (<= reason *change-defining-squares*))
+    (assert (member kind *kinds*))
+    (assert (member reason *reasons*))
     (assert (or (null info) (stringp info)))
 
     (let ((pri 0))
@@ -86,7 +87,13 @@
                       )
                       (t (error "~&Need kind ~D reason ~D not found" kind reason)))
             )
-            (t (error "~&Need kind ~D reason ~D not found" kind reason))
+            ((= kind *sample-state*)
+                (cond ((= reason *state-not-in-group*)
+                          (setf pri 0)
+                      )
+                      (t (error "~&Need kind ~D reason ~D not found (1)" kind reason)))
+            )
+            (t (error "~&Need kind ~D reason ~D not found (2)" kind reason))
 	) ; end cond
 
         (make-need :dom-id dom-id :act-id act-id :kind kind :priority pri :reason reason :target target
@@ -126,8 +133,8 @@
                 (setf str (concatenate 'string str ":reason Test region ")))
         )
 
-        (if (zerop (region-x-mask (need-target needx)))
-            (setf str (concatenate 'string str (format nil ":target ~A " (value-str-bin (region-state1 (need-target needx))))))
+        (if (state-p (need-target needx))
+            (setf str (concatenate 'string str (format nil ":target ~A " (state-str (need-target needx)))))
             (setf str (concatenate 'string str (format nil ":target ~A " (region-str (need-target needx))))))
 
         (if (not (null (need-info needx)))

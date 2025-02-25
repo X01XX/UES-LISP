@@ -47,18 +47,18 @@
     (format t "~&  rulestore-subset-of OK")
   )
 
-  ;; Test rulestore-from.
+  ;; Test rulestore-from-str.
   (let (ruls1 ruls2 ruls3)
-    (setf ruls1 (rulestore-from "[]"))
+    (setf ruls1 (rulestore-from-str "[]"))
     (assert (= (rulestore-length ruls1) 0))
 
-    (setf ruls2 (rulestore-from "[[01/10]]"))
+    (setf ruls2 (rulestore-from-str "[[01/10]]"))
     (assert (= (rulestore-length ruls2) 1))
 
-    (setf ruls3 (rulestore-from "[[01/10], [11/Xx/XX]]"))
+    (setf ruls3 (rulestore-from-str "[[01/10], [11/Xx/XX]]"))
     (assert (= (rulestore-length ruls3) 2))
 
-    (format t "~&  rulestore-from OK")
+    (format t "~&  rulestore-from-str OK")
   )
 
   (format t "~&rulestore-tests done")

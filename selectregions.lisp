@@ -116,45 +116,28 @@
   (regionscorr-length (selectregions-regionscorr sregsx))
 )
 
-;;; Translate a string into a regioncorr.
+;;; Translate a list of symbols into a selectregions instance.
 ;;; Like [], [1010], or [101, 1000].
-(defun selectregions-from (srx) ; -> selectregions
-  ;(format t "~&selectregions-from ~A" srx)
+(defun selectregions-from (symbols) ; -> selectregions
+  ;(format t "~&selectregions-from ~A" (type-of symbols))
+   (assert (listp symbols))
+   (assert (not (null symbols)))
+   (assert (symbolp (car symbols)))
+   (assert (eq (car symbols) 'SR))     
 
-  (when (listp srx)
-      (if (string-not-equal (symbol-name (car srx)) "SR")
-        (return-from selectregions-from (err-new "Tokens should begin with SR")))
-      (setf srx (cdr srx))
-  )
+   (setf symbols (cdr symbols))
 
-  (when (stringp srx)
-                                                                                                                      
-      (if (not (string-equal (subseq srx 0 3) "SR["))
-        (return-from selectregions-from (err-new "String must begin with SR[")))
-                    
-      (if (not (string-equal (subseq srx (1- (length srx))) "]"))
-        (return-from selectregions-from (err-new "String must end with a ]")))
- 
-     (if (= (length srx) 4)
-        (return-from selectregions-from (make-regionscorr :regionstore (regionstore-new nil))))
-  
-     (setf srx (parse-str (subseq srx 3 (1- (length srx)))))
-   )   
-
-   (assert (listp srx))
-
-    ;(format t "~&selectregions-from2 ~A ~A" (type-of srx) srx)
+    ;(format t "~&selectregions-from2 ~A ~A" (type-of symbols) symbols)
 
     (let (rc rate)
-        (if (/= 2 (length srx))
+        (if (/= 2 (length symbols))
             (error "The token list should have two parts"))
 
-        (setf rc (car srx))
+        (setf rc (car symbols))
         ;(format t "~&selectregions-from3 rc: ~A ~A" (type-of rc) rc)
         (setf rc (regionscorr-from rc))
             
-        (setf rate (second srx))
-        (if (stringp rate) (setf rate (parse-integer rate)))
+        (setf rate (second symbols))
 
         ;(format t "~&selectregions-from4 rate: ~A ~A" (type-of rate) rate)
 

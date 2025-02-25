@@ -64,23 +64,23 @@
   (if (symbolp rulx)
      (setf rulx (symbol-name rulx)))
 
-  (let ((ret (rule-from-na rulx)))
+  (let ((ret (rule-from-str rulx)))
     (cond ((err-p ret) (error (err-str ret)))
           ((rule-p ret) ret)
            (t (error "Result is not a rule")))
   )
 )
 
-(defun rule-from-na (strx) ; -> rule or err.
-  ;(format t "~&rule-from-na: ~A" strx)
+(defun rule-from-str (strx) ; -> rule or err.
+  ;(format t "~&rule-from-str: ~A" strx)
     (if (< (length strx) 3)
-        (return-from rule-from-na (err-new "String is too short")))
+        (return-from rule-from-str (err-new "String is too short")))
 
     (if (not (string-equal (subseq strx 0 1) "["))
-        (return-from rule-from-na (err-new "String must begin with a [")))
+        (return-from rule-from-str (err-new "String must begin with a [")))
         
     (if (not (string-equal (subseq strx (1- (length strx))) "]"))
-        (return-from rule-from-na (err-new "String must end with a ]")))
+        (return-from rule-from-str (err-new "String must end with a ]")))
         
     (let ((m00 "m") (m01 "m") (m11 "m") (m10 "m") bit-i bit-j m00-i m01-i m11-i m10-i)
 
@@ -88,13 +88,13 @@
  
             ;; Check for invalid character.
             (if (null (or (char= chr #\]) (char= chr #\_) (char= chr #\/) (char= chr #\0) (char= chr #\1) (char= chr #\X) (char= chr #\x)))
-               (return-from rule-from-na (err-new "Invalid character")))
+               (return-from rule-from-str (err-new "Invalid character")))
 
             (if (and (or (char= chr #\0) (char= chr #\1)) bit-i bit-j)
-                   (return-from rule-from-na (err-new "Too many characters in a bit position")))
+                   (return-from rule-from-str (err-new "Too many characters in a bit position")))
 
             (if (and (or (char= chr #\]) (char= chr #\_) (char= chr #\/)) (or (null bit-i) (null bit-j)))
-                   (return-from rule-from-na (err-new "Too few characters in a bit position")))
+                   (return-from rule-from-str (err-new "Too few characters in a bit position")))
 
 		    (when (and bit-i bit-j)
 	            
@@ -114,7 +114,7 @@
                                ((and (char= bit-i #\0) (char= bit-j #\x)) (setf m01-i "1") (setf m00-i "1"))
                                ((and (char= bit-i #\1) (char= bit-j #\X)) (setf m10-i "1") (setf m11-i "1"))
                                ((and (char= bit-i #\1) (char= bit-j #\x)) (setf m10-i "1") (setf m11-i "1"))
-                                (t (return-from rule-from-na (err-new "Invalid character or combination")))
+                                (t (return-from rule-from-str (err-new "Invalid character or combination")))
                          ) ; end cond 3
                          ;; Add a bit position to the mask strings.
                          (setf m00 (concatenate 'string m00 m00-i))
@@ -127,17 +127,17 @@
 
             (cond ((char= chr #\]) ; Check for end-of-rule.
 		             ;; Return new rule.
-                     (return-from rule-from-na
-                         (make-rule :m00 (mask-from m00)
-                                    :m01 (mask-from m01)
-                                    :m11 (mask-from m11)
-                                    :m10 (mask-from m10)))
+                     (return-from rule-from-str
+                         (make-rule :m00 (mask-from-str m00)
+                                    :m01 (mask-from-str m01)
+                                    :m11 (mask-from-str m11)
+                                    :m10 (mask-from-str m10)))
                   )
                 ((or (char= chr #\/) (char= chr #\_))) ; Check for separators.
                 ((null bit-i) (setf bit-i chr)) ; Set first char of bit position.
                 ((null bit-j) (setf bit-j chr)) ; Set second char of bit position.
                 (t 
-                   (return-from rule-from-na (err-new "Unknown problem")))
+                   (return-from rule-from-str (err-new "Unknown problem")))
             )
 
         ) ; end loop
@@ -344,27 +344,24 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  (let (m00 b0x bxx bx0 m01 bx1 m11 b1x m10 bxxnot)
+  (let (v00 vxx vx0 v01 vx1 v11 v10 v0x v1x)
 
     ; Make masks for each possible bit position, (0, 1, X) to (0, 1, X), 3 X 3 = 9 possibilities.
-    (setf m00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
-    (setf b0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
-    (setf bxx (value-and (mask-and (region-x-mask reg1) (region-x-mask reg2))
-	         	 (value-not (state-xor (region-first-state reg1) (region-first-state reg2)))))
+    (setf v00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
+    (setf v0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
+    (setf vxx (mask-and (region-x-mask reg1) (region-x-mask reg2)))
 
-    (setf bx0 (mask-and (region-x-mask reg1) (region-0-mask reg2)))
-    (setf m01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
-    (setf bx1 (mask-and (region-x-mask reg1) (region-1-mask reg2)))
-    (setf m11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
-    (setf b1x (mask-and (region-1-mask reg1) (region-x-mask reg2)))
-    (setf m10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
-    (setf bxxnot (value-and (mask-and (region-x-mask reg1) (region-x-mask reg2))
-			    (state-xor (region-first-state reg1) (region-first-state reg2))))
+    (setf vx0 (mask-and (region-x-mask reg1) (region-0-mask reg2)))
+    (setf v01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
+    (setf vx1 (mask-and (region-x-mask reg1) (region-1-mask reg2)))
+    (setf v11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
+    (setf v10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
+    (setf v1x (mask-and (region-1-mask reg1) (region-x-mask reg2)))
 
-    (make-rule :m00 (mask-new (value-or m00 bxx bx0 b0x))
-               :m01 (mask-new (value-or m01 bx1 b0x bxxnot))
-               :m11 (mask-new (value-or m11 bxx bx1 b1x))
-               :m10 (mask-new (value-or m10 bx0 b1x bxxnot)))
+    (make-rule :m00 (mask-new (value-or v00 vxx vx0 v0x))
+               :m01 (mask-new (value-or v01 vx1))
+               :m11 (mask-new (value-or v11 vxx vx1 v1x))
+               :m10 (mask-new (value-or v10 vx0)))
   )
 )
 
@@ -472,22 +469,15 @@
   )
 )
 
-;;; Return a mask of don't-care change positions.
-;;; For a rule generated by rule-new-region-to-region.
-(defun rule-change-care-mask (rulx) ; -> mask.
-  (assert (rule-p rulx))
-
-  (region-edge-mask (rule-result-region rulx))
-)
-
 ;;; Return a change containing wanted changes.
 ;;; For a rule generated by rule-new-region-to-region.
 (defun rule-wanted-changes (rulx) ; -> change
   (assert (rule-p rulx))
 
-  (let ((care-mask (rule-change-care-mask rulx)))
-    (change-new :m01 (mask-new-and (rule-m01 rulx) care-mask)
-                :m10 (mask-new-and (rule-m10 rulx) care-mask))
+  (let ((initial (rule-initial-region rulx)) (result (rule-result-region rulx)))
+    (change-new :m01 (mask-new-and (mask-new-or (region-0-mask initial) (region-x-mask initial)) (region-1-mask result))
+                :m10 (mask-new-and (mask-new-or (region-1-mask initial) (region-x-mask initial)) (region-0-mask result))
+    )
   )
 )
 
@@ -498,14 +488,15 @@
 
 ;;; Return a change containing unwanted changes.
 ;;; For a rule generated by rule-new-region-to-region.
-(defun rule-unwanted-changes (rulx) ; -> change
-  (assert (rule-p rulx))
-
-  (let ((care-mask (rule-change-care-mask rulx)))
-    (change-new :m01 (mask-new-and (rule-m00 rulx) care-mask)
-                :m10 (mask-new-and (rule-m11 rulx) care-mask))
-  )
-)
+;(defun rule-unwanted-changes (rulx) ; -> change
+;  (assert (rule-p rulx))
+;
+;  (let ((result (rule-result-region rulx)))
+;    (change-new :m01 (region-0-mask result)
+;                :m10 (region-1-mask result)
+;    )
+;  )
+;)
 
 ;;; Return the number of unwanted changes.
 (defun rule-num-unwanted-changes (rulx) ; -> integer.

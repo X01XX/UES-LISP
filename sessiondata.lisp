@@ -1,7 +1,7 @@
 ;;;; Implement a data store for a session.
 
 (defstruct sessiondata
-    domains ; A store of one, or more, domains.
+    domains ; A DomainStore intstance of one, or more, domains.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -34,32 +34,25 @@
     )
 ) 
 
-(defun sessiondata-from (symbols) ; -> sessiondata
+;;; Return a sessiondata instance, given a list of symbols.
+(defun sessiondata-from (symbols) ; -> sessiondata instance.
+    ;(format t "~&sessiondata-from: ~A" (type-of symbols))
     (assert (listp symbols))
-
-    ;(assert (eq (car symbols) 'QUOTE))
-    ;(setf symbols (second symbols))
-
-    ;(format t "~&sessiondata-from1 ~A ~A" (type-of symbols) symbols)
-    (assert (consp symbols))
+    (assert (not (null symbols)))
     (assert (typep (car symbols) 'SYMBOL))
-
-    ;(format t "~&sessiondata-from2 ~A ~A" (type-of symbols) symbols)
-    
-    ;(setf symbols (cdr symbols))
-    ;(format t "~&sessiondata-from3 ~A ~A" (type-of symbols) symbols)
+    (assert (eq (car symbols) 'SD))
     
     (let (sdx key ds sr sc rest-symbols)
         (cond ((string= (symbol-name (car symbols)) "SD")
                 (setf rest-symbols (cdr symbols))
-                (format t "~&sessiondata-from4 ~A ~A" (type-of rest-symbols) rest-symbols)
+                ;(format t "~&sessiondata-from4 ~A ~A" (type-of rest-symbols) rest-symbols)
 
-                ; Process tokens, cet domainstore.
+                ; Process tokens, get domainstore.
                 (loop for tokx in rest-symbols do
                     (setf key (symbol-name (car tokx)))
                     ;(format t "~&sessiondata-from: tokx: ~A" tokx)
                     (when (string= key "DS") ; Must be just one domainstore.
-                           (format t "~&sessiondata-from: ds: ~A" tokx)
+                           ;(format t "~&sessiondata-from: ds: ~A" tokx)
                            (assert (null ds)) ; only one ds allowed.
                            (setf ds (domainstore-from tokx))
                            (if ds
@@ -78,15 +71,17 @@
                     (cond ((string= key "SR") ; Can be zero, or more, selectregions.
                            ;(format t "~&sessiondata-from: sr: ~A" tokx)
                        (setf sr (selectregions-from tokx))
-                       (if sr
-                           (format t "~&sessiondata: sr is ~A" (selectregions-str sr))
-                           nil))
+                       ;(if sr
+                       ;    (format t "~&sessiondata: sr is ~A" (selectregions-str sr))
+                       ;    nil)
+                       )
                       ((string= key "SC") ; Must be zero, or one, statescorr.
                        ;(format t "~&sessiondata-from: sc: ~A" tokx)
                        (setf sc (statescorr-from tokx))
-                       (if sc
-                           (format t "~&sessiondata: sc is ~A" (statescorr-str sc))
-                           nil))
+                       ;(if sc
+                       ;    (format t "~&sessiondata: sc is ~A" (statescorr-str sc))
+                       ;    nil)
+                       )
                       (t nil)
                     )
                 )
@@ -96,4 +91,12 @@
               )
               (t (error "SD symbol missing")))
      )
+)
+
+;;; Return current needs.
+(defun sessiondata-get-needs (sessx) ; -> (values can-do cant-do)
+  ;(format t "~&sessiondata-get-needs ~A" (type-of sessx))
+  (assert (sessiondata-p sessx))
+
+  (domainstore-get-needs (sessiondata-domains sessx))
 )

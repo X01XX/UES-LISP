@@ -353,32 +353,14 @@
 )
 
 
-;;; Translate a string into a regioncorr.
-;;; Like [], [1010], or [101, 1000].
-(defun regionscorr-from (rcx) ; -> regionscorr or error.
-   ;(format t "~&regionscorr-from: ~A" rcx)
+;;; Return a regionscorr instance, given a list of symbols.
+;;; Like (RC (()), (RC (1010)), or (RC (101, 1000)).
+(defun regionscorr-from (symbols) ; -> regionscorr instance.
+   ;(format t "~&regionscorr-from: ~A" (type-of symbols))
+    (assert (listp symbols))
+    (assert (not (null symbols)))
+    (assert (symbolp (car symbols)))
+    (assert (eq (car symbols) 'RC))
 
-   (when (listp rcx)
-      (if (string-not-equal (symbol-name (car rcx)) "RC")
-        (return-from regionscorr-from (err-new "Tokens should begin with RC")))
-      (setf rcx (second rcx))   
-   )
-
-   (when (stringp rcx)
-
-      (if (not (string-equal (subseq rcx 0 3) "RC["))
-        (return-from regionscorr-from (err-new "String must begin with RC[")))
-                
-      (if (not (string-equal (subseq rcx (1- (length rcx))) "]"))
-        (return-from regionscorr-from (err-new "String must end with a ]")))
- 
-     (if (= (length rcx) 4)
-        (return-from regionscorr-from (make-regionscorr :regionstore (regionstore-new nil))))
-  
-     (setf rcx (subseq rcx 2 ))
-   )   
-
-   ;(format t "~&regionscorr-from2: ~A" rcx)
-
-    (make-regionscorr :regionstore (regionstore-from rcx))
+    (make-regionscorr :regionstore (regionstore-from (second symbols)))
 )

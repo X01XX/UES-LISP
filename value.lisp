@@ -31,44 +31,54 @@
   (make-value :num-bits num-bits :bits bits)
 )
 
-;;; Given a symbol, or string, like "v10", "v11_1100", 'v101, return a valid value.
+;;; Given a symbol, like "v10", "v11_1100", 'v101, return a valid value.
 ;;; Underscore characters, which can be used as spacers, are ignored.
 ;;; All bits must be specified, since the number of bits is kept in the num-bits field in the struct.
-(defun value-from (str) ; -> value.
-  ;(format t "~&value-from ~A ~A" (type-of str) str)
-  (if (symbolp str)
-      (setf str (symbol-name str)))
+(defun value-from (symx) ; -> value.
+  ;(format t "~&value-from ~A" (type-of symbol))
+  (assert (symbolp symx))
 
-  (assert (stringp str))
-  (assert (> (length str) 1))
-
-  (let ((ret (value-from-na str)))
-    (cond ((err-p ret) (error (err-str ret)))
-          ((value-p ret) ret)
-           (t (error "Result is not a value"))))
-)
-;;; value-from no-abort (na).
-(defun value-from-na (str) ; -> value, or err.
-  ;(format t "~&value-from-na: ~A" str)
-
-  (let (str2 num-bits valx)
+  (let ((strx (symbol-name symx)))
+    (assert (> (length strx) 1))
 
     ;; Check for v prefix.
-    (if (not (string-equal (subseq str 0 1) "v")) 
-      (return-from value-from-na (err-new "String does not begin with the v character"))
-    )
+    (if (not (string-equal (subseq strx 0 1) "v"))
+      (return-from value-from (err-new (format nil "Value ~A Should begin with an v character" strx))))
+
+    (let ((ret (value-from-str strx)))
+      (cond ((err-p ret) (error (err-str ret)))
+            ((value-p ret) ret)
+             (t (error "Value is invalid"))))
+  )
+)
+
+;;; Get a value from a string, no-abort.
+(defun value-from-str (strx) ; -> value, or err.
+  ;(format t "~&value-from-str: ~A" (type-of strx))
+  (assert (stringp strx))
+
+  ;; Check for v prefix.
+  (if (not (string-equal (subseq strx 0 1) "v"))
+     (return-from value-from-str (err-new (format nil "value-from-str: Value ~A Should begin with a v character" strx))))
+
+  (setf strx (subseq strx 1))
+
+  (let (str2 num-bits valx)
 
     ;; Count digits, count digits, accumulate digits, skip underscores.
     (setf str2 "#b")
     (setf num-bits 0)
-    (loop for chr across (subseq str 1) do
+    (loop for chr across strx do
       (when (char/= chr #\_)
         (incf num-bits)
 	    (if (or (char= chr #\0) (char= chr #\1))
 	      (setf str2 (concatenate 'string str2 (princ-to-string chr)))
-		  (return-from value-from-na (err-new (format nil "Invalid binary digit ~A" chr))))
+		  (return-from value-from-str (err-new (format nil "value-from-str: Invalid binary digit ~A" chr))))
       )
     ) ; end loop
+
+    (if (zerop num-bits)
+	  (return-from value-from-str (err-new (format nil "value-from-str: At least one bit must be given ~A" strx))))
 
     ;; Translate string to integer.
     (setf valx (read-from-string str2))
