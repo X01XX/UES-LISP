@@ -26,4 +26,6 @@ Then: (load #p "main.lisp")
 
 Then: (main) or (all-tests)
 
+For basic code checks: (load #p "compile.lisp"), but delete *.o files later.
+
 This is still in the early development stage.
