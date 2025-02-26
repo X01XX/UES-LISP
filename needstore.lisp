@@ -144,3 +144,21 @@
   )
 )
 
+;;; Return the nth element of a NeedStore.
+(defun needstore-nth (storex inx) ; -> need instance, or nil.
+  (assert (needstore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (needstore-length storex))
+    (return-from needstore-nth nil))
+
+  (nth inx (needstore-needs storex))
+)
+
+;;; Return the number of needs in a needstore.
+(defun needstore-length (storex) ; -> number.
+  (assert (needstore-p storex))
+
+  (length (needstore-needs storex))
+)
+

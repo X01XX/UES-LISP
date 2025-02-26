@@ -28,7 +28,17 @@
   (assert (state-p initial-state))
   (assert (>= id 0))
 
-  (make-domain :id id :actions (actionstore-new nil) :current-state initial-state)
+  (let (act0 high-state low-state sample1 sample2)
+    ;; Create a no-op action as action 0.
+    (setf high-state (state-new-high initial-state))
+    (setf low-state (state-new-low initial-state))
+    (setf sample1 (sample-new :initial low-state :result low-state))
+    (setf sample2 (sample-new :initial high-state :result high-state))
+
+    (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample1) (rule-new sample2)))))))
+
+    (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state)
+  )
 )
 
 ;;; Set a damain id.
@@ -178,7 +188,20 @@
   (assert (domain-p domx))
 
   (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx))))
-    (needstore-set-dom-id needs (domain-id domx))
+
+    (needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
+
+    ;; Find plan for each need.
+    (loop for nedx in (needstore-needs needs) do
+        (cond ((state-p (need-target nedx))
+                (if (state-eq (need-target nedx) (domain-current-state domx))
+                  (setf (need-plan nedx) (plan-new nil)))
+              )
+              ((region-p (need-target nedx))
+              )
+              (t (error "Unrecognized target type"))
+        )
+    )
     needs
   )
 )

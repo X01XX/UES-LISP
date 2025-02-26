@@ -319,6 +319,20 @@
 (defun value-is-high (val) ; -> bool.
   (assert (value-p val))
 
-  (= (- (expt 2 (value-num-bits val)) 1) (value-bits val))
+  (= (1- (expt 2 (value-num-bits val))) (value-bits val))
+)
+
+;;; Return a value of the same number bits, with a high value.
+(defun value-new-high (valx) ; -> value instance.
+  (assert (value-p valx))
+
+  (value-new :num-bits (value-num-bits valx) :bits (1- (expt 2 (value-num-bits valx))))
+)
+
+;;; Return a value of the same number bits, with a low value.
+(defun value-new-low (valx) ; -> value instance.
+  (assert (value-p valx))
+
+  (value-new :num-bits (value-num-bits valx) :bits 0)
 )
 

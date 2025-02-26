@@ -140,37 +140,40 @@
   (command-loop sessx)
 )
 
-(defun display-needs (sessx can-do cant-do)
-    ;(format t "~&sessx ~A can-do ~A cant-do ~A" (type-of sessx) (type-of can-do) (type-of cant-do))
+(defun display-needs (sessx)
+    ;(format t "~&sessx ~A" (type-of sessx))
     (assert (sessiondata-p sessx))
-    (assert (needstore-p can-do))
-    (assert (needstore-p cant-do))
 
-    (format t "~&Needs that cannot be done")
-    (format t "~&~A" (needstore-str cant-do))
-    (format t "~&Needs that can be done")
-    (format t "~&~A" (needstore-str can-do))
+    (let ((can-do (sessiondata-can-do sessx)) (cant-do (sessiondata-cant-do sessx)))
+      (format t "~& ~&-------------------------")
+      (format t "~& ~&Needs that cannot be done:")
+      (format t "~&~A" (needstore-str cant-do))
+      (format t "~& ~&Needs that can be done:")
+      (format t "~&~A" (needstore-str can-do))
+    )
 )
 
-(defun generate-and-display-needs (sessx) ; -> (values can-do cant-do)
+(defun generate-and-display-needs (sessx) ; -> side-effect, sessiondata instance changed.
   ;(format t "~&generate-and-display-needs ~A" (type-of sessx))
   (assert (sessiondata-p sessx))
 
-  (multiple-value-bind (can-do cant-do) (sessiondata-get-needs sessx)
-    (display-needs sessx can-do cant-do)
-    (values can-do cant-do)
-  )
+  (sessiondata-get-needs sessx)
+  (display-needs sessx)
 )
 
 (defun command-loop (sessx)
-  (format t "~&command-loop ~A" (type-of sessx))
+  ;(format t "~& ~&command-loop ~A" (type-of sessx))
+  (format t "~& ~&command-loop: Commands:")
+  (format t "~& ~&    Nothing, just press Enter - Attempt to satisfy a need that can be done, if any.")
+  (format t "~& ~&    q - Quit.")
+
   (assert (sessiondata-p sessx))
 
   (let (inp tokens token)
     (loop 
-      (multiple-value-bind (can-do cant-do) (generate-and-display-needs sessx)
+      (generate-and-display-needs sessx)
 
-        (format t "~&Press Enter or type a command: ")
+        (format t "~& ~&Press Enter or type a command: ")
         (setf inp (read-line *STANDARD-INPUT*))
 
         ; Parse tokens from the input string
@@ -200,19 +203,27 @@
 
         (if (null tokens)
 	      ;; Process needs.
-	      (if (needstore-is-not-empty can-do)
-	        (do-any-need sessx can-do)
+	      (if (needstore-is-not-empty (sessiondata-can-do sessx))
+	        (do-any-need sessx)
 	      )
         )
-      ) ; end multiple-value-bind
     ) ; end loop
   ) ; end let
 ) ; end command-loop
 
-(defun do-any-need (sessx can-do) 
+(defun do-any-need (sessx) 
   ;(format t "~&do-any-need")
   (assert (sessiondata-p sessx))
-  (assert (needstore-p can-do))
+
+  (let (inx nedx (can-do (sessiondata-can-do sessx)))
+      (when (needstore-is-not-empty can-do)
+        (setf inx (random (needstore-length can-do)))
+        (setf nedx (needstore-nth can-do inx))
+        (format t "~&Need chosen: ~A" (need-str nedx))
+        (return-from do-any-need)
+      )
+      (format t "~&No needs to do?")
+  )
 )
 
 ;;; Run a new session.

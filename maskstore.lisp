@@ -5,7 +5,7 @@
 
 ;;; Implement a store of masks.
 (defstruct maskstore
-  mask-list  ; A list of zero, or more, non-duplicate, same number bits, masks.
+  masks  ; A list of zero, or more, non-duplicate, same number bits, masks.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&maskstore-new ~A" masks)
   (assert (mask-list-p masks))
 
-  (make-maskstore :mask-list masks)
+  (make-maskstore :masks masks)
 )
 
 ;;; Push a new mask into a maskstore.
@@ -34,14 +34,14 @@
   (assert (maskstore-p storex))
   (assert (mask-p maskx))
 
-  (push maskx (maskstore-mask-list storex))
+  (push maskx (maskstore-masks storex))
 )
 
 ;;; Return the number of masks in a maskstore.
 (defun maskstore-length (storex) ; -> number.
   (assert (maskstore-p storex))
 
-  (length (maskstore-mask-list storex))
+  (length (maskstore-masks storex))
 )
 
 ;;; Return true if a maskstore is empty.
@@ -60,7 +60,7 @@
 
   (let ((ret "#S(MASKSTORE ") (start t))
 
-    (loop for mskx in (maskstore-mask-list storex) do
+    (loop for mskx in (maskstore-masks storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (mask-str mskx)))
@@ -75,7 +75,7 @@
   (assert (maskstore-p storex))
   (assert (mask-p mskx))
 
-  (if (member mskx (maskstore-mask-list storex) :test #'mask-eq) true false)
+  (if (member mskx (maskstore-masks storex) :test #'mask-eq) true false)
 )
 
 ;;; Return the first mask in a store.
@@ -84,7 +84,7 @@
   (assert (maskstore-p storex))
   (assert (maskstore-is-not-empty storex))
 
-  (car (maskstore-mask-list storex))
+  (car (maskstore-masks storex))
 )
 
 ;;; Return the last mask in a store.
@@ -92,7 +92,7 @@
   (assert (maskstore-p storex))
   (assert (maskstore-is-not-empty storex))
 
-  (car (last (maskstore-mask-list storex)))
+  (car (last (maskstore-masks storex)))
 )
 
 ;;; Add mask to the end of a maskstore.
@@ -100,6 +100,6 @@
   (assert (maskstore-p storex))
   (assert (mask-p plnx))
 
-  (setf (maskstore-mask-list storex) (append (maskstore-mask-list storex) (list plnx)))
+  (setf (maskstore-masks storex) (append (maskstore-masks storex) (list plnx)))
 )
 

@@ -29,6 +29,20 @@
   (make-state :value value)
 )
 
+;;; Return a state of the same number bits, with a high value.
+(defun state-new-high (stax) ; -> state instance.
+  (assert (state-p stax))
+
+  (make-state :value (value-new-high (state-value stax)))
+)
+
+;;; Return a state of the same number bits, with a low value.
+(defun state-new-low (stax) ; -> state instance.
+  (assert (state-p stax))
+
+  (make-state :value (value-new-low (state-value stax)))
+)
+
 ;;; Return a state instance from a symbol.
 (defun state-from (symx) ; -> state.
     ;(format t "~&state-from ~A" (type-of symx))

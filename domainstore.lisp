@@ -190,15 +190,21 @@
   )
 )
 
-(defun domainstore-get-needs (dmxs) ; -> (values can-do cant-do)
+(defun domainstore-get-needs (dmxs) ; -> (values needs can-do cant-do)
   ;(format t "~&domainstore-get-needs ~A" (type-of dmxs))
   (assert (domainstore-p dmxs))
   (let ((needs (needstore-new nil)) (can-do (needstore-new nil)) (cant-do (needstore-new nil)))
     (loop for domx in (domainstore-domains dmxs) do
       (setf needs (needstore-append needs (domain-get-needs domx)))
     )
-    ; TODO process needs to get can-do, cant-do.
-    (values needs cant-do)
+    ; Process needs to get can-do, cant-do.
+    (loop for nedx in (needstore-needs needs) do
+      (if (need-plan nedx)
+        (needstore-push can-do nedx)
+        (needstore-push cant-do nedx)
+     )
+    )
+    (values needs can-do cant-do)
   )
 )
 

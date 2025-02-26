@@ -45,7 +45,7 @@
 
 ; Return true if the argument is a list of steps.
 (defun step-list-p (steps) ; -> bool
-
+  ;(format t "~&step-list-p: ~A ~A" (type-of steps) steps)
   (if (not (listp steps))
     (return-from step-list-p false))
 
