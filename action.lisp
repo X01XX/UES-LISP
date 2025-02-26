@@ -133,13 +133,7 @@
 
   (let ((needs (needstore-new nil)))
     (if (not (groupstore-state-in-group (action-groups actx) cur-state))
-        (needstore-push needs (need-new
-                                 :act-id (action-id actx)
-                                 :kind *sample-state*
-                                 :reason *state-not-in-group*
-                                 :target cur-state
-                              )
-        )
+        (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*))
     )
     ;(format t "~&action-get-needs: returning: ~A" (needstore-str needs))
     needs
@@ -174,3 +168,61 @@
         (action-new :id 0 :rules (reverse rulestores))
     )
 )
+
+;;; Get a need to sample a state, after some checks.
+(defun action-get-need-sample-state (actx stax reason) ; -> need instance.
+  (assert (action-p actx))
+  (assert (state-p stax))
+  (assert (integerp reason))
+
+  ; If a square exists with this state, call action-get-need-resample-state.
+  (if (squarestore-find (action-squares actx) stax)
+
+    (action-get-need-resample-state actx stax reason)
+
+    (need-new :act-id (action-id actx)
+              :kind *first-sample-of-state*
+              :reason reason
+              :target stax)
+  )
+)
+
+;;; Get a need to resample a state, after some checks.
+(defun action-get-need-resample-state (actx stax reason) ; -> need instance.
+  (assert (action-p actx))
+  (assert (state-p stax))
+  (assert (integerp reason))
+
+  ; A square must exist with this state, and it must be non-pnc.
+  (let ((sqrx (squarestore-find (action-squares actx) stax)))
+
+    (if (null sqrx)
+      (error "action-get-need-resample-state: square not found?"))
+
+    (if (square-pnc sqrx)
+      (error "action-get-need-resample-state: square pnc is true?"))
+
+    (need-new :act-id (action-id actx)
+              :kind *resample-state*
+              :reason reason
+              :target stax)
+  )
+)
+
+;;; Get a need to sample a region, after some checks.
+(defun action-get-need-sample-region (actx regx reason) ; -> need instance.
+  (assert (action-p actx))
+  (assert (region-p regx))
+  (assert (integerp reason))
+
+  ; There must be no square with a state in the region.
+  (if (squarestore-any-in (action-squares actx) regx)
+      (error "action-get-need-sample-region: squares in region?"))
+
+  (need-new :act-id (action-id actx)
+            :kind *sample-in-region*
+            :reason reason
+            :target regx)
+)
+
+

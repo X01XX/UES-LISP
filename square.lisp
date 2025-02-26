@@ -1,12 +1,15 @@
 ;;;; Implement the Square type.
 
 (defstruct square
-    state
-    (count 0)
-    results
-    pn
-    pnc
-    rules
+    state       ; State the squares stores samples of.
+    (count 1)   ; Number results.  (mod count 4) will be the place for the next result to be added.
+                ;                  (mod (1- count) 4) will be the place of the most recent result.
+    results     ; An array of up to four states.
+    pn          ; A pn struct instance.
+    pnc         ; bool.
+    rules       ; A RuleStore instance, containing zero, one, or two rules.
+                ; Rules, if any, must have an initial region of one state, equal to the square state.
+                ; If two rules, the rule result regions must be different.
 )
 ; Functions automatically created by defstruct:
 ;

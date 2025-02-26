@@ -1,11 +1,10 @@
 ;;;; Implement a need struct
 
 ;;; Define need kinds
-(defvar *get-first-sample-of-state* 1009)
-(defvar *resample-state*            1013)
-(defvar *get-sample-in-region*      1019)
-(defvar *sample-state* 1023)
-(defvar *kinds* (list *get-first-sample-of-state* *resample-state* *get-sample-in-region* *sample-state*))
+(defvar *first-sample-of-state* 1009) ; There should be no square stored with this state.
+(defvar *resample-state*        1013) ; There should be a non-pnc square stored with this state.
+(defvar *sample-in-region*      1019) ; There should be n square with a state in the region.
+(defvar *kinds* (list *first-sample-of-state* *resample-state* *sample-in-region*))
 
 ;;; Define need reasons
 (defvar *state-not-in-group* 2003)
@@ -17,15 +16,15 @@
 (defvar *reasons* (list *state-not-in-group* *group-set-pnc* *form-group* *limit-group* *test-region* *change-defining-squares*))
 
 (defstruct need
-    (dom-id 0)
-    (act-id 0)
-    (kind 0)
-    (priority 0)
-    (reason 0)
-    target
-    info
-    (region nil)
-    (plan nil)
+    (dom-id 0)      ; Domain ID, integer GE 0.
+    (act-id 0)      ; Action ID, integer GE 0.
+    (kind 0)        ; Sample state, resample state, or sample anywhere within a region.
+    (reason 0)      ; Reason for the need.
+    target          ; A state or region.
+    extra-info      ; Added text to explain the need.
+    (plan nil)      ; Plan to position the current state to the target.
+                    ; Nil means no plan to target.
+                    ; An empty plan means the position is already at the target.
 )
 
 ; Functions automatically created by defstruct:
@@ -41,64 +40,16 @@
 ; (typep <instance> 'need) -> t
 
 ; Return a new need instance.
-(defun need-new (&key (dom-id 0) act-id kind reason target (region nil) (info "No info"))
+(defun need-new (&key (dom-id 0) act-id kind reason target (extra-info ""))
     (assert (integerp dom-id))
     (assert (integerp act-id))
     (assert (numberp kind))
     (assert (member kind *kinds*))
+    (assert (numberp reason))
     (assert (member reason *reasons*))
-    (assert (or (null info) (stringp info)))
+    (assert (stringp extra-info))
 
-    (let ((pri 0))
-        ; Calc priority
-        (cond ((= kind *get-first-sample-of-state*)
-            (cond ((= reason *state-not-in-group*)
-                      (setf pri 900)
-                  )
-                  ((= reason *form-group*)
-                      (setf pri 100)
-                  )
-                  ((= reason *limit-group*)
-                      (setf pri 700)
-                  )
-                  ((= reason *change-defining-squares*)
-                      (setf pri 200)
-                  )
-                  (t (error "~&Need kind ~D reason ~D not found" kind reason)))
-            )
-            ((= kind *resample-state*)
-                (cond ((= reason *group-set-pnc*)
-                          (setf pri (- 490 (region-num-x region)))
-                      )
-                      ((= reason *limit-group*)
-                          (setf pri (- 390 (region-num-x region)))
-                      )
-                      ((= reason *change-defining-squares*)
-                          (setf pri 600)
-                      )
-                      ((= reason *form-group*)
-                          (setf pri (- 590 (region-num-x region)))
-                      )
-                      (t (error "~&Need kind ~D reason ~D not found" kind reason)))
-            )
-            ((= kind *get-sample-in-region*)
-                (cond ((= reason *test-region*)
-                          (setf pri 0)
-                      )
-                      (t (error "~&Need kind ~D reason ~D not found" kind reason)))
-            )
-            ((= kind *sample-state*)
-                (cond ((= reason *state-not-in-group*)
-                          (setf pri 0)
-                      )
-                      (t (error "~&Need kind ~D reason ~D not found (1)" kind reason)))
-            )
-            (t (error "~&Need kind ~D reason ~D not found (2)" kind reason))
-	) ; end cond
-
-        (make-need :dom-id dom-id :act-id act-id :kind kind :priority pri :reason reason :target target
-                   :region region :info info)
-    )
+    (make-need :dom-id dom-id :act-id act-id :kind kind :reason reason :target target :extra-info extra-info)
 )
 
 ;;; Return a string representing a need.
@@ -109,13 +60,11 @@
         (setf str (concatenate 'string str (format nil ":dom ~D " (need-dom-id needx))))
         (setf str (concatenate 'string str (format nil ":act ~D " (need-act-id needx))))
 
-        (setf str (concatenate 'string str (format nil ":pri ~D " (need-priority needx))))
-
-        (cond ((= (need-kind needx) *get-first-sample-of-state*)
+        (cond ((= (need-kind needx) *first-sample-of-state*)
                 (setf str (concatenate 'string str ":kind Get first sample of state ")))
               ((= (need-kind needx) *resample-state*)
                 (setf str (concatenate 'string str ":kind Resample state ")))
-              ((= (need-kind needx) *get-sample-in-region*)
+              ((= (need-kind needx) *sample-in-region*)
                 (setf str (concatenate 'string str ":kind Get sample in region ")))
         )
 
@@ -137,15 +86,13 @@
             (setf str (concatenate 'string str (format nil ":target ~A " (state-str (need-target needx)))))
             (setf str (concatenate 'string str (format nil ":target ~A " (region-str (need-target needx))))))
 
-        (if (not (null (need-info needx)))
-            (setf str (concatenate 'string str (format nil ":info ~A " (need-info needx)))))
+        (if (string/= (need-extra-info needx) "")
+            (setf str (concatenate 'string str (format nil ":info ~A " (need-extra-info needx)))))
 
         (when (not (null (need-plan needx)))
-            (setf str (concatenate 'string str "P["))
-            (loop for stepx in (plan-steps (need-plan needx)) do
-                (setf str (concatenate 'string str (format nil "~D" (astep-act-id stepx))))
-            )
-            (setf str (concatenate 'string str "]"))
+            (if (plan-is-empty (need-plan needx))
+              (setf str (concatenate 'string str "At target"))
+              (setf str (concatenate 'string str (plan-str (need-plan needx)))))
         )
   
         (setf str (concatenate 'string str "]"))

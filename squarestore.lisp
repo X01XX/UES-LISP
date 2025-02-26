@@ -56,3 +56,24 @@
         nil)
   )
 )
+
+;;; Return true if there is any square in a given region.
+(defun squarestore-any-in (storex regx) ; -> bool
+  (loop for stax being the hash-keys of storex do
+    (if (region-is-superset regx stax)
+      (return-from squarestore-any-in true))
+  )
+  false
+)
+
+;;; Return square states in a given region.
+(defun squarestore-states-in-region (storex regx) ; -> statestore instance.
+  (let ((ret (statestore-new)))
+    (loop for stax being the hash-keys of storex do
+      (if (region-is-superset regx stax)
+        (statestore-push ret stax))
+    )
+    ret
+  )
+)
+

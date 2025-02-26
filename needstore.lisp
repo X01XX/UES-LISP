@@ -40,7 +40,7 @@
               for count from 0 do
 
                  (when (plusp count)
-                     (setf str (concatenate 'string str (format nil " ~&            "))))
+                     (setf str (concatenate 'string str (format nil " ~& "))))
 
                  (setf str (concatenate 'string str (need-str needx)))
         )
