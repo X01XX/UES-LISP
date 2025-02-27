@@ -39,7 +39,10 @@
   (assert (domain-p domx))
 
   (domain-set-id domx (domainstore-length storex))
-  (push domx (domainstore-domains storex))
+
+  (setf (domainstore-domains storex) 
+     (append (domainstore-domains storex) (list domx)))
+
   true
 )
 
@@ -232,5 +235,28 @@
         )
         ret
     )   
+)
+
+;;; Process a need.
+(defun domainstore-process-need (dmxs nedx)
+  ;(format t "~&domainstore-process-need: ~A ~A" (type-of dmxs) (type-of nedx)) 
+  (assert (domainstore-p dmxs))
+  (assert (need-p nedx))
+
+  (let ((dom-id (need-dom-id nedx)))
+      (domain-process-need (domainstore-nth dmxs dom-id) nedx)
+  )
+)
+
+;;; Return the nth element of a DomainStore.
+(defun domainstore-nth (storex inx) ; -> domain instance, or nil.
+  ;(format t "~&domainstore-nth: ~A ~A" (type-of storex) (type-of inx)) 
+  (assert (domainstore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (domainstore-length storex))
+    (return-from domainstore-nth nil))
+
+  (nth inx (domainstore-domains storex))
 )
 

@@ -241,3 +241,14 @@
     )
 )
 
+;;; Process a need.
+(defun domain-process-need (domx nedx) ; -> sample instance.
+   ;(format t "~&domain-process-need: ~A ~A" (type-of domx) (type-of nedx)) 
+   (assert (domain-p domx))
+   (assert (need-p nedx))
+
+   (let ((act-id (need-act-id nedx)))
+      (action-take-sample (actionstore-nth (domain-actions domx) act-id) (need-target nedx))
+   )
+)
+

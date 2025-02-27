@@ -564,3 +564,15 @@
   true
 )
 
+;;; Return the result of applying a rule to a state.
+(defun rule-result-from-state (rulx stax) ; -> state instance.\
+  (assert (rule-p rulx))
+  (assert (state-p stax))
+
+  (let (cng1s cng0s)
+    (setf cng1s (mask-new (state-and stax (rule-m10 rulx))))
+    (setf cng0s (mask-new (mask-and (mask-new (state-not stax)) (rule-m01 rulx))))
+    (state-new (state-xor stax (mask-new (mask-or cng1s cng0s))))
+  )
+)
+

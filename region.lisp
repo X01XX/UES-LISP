@@ -308,7 +308,7 @@
                          (state-xor (region-first-state reg1) (region-first-state reg2))))
 )
 
-;;; Return the distance between two regions..
+;;; Return the distance between two regions.
 (defun region-distance (reg1 reg2) ; -> integer.
   (assert (region-p reg1))
   (assert (region-p reg2))
@@ -418,5 +418,38 @@
   (change-new :m01 (region-0-mask regx)
               :m10 (region-1-mask regx)
   )
+
+)
+
+;;; Return the distance between a region and a state.
+(defun region-distance-state (regx stax) ; -> integer.
+  (assert (region-p regx))
+  (assert (state-p stax)) 
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
+  
+  (mask-num-ones (mask-new (value-and
+                  (state-xor (region-first-state regx) stax)
+                  (state-xor (region-second-state regx) stax))))
+) 
+
+;;; Return true if a region intersects a state.
+(defun region-intersects-state (regx stax) ; -> bool.
+  (assert (region-p regx))
+  (assert (state-p stax))
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
+
+  ; (format t "~&distance = ~D" (region-distance reg1 reg2))
+  (= (region-distance-state regx stax) 0)
+)
+
+
+;;; Return true if the first region is a superset of a state.
+(defun region-superset-of-state (regx stax) ; -> bool.
+  ;(format t "~&region-superset-of-state: ~A ~A" (region-str regx) (state-str stax))
+  (assert (region-p regx))
+  (assert (state-p stax))
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
+
+  (= (region-distance-state regx stax) 0)
 )
 

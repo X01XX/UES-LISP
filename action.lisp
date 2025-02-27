@@ -225,4 +225,23 @@
             :target regx)
 )
 
-
+;;; Take an action, for a given state, process the result.
+(defun action-take-sample (actx stax) ; -> side effoct, action changed.
+  ;(format t "~&action-take-sample: ~A ~A" (type-of actx) (type-of stax)) 
+  (let (rslt smpl)
+    (loop for rulsx in (action-base-rules actx) do
+        (when (region-superset-of-state (rule-initial-region (rulestore-nth rulsx 0)) stax)
+           (when (= 1 (rulestore-length rulsx))
+               (setf rslt (rule-result-from-state (rulestore-nth rulsx 0) stax))
+               (setf smpl (sample-new :initial stax :result rslt))
+               (format t "~&Act: ~D Sample: ~A" (action-id actx) (sample-str smpl))
+               ; TODO process the sample.
+               (return-from action-take-sample)
+           )
+        )
+    )
+    (setf smpl (sample-new :initial stax :result stax))
+    (format t "~&Act: ~D Sample: ~A" (action-id actx) (sample-str smpl))
+    
+  )
+)

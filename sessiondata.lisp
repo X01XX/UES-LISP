@@ -108,3 +108,13 @@
       (setf (sessiondata-cant-do sessx) cant-do)
   )
 )
+
+;;; Process a given need.
+(defun sessiondata-process-need (sessx nedx)
+  ;(format t "~&sessiondata-process-need: ~A ~A" (type-of sessx) (type-of nedx))
+  (assert (sessiondata-p sessx))
+  (assert (need-p nedx))
+
+  (domainstore-process-need (sessiondata-domains sessx) nedx)
+)
+

@@ -220,3 +220,14 @@
   (not (null (rulestore-rules storex)))
 )
   
+;;; Return the nth element of a RuleStore.
+(defun rulestore-nth (storex inx) ; -> rule instance, or nil.
+  (assert (rulestore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (rulestore-length storex))
+    (return-from rulestore-nth nil))
+
+  (nth inx (rulestore-rules storex))
+)
+

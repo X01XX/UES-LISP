@@ -46,7 +46,7 @@
   )
 
   ; Add the new action.
-  (push actx (actionstore-actions storex))
+  (setf (actionstore-actions storex) (append (actionstore-actions storex) (list actx)))
   true
 )
 
@@ -130,3 +130,15 @@
     needs
   )
 )       
+
+;;; Return the nth element of a ActionStore.
+(defun actionstore-nth (storex inx) ; -> action instance, or nil.
+  (assert (actionstore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (actionstore-length storex))
+    (return-from actionstore-nth nil))
+
+  (nth inx (actionstore-actions storex))
+)
+

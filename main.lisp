@@ -220,6 +220,7 @@
         (setf inx (random (needstore-length can-do)))
         (setf nedx (needstore-nth can-do inx))
         (format t "~&Need chosen: ~A" (need-str nedx))
+        (sessiondata-process-need sessx nedx)
         (return-from do-any-need)
       )
       (format t "~&No needs to do?")

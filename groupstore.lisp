@@ -137,7 +137,7 @@
 (defun groupstore-state-in-group (groups stax) ; -> bool.
   ;(format t "~&groupstore-state-in-group: ~A ~A" (type-of groups) (type-of stax))
   (loop for grpx in (groupstore-groups groups) do 
-    (if (region-is-superset-of (group-region grpx) stax)
+    (if (region-superset-of (group-region grpx) stax)
         (return-from groupstore-state-in-group true))
   )
   false
