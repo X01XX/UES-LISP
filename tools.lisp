@@ -64,3 +64,7 @@
     )
 )
 
+(defun bool-p (blx) ; -> bool
+  (and (symbolp blx) (or (string-equal (symbol-name blx) "t") (string-equal (symbol-name blx) "nil")))
+)
+

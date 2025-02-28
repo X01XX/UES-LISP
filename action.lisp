@@ -131,9 +131,12 @@
   (assert (action-p actx))
   (assert (state-p cur-state))
 
-  (let ((needs (needstore-new nil)))
-    (if (not (groupstore-state-in-group (action-groups actx) cur-state))
-        (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*))
+  (let ((needs (needstore-new nil)) sqrx)
+    (when (not (groupstore-state-in-group (action-groups actx) cur-state))
+           (setf sqrx (squarestore-find (action-squares actx) cur-state))
+           (if (and sqrx (square-pnc sqrx))
+             (format t "~&square ~A pnc, not in a group?" cur-state) ; should not happen once group logic is set up.
+             (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*)))
     )
     ;(format t "~&action-get-needs: returning: ~A" (needstore-str needs))
     needs
@@ -226,8 +229,11 @@
 )
 
 ;;; Take an action, for a given state, process the result.
-(defun action-take-sample (actx stax) ; -> side effoct, action changed.
+(defun action-take-sample (actx stax) ; -> sample instance, side effect, action changed.
   ;(format t "~&action-take-sample: ~A ~A" (type-of actx) (type-of stax)) 
+  (assert (action-p actx))
+  (assert (state-p stax))
+
   (let (rslt smpl)
     (loop for rulsx in (action-base-rules actx) do
         (when (region-superset-of-state (rule-initial-region (rulestore-nth rulsx 0)) stax)
@@ -235,13 +241,99 @@
                (setf rslt (rule-result-from-state (rulestore-nth rulsx 0) stax))
                (setf smpl (sample-new :initial stax :result rslt))
                (format t "~&Act: ~D Sample: ~A" (action-id actx) (sample-str smpl))
-               ; TODO process the sample.
-               (return-from action-take-sample)
+ 
+               (action-process-sample actx smpl)
+               (return-from action-take-sample smpl)
            )
         )
     )
     (setf smpl (sample-new :initial stax :result stax))
     (format t "~&Act: ~D Sample: ~A" (action-id actx) (sample-str smpl))
-    
+    smpl
   )
 )
+
+;;; Find a square.
+(defun action-find-square (actx stax) ; -> square, or nil.
+  (assert (action-p actx))
+  (assert (state-p stax))
+
+  (squarestore-find (action-squares actx) stax)
+)
+
+;;; Add a square.
+(defun action-add-square (actx sqrx) ; -> side effect, action instance is changed.
+  (assert (action-p actx))
+  (assert (square-p sqrx))
+
+  ;; Check for overwrite.
+  (if (squarestore-find (action-squares actx) (square-state sqrx))
+    (error "Readding a square?")
+    (squarestore-add (action-squares actx) sqrx))
+)
+
+;;; Process a new sample.
+(defun action-process-sample (actx smpl) ; -> side effect, action instance is changed.
+  (assert (action-p actx))
+  (assert (sample-p smpl))
+
+  (let ((sqrx (action-find-square actx (sample-initial smpl)))
+         (square-changed false)     ; A square pn or pnc value changed.
+         (groups-in nil)            ; List of groups the sample initial state is in.
+         (groups-invalidated nil)   ; A list of groups invalidated by a new sample.
+       )
+    ;; If a square exists, update it.
+    ;; Check if any groups are invalidated.
+    (if sqrx
+       (progn
+         (setf square-changed (square-add-result sqrx smpl))
+         (if square-changed
+           (setf groups-invalidated (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
+       )
+       (setf groups-invalidated (groupstore-groups-invalidated-by-sample (action-groups actx) smpl)))
+
+    ;; Get groups the square is in.
+    (setf groups-in (groupstore-groups-state-in (action-groups actx) (sample-initial smpl)))
+    
+    ;; If (the sample is not represented by a square) AND (any group is invalidated by a sample OR the sample is in no groups),
+    ;; create a new square.
+    (if (and (null sqrx) (or (groupstore-is-not-empty groups-invalidated) (groupstore-is-empty groups-in)))
+        (action-add-square actx (square-new smpl)))
+
+    (format t "~&action ~D squares: ~A" (action-id actx) (statestore-str (squarestore-keys (action-squares actx))))
+  )
+)
+
+;;; Return a group.
+;;; The region states represent sampled, compatible, pn-equal states.
+(defun action-make-group (actx region) ; -> group instance.
+  (assert (action-p actx))
+  (assert (region-p region))
+
+  (let (pn (pnc t) sqrx (rules (rulestore-new nil)))
+    ;; Check region states.
+    (loop for stax in (region-state-list region) do
+       ;; Get square from region state.
+       (setf sqrx (action-find-square stax))
+       (if (null sqrx) (error "Square for region state not found?"))
+
+       (setf pnc (and pnc (square-pnc sqrx)))
+
+       (if pn
+          (assert (= pn (square-pn sqrx)))
+          (setf pn (square-pn sqrx)))
+
+       (when (/= pn *pn-none*)
+         (if (rulestore-is-empty rules)
+           (setf rules (square-rules sqrx))
+           (setf rules (rulestore-union rules (square-rules sqrx))))
+
+         (if (null rules) (error "Rulestore union failed"))
+       )
+    )
+
+    (make-group :region region :pn pn :pnc pnc :rules rules)
+  )
+)
+
+

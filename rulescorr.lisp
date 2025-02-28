@@ -26,7 +26,7 @@
   ;(format t "~&rulescorr-new: rules ~A" rules)
   (assert (rules-list-p rules))
 
-  (make-rulescorr :rulestore (rulestore-new rules))
+  (make-rulescorr :rules (rulestore-new rules))
 )
 
 ;;; Create a new rulescorr instance from four maskcorrs.

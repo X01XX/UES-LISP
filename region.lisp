@@ -6,7 +6,7 @@
 ;;; The region struct.
 ;;; It represents a 2^x by 2^y region of squares on a K-Map.
 (defstruct region
-  statestore	; A store of one, or more, states, no state between two others.
+  states	; A StateStore of one, or more, states, no state between two others.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -28,7 +28,7 @@
   (assert (> (statestore-length states) 0))
   (assert (statestore-same-num-bits states))
   
-  (make-region :statestore (statestore-remove-unneeded states))
+  (make-region :states (statestore-remove-unneeded states))
 )
 
 ;;; Return the list of states defining a region.
@@ -42,7 +42,7 @@
 (defun region-high-state (regx) ; -> state
   (assert (region-p regx))
 
-  (if (= (statestore-length (region-statestore regx)) 1)
+  (if (= (statestore-length (region-states regx)) 1)
     (return-from region-high-state (region-first-state regx)))
 
   (let ((ret (value-new :num-bits (region-num-bits regx) : bits 0)))
@@ -57,7 +57,7 @@
 (defun region-low-state (regx) ; -> state
   (assert (region-p regx))
 
-  (if (= (statestore-length (region-statestore regx)) 1)
+  (if (= (statestore-length (region-states regx)) 1)
     (return-from region-low-state (region-first-state regx)))
 
   (let ((ret (value-not (value-new :num-bits (region-num-bits regx) : bits 0))))
@@ -72,14 +72,14 @@
 (defun region-num-bits (regx) ; -> number
   (assert (region-p regx))
 
-  (statestore-num-bits (region-statestore regx))
+  (statestore-num-bits (region-states regx))
 )
 
 ;;; Return the first state in a region.
 (defun region-first-state (regx) ; -> state
   (assert (region-p regx))
 
-  (statestore-first-state (region-statestore regx))
+  (statestore-first-state (region-states regx))
 )
 
 ;;; Return the x mask of a region.
@@ -110,9 +110,9 @@
 (defun region-second-state (regx) ; -> state
   (assert (region-p regx))
 
-  (let ((len (statestore-length (region-statestore regx))))
+  (let ((len (statestore-length (region-states regx))))
     (cond ((= len 1) (region-first-state regx))
-          ((= len 2) (statestore-last-state (region-statestore regx)))
+          ((= len 2) (statestore-last-state (region-states regx)))
           (t (state-new (state-xor (region-first-state regx) (region-x-mask regx)))))
   )
 )
@@ -131,7 +131,7 @@
     (let ((strs "r"))
       (setf strs (concatenate 'string strs (region-str-bits regx)))
 
-      (if (> (statestore-length (region-statestore regx)) 2)
+      (if (> (statestore-length (region-states regx)) 2)
           (setf strs (concatenate 'string strs "+")))
 
       strs
@@ -145,9 +145,9 @@
     (let (
           (strs "")
 	  (xmask (region-x-mask regx))
-          (bit-pos (mask-msb (mask-new (state-value (statestore-first-state (region-statestore regx))))))
+          (bit-pos (mask-msb (mask-new (state-value (statestore-first-state (region-states regx))))))
           (not-start nil)
-	  (first-state (statestore-first-state (region-statestore regx)))
+	  (first-state (statestore-first-state (region-states regx)))
 	  (cnt (region-num-bits regx))
 	  xval
 	  fval

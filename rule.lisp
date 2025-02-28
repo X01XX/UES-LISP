@@ -221,15 +221,19 @@
 )
 
 ;;; Return the Boolean "or", or union, of two rules.
-(defun rule-union (rul1 rul2) ; -> rule.
+(defun rule-union (rul1 rul2) ; -> rule or nil.
   (assert (rule-p rul1))
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (make-rule :m00 (mask-new-or (rule-m00 rul1) (rule-m00 rul2))
-             :m01 (mask-new-or (rule-m01 rul1) (rule-m01 rul2))
-             :m11 (mask-new-or (rule-m11 rul1) (rule-m11 rul2))
-             :m10 (mask-new-or (rule-m10 rul1) (rule-m10 rul2)))
+  (let (rulx)
+    (setf rulx (make-rule :m00 (mask-new-or (rule-m00 rul1) (rule-m00 rul2))
+                          :m01 (mask-new-or (rule-m01 rul1) (rule-m01 rul2))
+                          :m11 (mask-new-or (rule-m11 rul1) (rule-m11 rul2))
+                          :m10 (mask-new-or (rule-m10 rul1) (rule-m10 rul2))))
+
+    (if (rule-is-valid-union rulx) rulx nil)
+  )
 )
 
 ;;; Return true if a rule is a valid union, that is no 1X, or 0X, bit positions.
@@ -243,15 +247,19 @@
 )
 
 ;;; Return the Boolean "and", or intersection, of two rules.
-(defun rule-intersection (rul1 rul2) ; -> rule.
+(defun rule-intersection (rul1 rul2) ; -> rule, or nil.
   (assert (rule-p rul1))
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-  (make-rule :m00 (mask-new-and (rule-m00 rul1) (rule-m00 rul2))
-             :m01 (mask-new-and (rule-m01 rul1) (rule-m01 rul2))
-             :m11 (mask-new-and (rule-m11 rul1) (rule-m11 rul2))
-             :m10 (mask-new-and (rule-m10 rul1) (rule-m10 rul2)))
+    (let (rulx)                                                                                                                                                       
+      (setf rulx (make-rule :m00 (mask-new-and (rule-m00 rul1) (rule-m00 rul2))
+                            :m01 (mask-new-and (rule-m01 rul1) (rule-m01 rul2))
+                            :m11 (mask-new-and (rule-m11 rul1) (rule-m11 rul2))
+                            :m10 (mask-new-and (rule-m10 rul1) (rule-m10 rul2))))
+
+      (if (rule-is-valid-intersection rulx) rulx nil)
+    )
 )
 
 ;;; Return true if a rule is a valid intersection, that is no bit position is zero for all four masks.

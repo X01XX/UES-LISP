@@ -124,12 +124,13 @@
 
   (let ((needs (needstore-new nil)))
     (loop for actx in (actionstore-actions actsx) do
-      (setf needs (needstore-append needs (action-get-needs actx cur-state)))
+      (if (not (zerop (action-id actx)))
+        (setf needs (needstore-append needs (action-get-needs actx cur-state))))
     )
     ;(format t "~&actionstore-get-needs: returning ~A" (needstore-str needs))
     needs
   )
-)       
+)
 
 ;;; Return the nth element of a ActionStore.
 (defun actionstore-nth (storex inx) ; -> action instance, or nil.

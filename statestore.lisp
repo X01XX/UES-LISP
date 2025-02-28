@@ -59,6 +59,7 @@
 
 ;;; Return a string representing a statestore.
 (defun statestore-str (storex) ; -> string.
+  ;(format t "~&statestore-str")
   (assert (statestore-p storex))
 
   (let ((ret "(") (start t))
@@ -68,10 +69,7 @@
 
       (setf ret (concatenate 'string ret (state-str stax)))
     )
-    (if (zerop (statestore-length storex))
-      (setf ret (concatenate 'string ret "NIL)"))
-      (setf ret (concatenate 'string ret ")"))
-    )
+    (setf ret (concatenate 'string ret ")"))
 
     ret)
 )

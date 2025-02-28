@@ -116,11 +116,11 @@
 
 ; Return possible steps to satisfy a rule.
 (defun groupstore-get-steps (storex rule-to-goal within) ; -> stepstore.
+  ;(format t "~&groupstore-get-steps")
   (assert (groupstore-p storex))
   (assert (rule-p rule-to-goal))
   (assert (region-p within))
 
-  ;(format t "~&groupstore-get-steps")
   (let ((ret-steps (stepstore-new nil)) steps)
     (loop for grpx in (groupstore-groups storex) do
         (setf steps (group-get-steps grpx rule-to-goal within))
@@ -134,12 +134,86 @@
   )
 )
 
+;;; Return true if a state is in a group.
 (defun groupstore-state-in-group (groups stax) ; -> bool.
   ;(format t "~&groupstore-state-in-group: ~A ~A" (type-of groups) (type-of stax))
+  (assert (groupstore-p groups))
+  (assert (state-p stax))
+
   (loop for grpx in (groupstore-groups groups) do 
     (if (region-superset-of (group-region grpx) stax)
         (return-from groupstore-state-in-group true))
   )
   false
+)
+
+;;; Return a list of groups a state is in.
+(defun groupstore-groups-state-in (groups stax) ; -> GroupStore instance.
+  ;(format t "~&groupstore-groups-state-in: ~A ~A" (type-of groups) (type-of stax))
+  (assert (groupstore-p groups))
+  (assert (state-p stax))
+
+  (let ((ret (groupstore-new nil)))
+    (loop for grpx in (groupstore-groups groups) do 
+      (if (region-superset-of (group-region grpx) stax)
+         (groupstore-push ret grpx))
+    )
+    ret
+  )
+)
+
+;;; Return a list of groups invalidate by a sample.
+(defun groupstore-groups-invalidated-by-sample (groups smpl) ; -> groupstore instance.
+  (assert (groupstore-p groups))
+  (assert (sample-p smpl))
+
+  (let ((ret (groupstore-new nil)) (rulex (rule-new smpl)) (stax (sample-initial smpl)))
+
+    (loop for grpx in (groupstore-groups groups) do 
+
+      (when (region-superset-of (group-region grpx) stax)
+
+         (if (/= (group-pn grpx) *pn-none*) ; else need pnc square, to invalidate.
+            (if (not (rulestore-subset-of (group-rules grpx) rulex))
+               (groupstore-push ret grpx)))
+      )
+    ) ; next grpx
+    ret
+  )
+)
+
+;;; Return a list of groups invalidate by a square.
+(defun groupstore-groups-invalidated-by-square (groups sqrx) ; -> groupstore instance.
+  (assert (groupstore-p groups))
+  (assert (square-p sqrx))
+
+  (let ((ret (groupstore-new nil)) (stax (square-state sqrx)))
+    (loop for grpx in (groupstore-groups groups) do 
+
+      (when (region-superset-of (group-region grpx) stax)
+
+         ;; Handle group unpredictable, but square is predictable.
+         (if (= (group-pn grpx) *pn-none*)
+
+             ;; Handle group unpredictable, but square is predictable.
+             (if (and (/= (square-pn sqrx) *pn-none*) (square-pnc sqrx))
+                  (groupstore-push ret grpx)) ; else need more samples.
+
+             ;; group pn /= *pn-none*
+             (if (= (square-pn sqrx) *pn-none*)
+                 (groupstore-push ret grpx)
+             
+                 ;; Handle square has more rules than group.
+                 (if (> (rulestore-length (square-rules sqrx)) (rulestore-length (group-rules grpx)))
+                   (groupstore-push ret grpx)
+
+                   ;; Check if square rules are subset of group rules.
+                   (if (not (rulestore-subset-of :sub (group-rules sqrx) :sup (group-rules grpx)))
+                     (groupstore-push ret grpx))))
+         ) ; end-if
+      ) ; end-when
+    ) ; next grpx
+    ret
+  )
 )
 

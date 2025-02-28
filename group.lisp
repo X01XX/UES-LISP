@@ -17,8 +17,10 @@
 ;;;; The rules will be a union of the rules of the two squares.
 ;;;;
 (defstruct group
-    region    ; Region defined by two* compatible squares.
-    rulestore ; The combined rule of two* compatible squares.
+    region    ; A Region defined by one, or more, states, keys of compatible squares.
+    pn        ; A pn struct instance.
+    pnc       ; bool.
+    rules     ; zero, one, or two rules, from the union of compatible square rules.
 )
 ; * Sometimes a group is made of just one square, region state1 == state2.
 
@@ -37,7 +39,10 @@
 ;   (copy-group <instance>) copies a group instance.
 
 ;;; Return a new group.
-(defun group-new (&key rules)
+(defun group-new (regx pn pnc rules)
+  (assert (region-p regx))
+  (assert (pn-p pn))
+  (assert (bool-p pnc))
   (assert (rulestore-p rules))
   (assert (plusp (rulestore-length rules)))
   (assert (< (rulestore-length rules) 3))
@@ -54,7 +59,10 @@
             (rule-initial-region (rulestore-second rules)))
       (return-from group-new-na (err-new "Rulestore initial regions do not match")))
   )
-  (make-group :region (rulestore-initial-region rules) :rulestore rules)
+  (let (pn pnc)
+
+    (make-group :region (rulestore-initial-region rules) :pn pn :pnc pnc :rules rules)
+  )
 )
 
 ;;; Return a string representing a group
@@ -63,7 +71,7 @@
 
     (let ((str "#S(GROUP "))
         (setf str (concatenate 'string str (format nil "region ~A" (region-str (group-region agrp)))))
-        (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rulestore agrp)))))
+        (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp)))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -95,9 +103,9 @@
     (setf to-reg (rule-result-region rule-to-goal))
     ;(format t "~&group-get-steps: from: ~A to: ~A within: within ~A" from-reg to-reg within)
 
-    ;(format t "~&rules ~A" (rulestore-rules (group-rulestore grpx)))
+    ;(format t "~&rules ~A" (rulestore-rules (group-rules grpx)))
 
-    (loop for ruly in (rulestore-rules (group-rulestore grpx)) do
+    (loop for ruly in (rulestore-rules (group-rules grpx)) do
 
       (when (or (value-is-not-low (mask-and (rule-b01 ruly) (change-b01 wanted-changes)))
                 (value-is-not-low (mask-and (rule-b10 ruly) (change-b10 wanted-changes))))

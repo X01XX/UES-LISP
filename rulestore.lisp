@@ -90,10 +90,12 @@
 
   (let (found-sup)
     (loop for rulx in (rulestore-rules sub-store) do
+      ;; Check for a superset rule for each subset rule.
       (setf found-sup false)
       (loop for ruly in (rulestore-rules sup-store) do
-	(if (rule-subset-of :sub-rule rulx :sup-rule ruly)
-	  (setf found-sup true))
+
+        (if (rule-subset-of :sub-rule rulx :sup-rule ruly)
+	      (setf found-sup true))
       )
       (if (not found-sup)
         (return-from rulestore-subset-of false))
