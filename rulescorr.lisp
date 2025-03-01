@@ -5,7 +5,7 @@
 
 ; Implement a store of corresponding rules.
 (defstruct rulescorr
-  rulestore  ; A rulestore of zero, or more, rules.
+  rules  ; A rulestore of zero, or more, rules.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -51,10 +51,10 @@
 )
 
 ;;; Return a list of rules from a rulescorr.
-(defun rulescorr-rules (rulscx) ; -> list of rules.
+(defun rulescorr-rules-list (rulscx) ; -> list of rules.
   (assert (rulescorr-p rulscx))
 
-  (rulestore-rules (rulescorr-rulestore rulscx))
+  (rulestore-rules-list (rulescorr-rules rulscx))
 )
 
 ;;; Return a string representing a rulescorr.
@@ -62,7 +62,7 @@
   ;(format t "~&rulescorr-str")
   (assert (rulescorr-p rulscx))
 
-  (format nil "#S(RULESCORR ~A )" (rulescorr-rulestore rulscx))
+  (format nil "#S(RULESCORR ~A )" (rulescorr-rules rulscx))
 )
 
 ;;; Return the number of rules in a rulescorr.
@@ -70,7 +70,7 @@
   ;(format t "~&rulescorr-length: ~A" (type-of rulscx))
   (assert (rulescorr-p rulscx))
 
-  (rulestore-length (rulescorr-rulestore rulscx))
+  (rulestore-length (rulescorr-rules rulscx))
 )
 
 ;;; Return true if a rulescorr is empty.
@@ -90,11 +90,12 @@
 
 ;;; Return true is two rulescorr have similar format.
 (defun rulescorr-congruent (rulsc1 rulsc2) ; -> bool
+  ;(format t "~&rulescorr-congruent: arg ~A ~A" (type-of rulsc1) (type-of rulsc2))
   (assert (rulescorr-p rulsc1))
   (assert (rulescorr-p rulsc2))
 
-  (loop for rul1 in (rulescorr-rules rulsc1)
-        for rul2 in (rulescorr-rules rulsc2) do
+  (loop for rul1 in (rulescorr-rules-list rulsc1)
+        for rul2 in (rulescorr-rules-list rulsc2) do
 	  (if (/= (rule-num-bits rul1) (rule-num-bits rul2))
 	    (return-from rulescorr-congruent false))
   )
@@ -108,8 +109,8 @@
   (assert (rulescorr-p rulsc2))
   (assert (rulescorr-congruent rulsc1 rulsc2))
 
-  (loop for rul1 in (rulescorr-rules rulsc1)
-        for rul2 in (rulescorr-rules rulsc2) do
+  (loop for rul1 in (rulescorr-rules-list rulsc1)
+        for rul2 in (rulescorr-rules-list rulsc2) do
     (if (not (rule-eq rul1 rul2))
       (return-from rulescorr-eq false))
   )
@@ -123,8 +124,8 @@
   (assert (rulescorr-congruent rulsc1 rulsc2))
 
   (let (rules)
-    (loop for rulx in (rulescorr-rules rulsc1)
-          for ruly in (rulescorr-rules rulsc2) do
+    (loop for rulx in (rulescorr-rules-list rulsc1)
+          for ruly in (rulescorr-rules-list rulsc2) do
       (setf rules (append rules (list (rule-new (rule-or rulx ruly)))))
     )
 
@@ -139,8 +140,8 @@
   (assert (rulescorr-congruent rulsc1 rulsc2))
 
   (let (rules)
-    (loop for rulx in (rulescorr-rules rulsc1)
-          for ruly in (rulescorr-rules rulsc2) do
+    (loop for rulx in (rulescorr-rules-list rulsc1)
+          for ruly in (rulescorr-rules-list rulsc2) do
       (setf rules (append rules (list (rule-new (rule-and rulx ruly)))))
     )
 
@@ -154,7 +155,7 @@
   (assert (rulescorr-p rulscx))
   (assert (rulescorr-is-not-empty rulscx))
 
-  (car (rulescorr-rules rulscx))
+  (car (rulescorr-rules-list rulscx))
 )
 
 ;;; Return the last rule in a rulescorr.
@@ -162,7 +163,7 @@
   (assert (rulescorr-p rulscx))
   (assert (rulescorr-is-not-empty rulscx))
 
-  (car (last (rulescorr-rules rulscx)))
+  (car (last (rulescorr-rules-list rulscx)))
 )
 
 ;;; Return a rule that has the minimun changes, to translate from one regionscorr to intersect another.

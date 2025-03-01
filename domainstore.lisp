@@ -67,7 +67,7 @@
 (defun domainstore-str (storex) ; -> string.
   (assert (domainstore-p storex))
 
-  (let ((ret "#S(ACTIONSTORE ") (start t))
+  (let ((ret "#S(DOMAINSTORE ") (start t))
 
     (loop for domx in (domainstore-domains storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
@@ -78,6 +78,14 @@
 
     ret
   )
+)
+
+;;; Print a domainstore.
+(defun domainstore-print (doms) 
+    (loop for domx in (domainstore-domains doms) do
+      (format t "~& ")
+      (domain-print domx)
+    )
 )
 
 ;;; Return true if a domainstore contains a given domain.

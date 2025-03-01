@@ -36,12 +36,14 @@
     (setf sample2 (sample-new :initial high-state :result high-state))
 
     (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample1) (rule-new sample2)))))))
+    (action-process-sample act0 sample1)
+    (action-process-sample act0 sample2)
 
     (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state)
   )
 )
 
-;;; Set a damain id.
+;;; Set a domain id.
 (defun domain-set-id (domx id) ; -> nothing.  Side effect, domain id is changed.
   (assert (domain-p domx))
   (assert (>= id 0))
@@ -54,12 +56,19 @@
     (assert (domain-p domx))
 
     (let ((str "#S(DOMAIN "))
-        (setf str (concatenate 'string str (format nil "id ~D" (domain-id domx))))
+        (setf str (concatenate 'string str (format nil "id ~D current-state ~A" (domain-id domx) (state-str (domain-current-state domx)))))
         (setf str (concatenate 'string str (format nil " actions ~A" (actionstore-str (domain-actions domx)))))
-        (setf str (concatenate 'string str (format nil " current-state ~A" (domain-current-state domx))))
         (setf str (concatenate 'string str ")"))
         str
     )
+)
+
+;;; Print a domain.
+(defun domain-print (domx)
+    (assert (domain-p domx))
+
+    (format t "~&Domain ~D current-state ~A" (domain-id domx) (state-str (domain-current-state domx)))
+    (actionstore-print (domain-actions domx))
 )
 
 ;;; Return possible steps, given a rule.

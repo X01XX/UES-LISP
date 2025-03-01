@@ -44,25 +44,40 @@
   (assert (pn-p pn))
   (assert (bool-p pnc))
   (assert (rulestore-p rules))
-  (assert (plusp (rulestore-length rules)))
-  (assert (< (rulestore-length rules) 3))
 
-  (let ((ret (group-new-na :rules rules)))
+  (let ((ret (group-new-na regx pn pnc rules)))
     (cond ((err-p ret) (error (err-str ret)))
           ((group-p ret) ret)
            (t (error "Result is not a group"))))
 )
 ;;; group-new no abort (na).
-(defun group-new-na (&key rules) ; -> group or err.
-  (when (= (rulestore-length rules) 2)
-    (if (region-neq (rule-initial-region (rulestore-first rules))
-            (rule-initial-region (rulestore-second rules)))
-      (return-from group-new-na (err-new "Rulestore initial regions do not match")))
-  )
-  (let (pn pnc)
+(defun group-new-na (regx pn pnc rules) ; -> group or err.
+  (cond ((pn-eq pn *pn-one*)
+           (if (/= 1 (rulestore-length rules))
+             (return-from group-new-na "Rules length does not match pn value"))
 
-    (make-group :region (rulestore-initial-region rules) :pn pn :pnc pnc :rules rules)
-  )
+           (if (region-neq regx (rule-initial-region (rulestore-first rules)))
+             (return-from group-new-na "Region does not match rules"))
+         )
+        ((pn-eq pn *pn-two*)
+           (if (/= 2 (rulestore-length rules))
+             (return-from group-new-na "Rules length does not match pn value"))
+
+           (if (region-neq regx (rule-initial-region (rulestore-first rules)))
+             (return-from group-new-na "Region does not match rules"))
+
+          (if (region-neq (rule-initial-region (rulestore-first rules))
+                          (rule-initial-region (rulestore-second rules)))
+             (return-from group-new-na (err-new "Rulestore initial regions do not match")))
+         )
+        ((pn-eq pn *pn-none*)
+           (if (/= 0 (rulestore-length rules))
+             (return-from group-new-na "Rules length does not match pn value"))
+           (setf pnc t)
+         )
+        (t (return-from group-new-na "unrecognized pn value")))
+
+  (make-group :region regx :pn pn :pnc pnc :rules rules)
 )
 
 ;;; Return a string representing a group
@@ -196,3 +211,11 @@
 (defun group-num-bits (grpx) ; -> integer ge 0.
   (region-num-bits (group-region grpx))
 )
+
+;;; Print a group.
+(defun group-print (agrp)
+    (assert (group-p agrp))
+
+    (format t "  Group: ~A rules: ~A" (region-str (group-region agrp)) (rulestore-str (group-rules agrp)))
+)
+

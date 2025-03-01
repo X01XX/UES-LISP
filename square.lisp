@@ -170,7 +170,7 @@
     (let ((str "#S[SQUARE "))
         (setf str (concatenate 'string str (state-str (square-state asqr))))
         (setf str (concatenate 'string str (format nil " :pn ~D :pnc ~A" (pn-str (square-pn asqr)) (square-pnc asqr))))
-        (setf str (concatenate 'string str (format nil " :rules ~A" (rulelist-str (square-rules asqr)))))
+        (setf str (concatenate 'string str (format nil " :rules ~A" (rulestore-str (square-rules asqr)))))
         (setf str (concatenate 'string str "]"))
         str
     )
@@ -201,8 +201,6 @@
 (defun square-can-combine-now (sqrx sqry) ; -> bool
     (assert (square-p sqrx))
     (assert (square-p sqry))
-
-    ;; Trying to combine the same square is probably an error in logic.
     (assert (state-neq (square-state sqrx) (square-state sqry)))
 
     (let ((pnx (square-pn sqrx)) (pny (square-pn sqry))
@@ -210,19 +208,20 @@
 
       ;; Three possibilities. 1/1, 2/2, 3/3.
       (if (neq pnx pny)
-  	  (return-from square-can-combine-now nil))
+  	    (return-from square-can-combine-now nil))
 
       (if (eq *pn-none* pnx) (return-from square-can-combine-now t))
   
-      (rulelist-can-combine-now rulsx rulsy) 
+      (if (rulestore-union rulsx rulsy) true false)
   ) ; end let
 )
 
 ;;; Return true if two squares may be compatible as-is, or with more samples of
 ;;; the second square given.
-(defun square-compatible (sqrx sqry)
+(defun square-compatible (sqrx sqry) ; -> bool
     (assert (square-p sqrx))
     (assert (square-p sqry))
+    (assert (state-neq (square-state sqrx) (square-state sqry)))
 
     ; Trying to combine the same square is probably an error in logic.
     (assert (state-neq (square-state sqrx) (square-state sqry)))
@@ -236,13 +235,10 @@
     (if (eq (square-pn sqrx) *pn-none*)
         (return-from square-compatible t))
 
-    (if (rulelist-can-combine-now (square-rules sqrx) (square-rules sqry))
+    (if (rulestore-union (square-rules sqrx) (square-rules sqry))
         (return-from square-compatible t))
 
-    (format t "~&about to compare ~A and ~A" (rulelist-str (square-rules sqrx)) (rulelist-str (square-rules sqry)))
-    (if (= 1 (length (square-rules sqrx)))
-        (rule-valid-union-p (rule-union (first (square-rules sqrx)) (first (square-rules sqry))))
-        (or (rule-valid-union-p (rule-union (first (square-rules sqrx)) (first (square-rules sqry))))
-            (rule-valid-union-p (rule-union (second (square-rules sqrx)) (first (square-rules sqry))))))
+    ;(format t "~&about to compare ~A and ~A" (rulestore-str (square-rules sqrx)) (rulestore-str (square-rules sqry)))
+    (not (null (rulestore-union (square-rules sqrx) (square-rules sqry))))
 )
 

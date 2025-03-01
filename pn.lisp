@@ -46,3 +46,18 @@
   (< (pn-value pnx) (pn-value pny))
 )
 
+(defun pn-eq (pnx pny)
+  (assert (pn-p pnx))
+  (assert (pn-p pny))
+
+  (= (pn-value pnx) (pn-value pny))
+)
+
+(defun pn-ne (pnx pny)
+  (assert (pn-p pnx))
+  (assert (pn-p pny))
+
+  (/= (pn-value pnx) (pn-value pny))
+)
+
+

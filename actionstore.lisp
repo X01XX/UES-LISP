@@ -143,3 +143,11 @@
   (nth inx (actionstore-actions storex))
 )
 
+(defun actionstore-print (storex)
+  (assert (actionstore-p storex))
+
+  (loop for actx in (actionstore-actions storex) do
+    (format t "~&    ")
+    (action-print actx)
+  )
+)

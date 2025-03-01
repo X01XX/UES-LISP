@@ -37,6 +37,13 @@
     )
 ) 
 
+;;; Print sessiondata.
+(defun sessiondata-print (sessx)
+  (assert (sessiondata-p sessx))
+
+  (domainstore-print (sessiondata-domains sessx))
+)
+
 ;;; Return a sessiondata instance, given a list of symbols.
 (defun sessiondata-from (symbols) ; -> sessiondata instance.
     ;(format t "~&sessiondata-from: ~A" (type-of symbols))

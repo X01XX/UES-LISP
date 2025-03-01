@@ -249,6 +249,7 @@
     )
     (setf smpl (sample-new :initial stax :result stax))
     (format t "~&Act: ~D Sample: ~A" (action-id actx) (sample-str smpl))
+    (action-process-sample actx smpl)
     smpl
   )
 )
@@ -274,6 +275,7 @@
 
 ;;; Process a new sample.
 (defun action-process-sample (actx smpl) ; -> side effect, action instance is changed.
+  ;(format t "~&action-process-sample: Act ~D sample ~A" (action-id actx) (sample-str smpl))
   (assert (action-p actx))
   (assert (sample-p smpl))
 
@@ -281,26 +283,69 @@
          (square-changed false)     ; A square pn or pnc value changed.
          (groups-in nil)            ; List of groups the sample initial state is in.
          (groups-invalidated nil)   ; A list of groups invalidated by a new sample.
+         (initial (sample-initial smpl)) ; Initial state of sample.
        )
     ;; If a square exists, update it.
     ;; Check if any groups are invalidated.
     (if sqrx
        (progn
          (setf square-changed (square-add-result sqrx smpl))
-         (if square-changed
+         (when square-changed
+           (format t "~&Act: ~D square changed from adding new result ~A" (action-id actx) (square-str sqrx))
            (setf groups-invalidated (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
        )
        (setf groups-invalidated (groupstore-groups-invalidated-by-sample (action-groups actx) smpl)))
 
     ;; Get groups the square is in.
-    (setf groups-in (groupstore-groups-state-in (action-groups actx) (sample-initial smpl)))
+    (setf groups-in (groupstore-groups-state-in (action-groups actx) initial))
     
     ;; If (the sample is not represented by a square) AND (any group is invalidated by a sample OR the sample is in no groups),
     ;; create a new square.
-    (if (and (null sqrx) (or (groupstore-is-not-empty groups-invalidated) (groupstore-is-empty groups-in)))
-        (action-add-square actx (square-new smpl)))
+    (when (and (null sqrx) (or (groupstore-is-not-empty groups-invalidated) (groupstore-is-empty groups-in)))
+        (setf sqrx (square-new smpl))
+        (format t "~&Act: ~D adding new square ~A" (action-id actx) (square-str sqrx))
+        (action-add-square actx sqrx))
 
-    (format t "~&action ~D squares: ~A" (action-id actx) (statestore-str (squarestore-keys (action-squares actx))))
+    ;(format t "~&action ~D squares: ~A" (action-id actx) (statestore-str (squarestore-keys (action-squares actx))))
+
+    (when (or (pn-eq *pn-one* (square-pn sqrx)) (square-pnc sqrx))
+        (when (not (groupstore-state-in-group (action-groups actx) initial ))
+            ;; Check combination with other squares.
+            (let ((keys (squarestore-keys (action-squares actx))) reg-t (regstr-t (regionstore-new nil)) rule-union)
+              (loop for stak in (statestore-state-list keys) do
+                 (when (state-neq stak initial)
+                   (let ((sqr-k (action-find-square actx stak)))
+                     (when (square-compatible sqrx sqr-k)
+                       (setf rule-union (rulestore-union (square-rules sqrx) (square-rules sqr-k)))
+                       ;(format t "~&square ~A is compatible with square ~A rules: ~A"
+                       ;    (state-str (square-state sqrx)) (state-str (square-state sqr-k)) (rulestore-str rule-union))
+
+                       (setf reg-t (region-new (statestore-new (list initial (square-state sqr-k)))))
+                       (when (squarestore-rulestore-is-valid (action-squares actx) reg-t rule-union)
+                          (regionstore-push-nosubs regstr-t reg-t)
+                       )
+                     )
+                   )
+                 )
+              ) ; next stak
+             ; process regions in regstr_t
+             ;(format t "~&Largest regions are: ~A" (regionstore-str regstr-t))
+             (loop for regx in (regionstore-regions regstr-t) do
+               (groupstore-push-nosubs (action-groups actx) (action-make-group actx regx))
+             )
+              ;; Create a one-state group.
+              (if (regionstore-is-empty regstr-t)
+                ;(format t "~&Act: ~D Groups: ~A" (action-id actx) (groupstore-str (action-groups actx)))
+                (let ((grpx (action-make-group actx (region-new (statestore-new (list initial))))))            
+                  (format t "~&Act: ~D Adding group: ~A" (action-id actx) (group-str grpx))
+                  (groupstore-add-end (action-groups actx) grpx)
+                  ;(format t "~&Act: ~D Groups: ~A" (action-id actx) (groupstore-str (action-groups actx)))
+                )
+              )
+            )
+        )
+    )
+    
   )
 )
 
@@ -314,16 +359,16 @@
     ;; Check region states.
     (loop for stax in (region-state-list region) do
        ;; Get square from region state.
-       (setf sqrx (action-find-square stax))
-       (if (null sqrx) (error "Square for region state not found?"))
+       (setf sqrx (action-find-square actx stax))
+       (if (null sqrx) (error "Square ~A for region state not found?" (state-str stax)))
 
        (setf pnc (and pnc (square-pnc sqrx)))
 
        (if pn
-          (assert (= pn (square-pn sqrx)))
+          (assert (pn-eq pn (square-pn sqrx)))
           (setf pn (square-pn sqrx)))
 
-       (when (/= pn *pn-none*)
+       (when (pn-ne pn *pn-none*)
          (if (rulestore-is-empty rules)
            (setf rules (square-rules sqrx))
            (setf rules (rulestore-union rules (square-rules sqrx))))
@@ -336,4 +381,13 @@
   )
 )
 
+;;; Print an action.
+(defun action-print (actx)
+  (assert (action-p actx))
+
+  (format t "Act ~D" (action-id actx))
+  (if (groupstore-is-empty (action-groups actx))
+      (format t " (no groups)") 
+      (groupstore-print (action-groups actx)))
+)
 

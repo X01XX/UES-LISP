@@ -68,3 +68,7 @@
   (and (symbolp blx) (or (string-equal (symbol-name blx) "t") (string-equal (symbol-name blx) "nil")))
 )
 
+(defun xor (b1 b2) ; -> bool
+  (or (and b1 (not b2)) (and (not b1) b2))
+)
+

@@ -35,7 +35,7 @@
 (defun region-state-list (regx) ; -> a list of states.
   (assert (region-p regx))
 
-  (statestore-state-list (region-statestore regx))
+  (statestore-state-list (region-states regx))
 )
 
 ;;; Return the highest state in a region.

@@ -103,3 +103,9 @@
   (setf (maskstore-masks storex) (append (maskstore-masks storex) (list plnx)))
 )
 
+;;; Return a list of masks.
+(defun maskstore-mask-list (storex) ; -> list of masks.
+  (assert (maskstore-p storex))
+
+  (maskstore-masks storex)
+)

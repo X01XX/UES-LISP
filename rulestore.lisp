@@ -22,6 +22,7 @@
 
 ; Return a rulestore given one, or two, rules.
 (defun rulestore-new (rules) ; -> rulestore.
+  ;(format t "~&rulestore-new")
   (assert (rules-list-p rules))
 
   (make-rulestore :rules rules)
@@ -81,20 +82,20 @@
 
 ; Return true if a rulestore is a subset of another.
 ; The subset store may have fewer rules that the suberset store.
-(defun rulestore-subset-of (&key sub-store sup-store) ; -> bool
-  (assert (rulestore-p sub-store))
-  (assert (rulestore-p sup-store))
+(defun rulestore-subset-of (&key sub sup) ; -> bool
+  (assert (rulestore-p sub))
+  (assert (rulestore-p sup))
 
-  (if (> (rulestore-length sub-store) (rulestore-length sup-store))
+  (if (> (rulestore-length sub) (rulestore-length sup))
     (return-from rulestore-subset-of false))
 
   (let (found-sup)
-    (loop for rulx in (rulestore-rules sub-store) do
+    (loop for rulx in (rulestore-rules sub) do
       ;; Check for a superset rule for each subset rule.
       (setf found-sup false)
-      (loop for ruly in (rulestore-rules sup-store) do
+      (loop for ruly in (rulestore-rules sup) do
 
-        (if (rule-subset-of :sub-rule rulx :sup-rule ruly)
+        (if (rule-subset-of :sub rulx :sup ruly)
 	      (setf found-sup true))
       )
       (if (not found-sup)
@@ -233,3 +234,84 @@
   (nth inx (rulestore-rules storex))
 )
 
+(defun rulestore-union (storex storey) ; -> rulestore instance, or nil.
+  (assert (rulestore-p storex))
+  (assert (rulestore-p storey))
+  (assert (= (rulestore-length storex) (rulestore-length storey)))
+  (assert (> (rulestore-length storex) 0))
+  (assert (< (rulestore-length storex) 3))
+  
+  (when (= 1 (rulestore-length storex))
+    (let (unx)
+      (setf unx (rule-union (rulestore-first storex) (rulestore-first storey)))
+      (if unx
+        (return-from rulestore-union (rulestore-new (list unx)))
+        (return-from rulestore-union nil))
+    )
+  )
+
+  (when (= 1 (rulestore-length storex))
+    (let (unx uny rul1 rul2)
+      (setf rul1 (rule-union (rulestore-first storex) (rulestore-first storey)))
+      (setf rul2 (rule-union (rulestore-second storex) (rulestore-second storey)))
+      (if (and (not (null rul1)) (not (null rul2)))
+        (setf unx (rulestore-new (list rul1 rul2))))
+
+      (setf rul1 (rule-union (rulestore-first storex) (rulestore-second storey)))
+      (setf rul2 (rule-union (rulestore-second storex) (rulestore-first storey)))
+      (if (and (not (null rul1)) (not (null rul2)))
+        (setf uny (rulestore-new (list rul1 rul2))))
+
+     (if (and (null unx) (null uny))
+        (return-from rulestore-union nil))
+
+     (if (null unx)
+        (return-from rulestore-union uny))
+
+     (if (null uny)
+        (return-from rulestore-union unx))
+
+     nil
+   )
+  )
+)
+
+;;; Return true if a rulestore is invalidated by a square.
+(defun rulestore-invalidated-by-square(storex sqrx) ; -> bool
+  (assert (rulestore-p storex))
+  (assert (square-p sqrx))
+
+  ;; Handle group unpredictable, but square is predictable.
+  (if (zerop (rulestore-length storex)) ; unpredictable rulestore.
+
+      ;; Handle unpredictable, but square is predictable.
+      (if (and (pn-ne (square-pn sqrx) *pn-none*) (square-pnc sqrx))
+        (return-from rulestore-invalidated-by-square true)
+        (return-from rulestore-invalidated-by-square false)) ; Square unpredictable, or more samples needed.
+
+      ;; Rulestore length ge zero.
+
+      ;; Check for unpredicable square.
+      (if (pn-eq (square-pn sqrx) *pn-none*)
+        (return-from rulestore-invalidated-by-square true)
+                     
+        ;; Square rulestore length ge zero.
+
+        ;; Check if square has more rules than the store.
+        (if (> (rulestore-length (square-rules sqrx)) (rulestore-length storex))
+          (return-from rulestore-invalidated-by-square true)
+
+          ;; Check if square rules are subset of group rules.
+          (if (rulestore-subset-of :sub (square-rules sqrx) :sup storex)
+            (return-from rulestore-invalidated-by-square false)
+            (return-from rulestore-invalidated-by-square true))))
+  ) ; end-if
+)
+
+;;; Return a list of rules.
+(defun rulestore-rules-list (storex) ; -> list of rules.
+  (assert (rulestore-p storex))
+
+  (rulestore-rules storex)
+)
+  

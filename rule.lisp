@@ -324,21 +324,21 @@
 )
 
 ;;; Return true if a rule is a subset of another.
-(defun rule-subset-of (&key sub-rule sup-rule) ; -> bool.
-  (assert (rule-p sub-rule))
-  (assert (rule-p sup-rule))
-  (assert (= (rule-num-bits sub-rule) (rule-num-bits sup-rule)))
+(defun rule-subset-of (&key sub sup) ; -> bool.
+  (assert (rule-p sub))
+  (assert (rule-p sup))
+  (assert (= (rule-num-bits sub) (rule-num-bits sup)))
 
-  (if (not (mask-subset-of :sub-mask (rule-m00 sub-rule) :sup-mask (rule-m00 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m00 sub) :sup-mask (rule-m00 sup)))
     (return-from rule-subset-of false))
 
-  (if (not (mask-subset-of :sub-mask (rule-m01 sub-rule) :sup-mask (rule-m01 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m01 sub) :sup-mask (rule-m01 sup)))
     (return-from rule-subset-of false))
 
-  (if (not (mask-subset-of :sub-mask (rule-m11 sub-rule) :sup-mask (rule-m11 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m11 sub) :sup-mask (rule-m11 sup)))
     (return-from rule-subset-of false))
 
-  (if (not (mask-subset-of :sub-mask (rule-m10 sub-rule) :sup-mask (rule-m10 sup-rule)))
+  (if (not (mask-subset-of :sub-mask (rule-m10 sub) :sup-mask (rule-m10 sup)))
     (return-from rule-subset-of false))
 
   true

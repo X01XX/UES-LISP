@@ -67,7 +67,7 @@
   (assert (region-p regx))
 
   (loop for stax being the hash-keys of storex do
-    (if (region-is-superset regx stax)
+    (if (region-superset-of-state regx stax)
       (return-from squarestore-any-in true))
   )
   false
@@ -79,9 +79,23 @@
   (assert (region-p regx))
 
   (let ((ret (statestore-new nil)))
-    (loop for stax being the hash-keys of storex do
-      (if (region-is-superset regx stax)
+    (loop for stax being the hash-keys of (squarestore-squares storex) do
+      (if (region-superset-of-state regx stax)
         (statestore-push ret stax))
+    )
+    ret
+  )
+)
+
+;;; Return squares in a given region.
+(defun squarestore-squares-in-region (storex regx) ; -> square list.
+  (assert (squarestore-p storex))
+  (assert (region-p regx))
+
+  (let (ret)
+    (loop for sqrx being the hash-values of (squarestore-squares storex) do
+      (if (region-superset-of-state regx (square-state sqrx))
+        (push sqrx ret))
     )
     ret
   )
@@ -98,3 +112,21 @@
     ret
   )
 )
+
+;;; Return ntrue it a rulestore is valid, that is, not invalidated by ony square within its initial region.
+(defun squarestore-rulestore-is-valid (storex regx rulstrx) ; -> bool
+  ;(format t "~&squarestore-rulestore-is-valid")
+  (assert (squarestore-p storex))
+  (assert (region-p regx))
+  (assert (rulestore-p rulstrx))
+
+  (let ((sqrs (squarestore-squares-in-region storex regx)))
+
+    (loop for sqrx in sqrs do
+      (if (rulestore-invalidated-by-square rulstrx sqrx)
+         (return-from squarestore-rulestore-is-valid false))
+    )
+    true
+  )
+)
+

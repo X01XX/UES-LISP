@@ -45,7 +45,7 @@
   (setf (regionstore-regions storex) (append (regionstore-regions storex) (list regx)))
 )
 
-;;; Return a regionstore, suppressing subsets.
+;;; Return true if a region was pushed into a regionstore.
 ;;; Preserve region order.
 (defun regionstore-push-nosubs (storex regx) ; -> bool, side-effect regionstore is changed.
   ;(format t "~&regionstore-push-nosubs ~A ~A" storex regx)
@@ -73,7 +73,7 @@
   )
 
   ;; Add the region.
-  (regionstore-push storex regx)
+  (regionstore-add-end storex regx)
   true
 )
 

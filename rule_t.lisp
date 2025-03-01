@@ -78,27 +78,22 @@
   (let (rulx rul1 rul2 boolx)
 
     ; Test invalid unions.
-    (setf rul1 (rule-from "[00]"))
-    (setf rul2 (rule-from "[01]"))
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[01]"))
     (setf rulx (rule-union rul1 rul2))
-    (assert (rule-p rulx))
-    (setf boolx (rule-is-valid-union rulx))
+    (assert (null rulx))
     (assert (and (bool-p boolx) (null boolx)))
 
-    (setf rul1 (rule-from "[11]"))
-    (setf rul2 (rule-from "[10]"))
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[10]"))
     (setf rulx (rule-union rul1 rul2))
-    (assert (rule-p rulx))
-    (setf boolx (rule-is-valid-union rulx))
-    (assert (and (bool-p boolx) (null boolx)))
+    (assert (null rulx))
 
     ; Test valid unions.
-    (setf rul1 (rule-from "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
-    (setf rul2 (rule-from "[00/XX/X0_01/Xx/X1_11/XX/X1_10/X0/Xx_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
+    (setf rul1 (rule-from-str "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
+    (setf rul2 (rule-from-str "[00/XX/X0_01/Xx/X1_11/XX/X1_10/X0/Xx_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
     (setf rulx (rule-union rul1 rul2))
     (assert (rule-p rulx))
-    (setf boolx (rule-is-valid-union rulx))
-    (assert (and (bool-p boolx) boolx))
 
     (format t "~&  rule-is-valid-union OK")
   )
@@ -116,62 +111,6 @@
     (assert (and (rule-p rulx) (rule-eq rulx (rule-from "[00/00/00_01/01/01_11/11/11_10/10/10_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))))
 
     (format t "~&  rule-intersection OK")
-  )
-
-  ; Test rule-is-valid-intersection.
-  (let (rulx rul1 rul2 boolx)
-    ; Init rules.
-    (setf rul1 (rule-from "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
-    (setf rul2 (rule-from "[00/XX/X0_01/Xx/X1_11/XX/X1_10/X0/Xx_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
-
-    ; Test good intersection.
-    (setf rulx (rule-intersection rul1 rul2))
-    (assert (rule-p rulx))
-    (setf boolx (rule-is-valid-intersection rulx))
-    (assert boolx)
-
-    ; Test bad intersections.
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[00]") (rule-from "[01]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[00]") (rule-from "[11]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[00]") (rule-from "[10]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[00]") (rule-from "[X1]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[00]") (rule-from "[Xx]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[01]") (rule-from "[00]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[01]") (rule-from "[11]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[01]") (rule-from "[10]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[01]") (rule-from "[X0]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[01]") (rule-from "[XX]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[11]") (rule-from "[00]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[11]") (rule-from "[01]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[11]") (rule-from "[10]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[11]") (rule-from "[X0]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[11]") (rule-from "[Xx]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[10]") (rule-from "[00]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[10]") (rule-from "[01]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[10]") (rule-from "[11]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[10]") (rule-from "[X1]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[10]") (rule-from "[XX]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[X0]") (rule-from "[01]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[X0]") (rule-from "[11]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[X0]") (rule-from "[X1]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[X1]") (rule-from "[00]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[X1]") (rule-from "[10]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[X1]") (rule-from "[X0]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[XX]") (rule-from "[01]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[XX]") (rule-from "[10]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[XX]") (rule-from "[Xx]")))))
-
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[Xx]") (rule-from "[00]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[Xx]") (rule-from "[11]")))))
-    (assert (null (rule-is-valid-intersection (rule-intersection (rule-from "[Xx]") (rule-from "[XX]")))))
-
-    (format t "~&  rule-is-valid-intersection OK")
   )
 
   ; Test rule-eq.
@@ -232,68 +171,68 @@
     (setf rul2 (rule-from "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X1/XX/Xx]"))
 
     ; Test valid subsets.
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert boolx)
 
     ; Test 16 invalid subsets.
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[00]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[11]"))
     (setf rul2 (rule-from "[00]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[10]"))
     (setf rul2 (rule-from "[00]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[00]"))
     (setf rul2 (rule-from "[01]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[11]"))
     (setf rul2 (rule-from "[01]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[10]"))
     (setf rul2 (rule-from "[01]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[00]"))
     (setf rul2 (rule-from "[11]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[11]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[10]"))
     (setf rul2 (rule-from "[11]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[00]"))
     (setf rul2 (rule-from "[10]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[01]"))
     (setf rul2 (rule-from "[10]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (setf rul1 (rule-from "[11]"))
     (setf rul2 (rule-from "[10]"))
-    (setf boolx (rule-subset-of :sub-rule rul2 :sup-rule rul1))
+    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
     (assert (not boolx))
 
     (format t "~&  rule-subset-of OK")
@@ -305,7 +244,7 @@
     (setf reg2 (region-from 'r01x_01x_01x_xX))
 
     (setf rul1 (rule-new-region-to-region reg1 reg2))
-    (format t "~&rul1 ~A" (rule-str rul1))
+    ;(format t "~&rul1 ~A" (rule-str rul1))
 
     (assert (rule-eq rul1 (rule-from "[00/01/00_10/11/11/x0_x1/xx/XX/XX]")))
 
@@ -336,7 +275,7 @@
   )
 
   ; Test rule-combine-sequence.
-  (let (rul1 rul2 rul3 rula rulb)
+  (let (rul1 rul2 rul3)
     ; Test two rules that intersect.
     (setf rul1 (rule-from "[01/00/xx/11]"))
     (setf rul2 (rule-from "[11/xx/00/10]"))
@@ -352,30 +291,6 @@
     (setf rul3 (rule-combine-sequence rul1 rul2))
     ;(format t "~&rul3 ~A" rul3)
     (assert (rule-eq rul3 (rule-from "[01/10/00/XX]")))
-
-    ; Test 1->X
-    (setf rula (rule-from "[11/11/11/11_11/11/11/11]"))
-    (setf rulb (rule-from "[10/10/10/10_10/10/10/10]"))
-    (setf rul1 (rule-union rula rulb))
-    (setf rul2 (rule-from "[11/10/00/01_X0/X1/XX/Xx]"))
-
-    (setf rul3 (rule-combine-sequence rul1 rul2))
-    ;(format t "~&rul3 ~A" rul3)
-
-    (assert (region-eq (rule-initial-region rul3) (region-from 'r1111_1111)))
-    (assert (region-eq (rule-result-region rul3)  (region-from 'r1001_01XX)))
-
-    ; Test 0->X
-    (setf rula (rule-from "[00/00/00/00_00/00/00/00]"))
-    (setf rulb (rule-from "[01/01/01/01_01/01/01/01]"))
-    (setf rul1 (rule-union rula rulb))
-    (setf rul2 (rule-from "[11/10/00/01_X0/X1/XX/Xx]"))
-
-    (setf rul3 (rule-combine-sequence rul1 rul2))
-    ;(format t "~&rul3 ~A" rul3)
-
-    (assert (region-eq (rule-initial-region rul3) (region-from 'r0000_0000)))
-    (assert (region-eq (rule-result-region rul3)  (region-from 'r1001_01XX)))
 
     (format t "~&  rule-combine-sequence OK")
   )

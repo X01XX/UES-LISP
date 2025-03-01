@@ -4,6 +4,7 @@
 # Some errors will cause this to hang on the gcl side.
 # return-from with invalid name.
 # illegal binding in let.
+# Run (load #p "compile.lisp") in gcl to start to resolve the problem.
 
 /usr/bin/gcl -eval "(progn (load #p \"compile.lisp\") (quit))" > ./tmp.txt 2>&1
 

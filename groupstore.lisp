@@ -141,7 +141,7 @@
   (assert (state-p stax))
 
   (loop for grpx in (groupstore-groups groups) do 
-    (if (region-superset-of (group-region grpx) stax)
+    (if (region-superset-of-state (group-region grpx) stax)
         (return-from groupstore-state-in-group true))
   )
   false
@@ -155,7 +155,7 @@
 
   (let ((ret (groupstore-new nil)))
     (loop for grpx in (groupstore-groups groups) do 
-      (if (region-superset-of (group-region grpx) stax)
+      (if (region-superset-of-state (group-region grpx) stax)
          (groupstore-push ret grpx))
     )
     ret
@@ -171,10 +171,10 @@
 
     (loop for grpx in (groupstore-groups groups) do 
 
-      (when (region-superset-of (group-region grpx) stax)
+      (when (region-superset-of-state (group-region grpx) stax)
 
-         (if (/= (group-pn grpx) *pn-none*) ; else need pnc square, to invalidate.
-            (if (not (rulestore-subset-of (group-rules grpx) rulex))
+         (if (pn-ne (group-pn grpx) *pn-none*) ; else need pnc square, to invalidate.
+            (if (not (rulestore-subset-of :sup (group-rules grpx) :sub rulex))
                (groupstore-push ret grpx)))
       )
     ) ; next grpx
@@ -190,30 +190,63 @@
   (let ((ret (groupstore-new nil)) (stax (square-state sqrx)))
     (loop for grpx in (groupstore-groups groups) do 
 
-      (when (region-superset-of (group-region grpx) stax)
+      (if (region-superset-of-state (group-region grpx) stax)
 
-         ;; Handle group unpredictable, but square is predictable.
-         (if (= (group-pn grpx) *pn-none*)
-
-             ;; Handle group unpredictable, but square is predictable.
-             (if (and (/= (square-pn sqrx) *pn-none*) (square-pnc sqrx))
-                  (groupstore-push ret grpx)) ; else need more samples.
-
-             ;; group pn /= *pn-none*
-             (if (= (square-pn sqrx) *pn-none*)
-                 (groupstore-push ret grpx)
-             
-                 ;; Handle square has more rules than group.
-                 (if (> (rulestore-length (square-rules sqrx)) (rulestore-length (group-rules grpx)))
-                   (groupstore-push ret grpx)
-
-                   ;; Check if square rules are subset of group rules.
-                   (if (not (rulestore-subset-of :sub (group-rules sqrx) :sup (group-rules grpx)))
-                     (groupstore-push ret grpx))))
-         ) ; end-if
-      ) ; end-when
+         (if (rulestore-invalidated-by-square (group-rules grpx) sqrx)
+             (groupstore-push ret grpx))
+   
+      )
     ) ; next grpx
     ret
+  )
+)
+
+;;; Add group to the end of a groupstore.
+(defun groupstore-add-end (storex grpx) ; -> nothing, side-effect groupstore changed.
+  (assert (groupstore-p storex))
+  (assert (group-p grpx))
+  
+  (setf (groupstore-groups storex) (append (groupstore-groups storex) (list grpx)))
+)
+
+;;; Return true if a group was pushed into a groupstore.
+;;; Preserve group order.
+(defun groupstore-push-nosubs (storex grpx) ; -> bool, side-effect groupstore is changed.
+  ;(format t "~&groupstore-push-nosubs ~A ~A" storex grpx)
+  (assert (groupstore-p storex))
+  (assert (group-p grpx))
+
+  ;; Check for group in store that is a superset (or dup) of the new group.
+  (loop for grpy in (groupstore-groups storex) do
+    (if (region-superset-of :sup (group-region grpy) :sub (group-region grpx))
+      (return-from groupstore-push-nosubs false))
+  )
+
+  ;; Check for groups that are a subset of the new group.
+  (let (del-grps)
+    ;; Find groups that are a subset of the new group.
+    (loop for grpy in (groupstore-groups storex) do
+      (if (region-superset-of :sup (group-region grpx) :sub (group-region grpy))
+        (push grpy del-grps)
+      )
+    )
+    ;; Remove the subset groups.
+    (loop for grpy in del-grps do
+      (setf (groupstore-groups storex) (remove grpy (groupstore-groups storex) :test #'group-eq))
+    )
+  )
+
+  ; Add the group.
+  (groupstore-add-end storex grpx)
+  true
+)
+
+;;; Print a groupstore.
+(defun groupstore-print (storex)
+  (assert (groupstore-p storex))
+
+  (loop for grpx in (groupstore-groups storex) do
+    (group-print grpx)
   )
 )
 

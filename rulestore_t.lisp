@@ -28,20 +28,20 @@
   (let (boolx store1 store2)
     (setf store1 (rulestore-new (list (rule-from "[Xx/XX/XX/XX]") (rule-from "[X1/XX/XX/XX]"))))
     (setf store2 (rulestore-new (list (rule-from "[11/00/11/XX]"))))
-    (setf boolx (rulestore-subset-of :sup-store store1 :sub-store store2))
+    (setf boolx (rulestore-subset-of :sup store1 :sub store2))
     (assert boolx)
 
     (setf store1 (rulestore-new (list (rule-from "[Xx/XX/XX/XX]") (rule-from "[X1/XX/XX/XX]"))))
     (setf store2 (rulestore-new (list (rule-from "[10/00/11/XX]"))))
-    (setf boolx (rulestore-subset-of :sup-store store1 :sub-store store2))
+    (setf boolx (rulestore-subset-of :sup store1 :sub store2))
     (assert boolx)
 
     (setf store1 (rulestore-new (list (rule-from "[Xx/XX/XX/XX]") (rule-from "[X1/XX/XX/XX]"))))
     (setf store2 (rulestore-new (list (rule-from "[10/00/11/XX]") (rule-from "[11/00/11/XX]"))))
-    (setf boolx (rulestore-subset-of :sup-store store1 :sub-store store2))
+    (setf boolx (rulestore-subset-of :sup store1 :sub store2))
     (assert boolx)
 
-    (setf boolx (rulestore-subset-of :sup-store store2 :sub-store store1))
+    (setf boolx (rulestore-subset-of :sup store2 :sub store1))
     (assert (not boolx))
 
     (format t "~&  rulestore-subset-of OK")

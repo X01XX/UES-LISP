@@ -163,6 +163,7 @@
 
 (defun command-loop (sessx)
   ;(format t "~& ~&command-loop ~A" (type-of sessx))
+  (format t "~&~A" (sessiondata-str sessx))
   (format t "~& ~&command-loop: Commands:")
   (format t "~& ~&    Nothing, just press Enter - Attempt to satisfy a need that can be done, if any.")
   (format t "~& ~&    q - Quit.")
@@ -171,6 +172,7 @@
 
   (let (inp tokens token)
     (loop 
+      (sessiondata-print sessx)
       (generate-and-display-needs sessx)
 
         (format t "~& ~&Press Enter or type a command: ")
