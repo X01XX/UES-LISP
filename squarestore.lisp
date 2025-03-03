@@ -130,3 +130,29 @@
   )
 )
 
+;; Check if a region of states, representing squares, is valid.
+(defun squarestore-region-is-valid (storex regx) ; -> bool
+  (assert (squarestore-p storex))
+  (assert (region-p regx))
+
+  (let ((rules (rulestore-new nil)) sqrx)
+     ;; Calc the union of rules of squares represented by states in the region.
+     (loop for stax in (region-state-list regx) do
+        ;; Get square represented by state.
+        (setf sqrx (squarestore-find storex stax))
+        (if (not sqrx)
+            (error "Square not found?"))
+
+        (if (not (pn-eq (square-pn sqrx) *pn-none*))
+          (if (rulestore-is-empty rules)
+              (setf rules (square-rules sqrx))
+              (setf rules (rulestore-union rules (square-rules sqrx)))
+          )
+          (if (null rules)
+              (return-from squarestore-region-is-valid false))
+        )
+     )
+
+     (squarestore-rulestore-is-valid storex regx rules)
+  )
+)

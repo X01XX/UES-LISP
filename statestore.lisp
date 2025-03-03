@@ -5,7 +5,7 @@
 
 ;;; The statestore struct.
 (defstruct statestore
-  state-list  ; A list of zero, or more, non-duplicate, same number bits, states.
+  states  ; A list of zero, or more, non-duplicate, same number bits, states.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&states ~A" states)
   (assert (state-list-p states))
 
-  (make-statestore :state-list states)
+  (make-statestore :states states)
 )
 
 ;;; Push a new state into a statestore, suppress dups.
@@ -34,14 +34,15 @@
   (assert (statestore-p store))
   (assert (state-p state))
 
-  (push state (statestore-state-list store))
+  (if (not (statestore-contains store state))
+    (push state (statestore-states store)))
 )
 
 ;;; Return the number of states in a statestore.
 (defun statestore-length (storex) ; -> number.
   (assert (statestore-p storex))
 
-  (length (statestore-state-list storex)))
+  (length (statestore-states storex)))
 
 ;;; Return true if a statestore is empty.
 (defun statestore-is-empty (storex) ; -> bool
@@ -64,7 +65,7 @@
 
   (let ((ret "(") (start t))
 
-    (loop for stax in (statestore-state-list storex) do
+    (loop for stax in (statestore-states storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (state-str stax)))
@@ -79,7 +80,7 @@
   (assert (statestore-p storex))
   (assert (state-p stax))
 
-  (if (member stax (statestore-state-list storex) :test #'state-eq) true false)
+  (if (member stax (statestore-states storex) :test #'state-eq) true false)
 )
 
 ;;; Return the first state of a non-empty statestore.
@@ -87,7 +88,7 @@
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
 
-  (car (statestore-state-list storex))
+  (car (statestore-states storex))
 )
 
 ;;; Return the last state of a non-empty statestore.
@@ -95,7 +96,7 @@
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
 
-  (car (last (statestore-state-list storex)))
+  (car (last (statestore-states storex)))
 )
 
 ;;; Return the number of bits used by states in a non-empty statestore.
@@ -116,7 +117,7 @@
 
     (setf ret (value-new :num-bits (state-num-bits first-state) :bits 0))
 
-    (loop for stax in (cdr (statestore-state-list storex)) do
+    (loop for stax in (cdr (statestore-states storex)) do
        (setf ret (value-or ret (state-xor stax first-state)))
     )
     (mask-new ret)
@@ -129,7 +130,7 @@
   (assert (statestore-is-not-empty storex))
 
   (let ((ret (statestore-first-state storex)))
-    (loop for stax in (cdr (statestore-state-list storex)) do
+    (loop for stax in (cdr (statestore-states storex)) do
       (state-or ret stax)
     )
     ret
@@ -142,7 +143,7 @@
   (assert (statestore-is-not-empty storex))
 
   (let ((ret (statestore-first-state storex)))
-    (loop for stax in (cdr (statestore-state-list storex)) do
+    (loop for stax in (cdr (statestore-states storex)) do
       (state-and ret stax)
     )
     ret
@@ -157,8 +158,8 @@
   (if (< (statestore-length storex) 2)
     (return-from statestore-same-num-bits true))
 
-  (let ((num-bits (state-num-bits (car (statestore-state-list storex)))))
-    (loop for stax in (cdr (statestore-state-list storex)) do
+  (let ((num-bits (state-num-bits (car (statestore-states storex)))))
+    (loop for stax in (cdr (statestore-states storex)) do
       (if (/= (state-num-bits stax) num-bits)
         (return-from statestore-same-num-bits false))
     )
@@ -166,7 +167,7 @@
   )
 )
 
-;;; Return a statestore with states unneeded to make a region removed.
+;;; Return a statestore with only states required to make a region.
 (defun statestore-remove-unneeded (storex) ; -> statestore.
   (assert (statestore-p storex))
   
@@ -175,16 +176,18 @@
 
   (let (options (targ-x (statestore-x-mask storex)) opt-x storey)
 
+    ;; Try combinations of successively more states.
+    ;; Return first successful combination.
     (loop for num from 2 below (statestore-length storex) do
 
-      (setf options (any-x-of-n num (statestore-state-list storex)))
+      (setf options (any-x-of-n num (statestore-states storex)))
       (loop for optx in options do
 
-	(setf storey (statestore-new optx))
+	    (setf storey (statestore-new optx))
         (setf opt-x (statestore-x-mask storey))
 
-	(if (mask-eq opt-x targ-x)
-	  (return-from statestore-remove-unneeded storey))
+	    (if (mask-eq opt-x targ-x)
+	      (return-from statestore-remove-unneeded storey))
       )
     )
   )
@@ -192,9 +195,9 @@
   storex
 )
 
+;;; Ruturn a statestore instance from a list of symbols.
 (defun statestore-from (symbols) ; -> statestore
-    ;(format t "&~&statestore-from ~A" symbols)
-
+    ;(format t "~&statestore-from ~A" symbols)
     (assert (listp symbols))                                                                                                                    
 
     ;(assert (eq (car symbols) 'QUOTE))
@@ -208,3 +211,22 @@
         (statestore-new (reverse states))
     )
 )
+
+;;; Return two statestores combined, no dups.
+(defun statestore-append (storex storey) ; -> statestore
+  (let ((ret (statestore-new nil)))
+    (loop for stax in (statestore-states storex) do
+      (statestore-push ret stax)
+    )
+    (loop for stax in (statestore-states storey) do
+      (statestore-push ret stax)
+    )
+    ret
+  )
+)
+
+;;; Return a list of states.
+(defun statestore-state-list (storex) ; -> list of states.
+  (statestore-states storex)
+)
+

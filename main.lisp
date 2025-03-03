@@ -163,15 +163,17 @@
 
 (defun command-loop (sessx)
   ;(format t "~& ~&command-loop ~A" (type-of sessx))
-  (format t "~&~A" (sessiondata-str sessx))
+  ;(format t "~&~A" (sessiondata-str sessx))
   (format t "~& ~&command-loop: Commands:")
   (format t "~& ~&    Nothing, just press Enter - Attempt to satisfy a need that can be done, if any.")
   (format t "~& ~&    q - Quit.")
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token)
+  (let (inp tokens token (step 0))
     (loop 
+      (incf step)
+      (format t "~&Step: ~D --------------------------------------------" step)
       (sessiondata-print sessx)
       (generate-and-display-needs sessx)
 
@@ -245,10 +247,8 @@
             ;(format t "~&final: ~A" str)
             (setf sdx-in (read-from-string str)) ; read in data, check that parentheses are balanced.
             (when sdx-in
-                (pprint sdx-in)
+                ;(pprint sdx-in)
                 (setf sdx (eval sdx-in))
-                ;(setf sdx (sessiondata-from sdx-in))
-                (format t "~&type sdx ~A" (type-of sdx))
  ;              (format t "~&sdx ~A" sdx)
             )
             (do-interactive-session sdx)

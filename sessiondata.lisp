@@ -65,9 +65,8 @@
                            ;(format t "~&sessiondata-from: ds: ~A" tokx)
                            (assert (null ds)) ; only one ds allowed.
                            (setf ds (domainstore-from tokx))
-                           (if ds
-                               ;(session-data :domains ds)
-                               nil)
+                           (if (null ds)
+                             (error "~&sessiondata-from: ds: ~A failed" tokx))
                      )
                 )
                 (assert ds) ; one ds required.
@@ -75,32 +74,35 @@
                 ;; Stort sessiondata.
                 (setf sdx (make-sessiondata :domains ds))
 
+                ;(sessiondata-print sdx)
+
                 ;; Get select regions and statescorr, if any.
                 (loop for tokx in rest-symbols do
+                    ;(format t "~&sessiondata-from: tokx2: ~A" tokx)
                     (setf key (symbol-name (car tokx)))
-                    (cond ((string= key "SR") ; Can be zero, or more, selectregions.
+                    (cond ((string-equal key "DS") nil) ; Skip ds.
+                          ((string= key "SR") ; Can be zero, or more, selectregions.
                            ;(format t "~&sessiondata-from: sr: ~A" tokx)
-                       (setf sr (selectregions-from tokx))
-                       ;(if sr
-                       ;    (format t "~&sessiondata: sr is ~A" (selectregions-str sr))
-                       ;    nil)
-                       )
-                      ((string= key "SC") ; Must be zero, or one, statescorr.
-                       ;(format t "~&sessiondata-from: sc: ~A" tokx)
-                       (setf sc (statescorr-from tokx))
-                       ;(if sc
-                       ;    (format t "~&sessiondata: sc is ~A" (statescorr-str sc))
-                       ;    nil)
-                       )
-                      (t nil)
+                           (setf sr (selectregions-from tokx))
+                           (if (null sr)
+                             (error "~&sessiondata-from: sr: ~A failed" tokx))
+                          )
+                          ((string= key "SC") ; Must be zero, or one, statescorr.
+                           ;(format t "~&sessiondata-from: sc: ~A" tokx)
+                           (setf sc (statescorr-from tokx))
+                           (if (null sc)
+                             (error "~&sessiondata-from: sc: ~A failed" tokx))
+                          )
+                      (t (error "~&token not recognized: ~A" tokx))
                     )
                 )
 
                 ;; Return sessiondata instance.
-                sdx
+                (return-from sessiondata-from sdx)
               )
               (t (error "SD symbol missing")))
      )
+     (error "drop-through?")
 )
 
 ;;; Return current needs.

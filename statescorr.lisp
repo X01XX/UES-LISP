@@ -23,7 +23,7 @@
 
 ;;; Return a new statescorr instance, from a list of states.
 (defun statescorr-new (store) ; -> statescorr, or nil.
-  ;(format t "~&statescorr-new: states ~A" states)
+  ;(format t "~&statescorr-new: states ~A" store)
   (assert (statestore-p store))
 
   (make-statescorr :states store)
@@ -65,15 +65,6 @@
   (assert (statescorr-p scx))
 
   (format nil "(SC ~A)" (statestore-str (statescorr-states scx)))
-)
-
-;;; Return true if a statescorr contains a given state.
-(defun _statescorr-contains (scx stax) ; -> bool
-  ;(format t "statescorr-contains scx ~A stax ~A" scx stax)
-  (assert (statescorr-p scx))
-  (assert (state-p stax))
-
-  (statestore-contains (statescorr-states scx) stax)
 )
 
 ;;; Return true if two statescorr are equal.
