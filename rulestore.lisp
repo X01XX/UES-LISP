@@ -45,7 +45,7 @@
   ;(format t "~&rulestore-str")
   (assert (rulestore-p storex))
 
-  (let ((ret "#S(RULESTORE ") (start t))
+  (let ((ret "(") (start t))
 
     (loop for rulx in (rulestore-rules storex) do
       (if start (setf start false)
@@ -211,6 +211,8 @@
 
 ;;; Return t if a rulestore is empty.
 (defun rulestore-is-empty (storex) ; -> bool
+  ;(format t "~&rulestore-is-empty: ~A" (type-of storex))
+  ;(format t "~&rulestore-is-empty: ~A" storex)
   (assert (rulestore-p storex))
 
   (null (rulestore-rules storex))

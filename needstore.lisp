@@ -86,7 +86,7 @@
 
 ;;; Append two needstores.
 ;;; Preserve order.
-(defun needstore-append (store1 store2) ; -> needstore                                                                               
+(defun needstore-append (store1 store2) ; -> needstore
   ;(format t "~&needstore-append: ~A ~A" (needstore-str store1) (needstore-str store2))
   (assert (needstore-p store1))
   (assert (needstore-p store2))

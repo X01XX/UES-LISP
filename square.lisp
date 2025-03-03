@@ -147,7 +147,7 @@
 	;(format t "~& sqr ~A pncnew ~A pnc ~A" (state-str (square-state square)) pncnew (square-pnc square))
 
         (when  (not (eq pncnew (square-pnc square)))
-            (format t "~&                 square ~A pn ~A pnc changed from ~A to ~A"
+            (format t "~&square ~A pn ~A pnc changed from ~A to ~A"
 		    (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
             (setf (square-pnc square) pncnew)
             (return-from square-add-result t)

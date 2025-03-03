@@ -133,16 +133,156 @@
   ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
   (assert (action-p actx))
   (assert (state-p cur-state))
+  ;(format t "~&action-get-needs: ~d ~A" (action-id actx) (state-str cur-state))
 
-  (let ((needs (needstore-new nil)) sqrx)
+  (let ((needs (needstore-new nil)))
+    ;; Generate need for a cur-state that is not in a group.
     (when (not (groupstore-state-in-group (action-groups actx) cur-state))
-           (setf sqrx (squarestore-find (action-squares actx) cur-state))
-           (if (and sqrx (square-pnc sqrx))
-             (format t "~&square ~A pnc, not in a group?" cur-state) ; should not happen once group logic is set up.
-             (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*)))
+      (let ((sqrx (squarestore-find (action-squares actx) cur-state)))
+
+        (cond (sqrx
+               (if (square-pnc sqrx)  
+                 (format t "~&square ~A pnc, not in a group?" cur-state) ; should not happen once group logic is set up.
+                 (needstore-push needs (action-get-need-resample-state actx cur-state *state-not-in-group*)))
+              )
+              (t (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*)))
+        )
+      )
     )
+
+    ;;; Generate needs to confirm groups.
+    (let (grp-needs)
+      (loop for grpx in (groupstore-groups (action-groups actx)) do
+        ;(format t "~&checking group ~A" (region-str (group-region grpx)))
+        (when (not (group-pnc grpx))
+          ;; Get needs for group, possibly replace group region with one made of two states.
+          (setf grp-needs (action-confirm-group-needs actx grpx))
+          (when (needstore-is-not-empty grp-needs)
+            ;(format t "~&grp-needs ~A" (needstore-str grp-needs))
+            (setf needs (needstore-append needs grp-needs)))
+        )
+      ) ; next grpx
+    )
+
     ;(format t "~&action-get-needs: returning: ~A" (needstore-str needs))
     needs
+  )
+)
+
+;;; Set a group pnc slot to true, print message.
+(defun action-group-set-pnc (actx grpx) ; -> side-effects, group pnc changed, message printed.
+  (assert (action-p actx))
+  (assert (group-p grpx))
+  (assert (not (group-pnc grpx)))
+
+  (format t "~&Act: ~D Group: ~A, pnc set to true." (action-id actx) (region-str (group-region grpx)))
+  (setf (group-pnc grpx) true)
+)
+
+;;; Return confirm needs for a group.
+;;; Resample first state in group region and/or far state, until both are pnc.
+;;; If the group region is defined with gt 2 states:
+;;;   If a pn-eq far-from-first-state square exists, replace the region with a two-state region.
+;;;   else sample the far state.
+(defun action-confirm-group-needs (actx grpx) ; -> needstore.
+  (assert (action-p actx))
+  (assert (group-p grpx))
+  ;(format t "~&action-confirm-group-needs: Act: ~D Group: ~A" (action-id actx) (region-str (group-region grpx)))
+
+  (let ((needs (needstore-new nil)) (grp-reg (group-region grpx)))
+
+    ;; Process a one-state group region.
+    (when (= (region-number-states grp-reg) 1)
+
+      (let (sta-first sqr-first)
+        ;; Get first state.
+        (setf sta-first (region-first-state grp-reg))
+        ;; Get first square.
+        (setf sqr-first (squarestore-find (action-squares actx) sta-first))
+        (if (null sqr-first)
+          (error "Region first square not found?"))
+
+        ;; Check if more samples needed.
+        (if (square-pnc sqr-first)
+          (setf (group-pnc grpx) true)
+          (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*)))
+
+        ;(format t "~&action-confirm-group-needs: return 1 Act: ~D Group: ~A needs: ~A"
+        ;   (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+
+        (return-from action-confirm-group-needs needs)
+      )
+    )
+
+    ;; Process a two-state group region.
+    (when (= (region-number-states grp-reg) 2)
+
+      (let (sqr-first sqr-far)
+        (setf sqr-first (squarestore-find (action-squares actx) (region-first-state grp-reg)))
+        (if (null sqr-first)
+          (error "Region first square not found?"))
+
+        ;; Check if more samples needed.
+        (if (not (square-pnc sqr-first))
+          (needstore-push needs (action-get-need-resample-state actx (square-state sqr-first) *confirm-group*)))
+
+        (setf sqr-far (squarestore-find (action-squares actx) (region-second-state grp-reg)))
+        (if (null sqr-far)
+          (error "Region far square not found?"))
+
+        ;; Check if more samples needed.
+        (if (not (square-pnc sqr-far))
+          (needstore-push needs (action-get-need-resample-state actx (square-state sqr-far) *confirm-group*)))
+
+        ;; Set group pnc, if needed.
+        (if (needstore-is-empty needs)
+          (action-group-set-pnc actx grpx))
+
+        ;(format t "~&action-confirm-group-needs: return 2 Act: ~D Group: ~A needs: ~A"
+        ;    (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+
+        (return-from action-confirm-group-needs needs)
+      )
+    )
+
+    ;; Process a GT 2 state region.
+    (let (sta-first sqr-first sta-far sqr-far)
+
+      ;; Check first square.
+      (setf sta-first (region-first-state grp-reg))
+      (setf sqr-first (squarestore-find (action-squares actx) sta-first))
+      (if (null sqr-first)
+        (error "Region first square not found?"))
+
+      ;; Check if more samples needed.
+      (if (not (square-pnc sqr-first))
+        (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*)))
+
+      ;; Calc far state.
+      (setf sta-far (region-far-state (group-region grpx) sta-first))
+
+      ;; Find far square, if any.
+      (setf sqr-far (squarestore-find (action-squares actx) sta-far))
+
+      ;; Generate far sample needs.
+      (when sqr-far
+        (if (square-pnc sqr-far)
+          (setf (group-region grpx) (region-new (statestore-new (list (sta-first sta-far)))))
+          (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group*)))
+
+            ;(format t "~&action-confirm-group-needs: return 3 Act: ~D Group: ~A needs: ~A"
+            ;  (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+
+        (return-from action-confirm-group-needs needs)
+      )
+
+      ;; sqr-far not found.
+      (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group*))
+
+      ;(format t "~&action-confirm-group-needs: return 4 Act: ~D Group: ~A needs: ~A"
+      ;      (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+      needs
+    )
   )
 )
 
@@ -278,7 +418,7 @@
 
 ;;; Combine possible regions of similar squares, if possible.
 (defun action-combine-regions (actx regsx) ; -> RegionStore instance.
-  (format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
+  ;(format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
   (assert (action-p actx))
   (assert (regionstore-p regsx))
 
@@ -299,7 +439,7 @@
 
         (loop for iny from (1+ inx) below (regionstore-length cur-regs) do    
            
-            (format t "~&checking reg ~A and ~A" (region-str regx) (region-str (nth iny (regionstore-regions cur-regs))))
+            ;(format t "~&checking reg ~A and ~A" (region-str regx) (region-str (nth iny (regionstore-regions cur-regs))))
 
             (setf regy (region-new (statestore-append
                 (region-states regx) (region-states (nth iny (regionstore-regions cur-regs))))))
@@ -386,12 +526,17 @@
         (action-add-square actx sqrx))
 
     ;; Check if no more processing is needed.
-    (when (and (null sqrx) (groupstore-is-empty groups-invalidated) (groupstore-is-empty groups-in))
-      ;(format t "~&action-process-sample: returning1")
-      (return-from action-process-sample))
+    (when (null sqrx) 
+      (when (and (groupstore-is-empty groups-invalidated) (groupstore-is-empty groups-in))
+        ;(format t "~&action-process-sample: returning1")
+        (return-from action-process-sample))
+      (setf sqrx (square-new smpl))
+      (action-add-square actx sqrx)
+    )
 
     ;(format t "~&action ~D squares: ~A" (action-id actx) (statestore-str (squarestore-keys (action-squares actx))))
 
+    ;(format t "~&square pn: ~A" (type-of (square-pn sqrx)))
     (when (or (pn-eq *pn-one* (square-pn sqrx)) (square-pnc sqrx))
         (when (not (groupstore-state-in-group (action-groups actx) initial))
 
@@ -451,9 +596,9 @@
 (defun action-print (actx)
   (assert (action-p actx))
 
-  (format t "Act ~D" (action-id actx))
+  (format t "Act: ~D " (action-id actx))
   (if (groupstore-is-empty (action-groups actx))
-      (format t " (no groups)") 
+      (format t "(no groups)") 
       (groupstore-print (action-groups actx)))
 )
 

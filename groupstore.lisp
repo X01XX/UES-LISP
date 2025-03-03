@@ -46,10 +46,10 @@
 
     ; Check for equal, superset and subset groups.
     (loop for grpx in (groupstore-groups storex) do
-      (if (region-subset :sub-reg (group-region groupx) :sup-reg (group-region grpx))
+      (if (region-superset-of :sub (group-region groupx) :sup (group-region grpx))
         (return-from groupstore-push false))
 
-      (if (region-subset :sup-reg (group-region groupx) :sub-reg (group-region grpx))
+      (if (region-superset-of :sup (group-region groupx) :sub (group-region grpx))
         (push grpx del-grps))
     )
 
@@ -167,14 +167,14 @@
   (assert (groupstore-p groups))
   (assert (sample-p smpl))
 
-  (let ((ret (groupstore-new nil)) (rulex (rule-new smpl)) (stax (sample-initial smpl)))
+  (let ((ret (groupstore-new nil)) (rules (rulestore-new (list (rule-new smpl)))) (stax (sample-initial smpl)))
 
     (loop for grpx in (groupstore-groups groups) do 
 
       (when (region-superset-of-state (group-region grpx) stax)
 
          (if (pn-ne (group-pn grpx) *pn-none*) ; else need pnc square, to invalidate.
-            (if (not (rulestore-subset-of :sup (group-rules grpx) :sub rulex))
+            (if (not (rulestore-subset-of :sup (group-rules grpx) :sub rules))
                (groupstore-push ret grpx)))
       )
     ) ; next grpx
@@ -245,8 +245,14 @@
 (defun groupstore-print (storex)
   (assert (groupstore-p storex))
 
-  (loop for grpx in (groupstore-groups storex) do
-    (group-print grpx)
+  (let ((first true))
+    (loop for grpx in (groupstore-groups storex) do
+      (if first
+        (setf first false)
+        (format t ", ")
+      )
+      (group-print grpx)
+    )
   )
 )
 

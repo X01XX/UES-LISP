@@ -52,6 +52,11 @@
 )
 ;;; group-new no abort (na).
 (defun group-new-na (regx pn pnc rules) ; -> group or err.
+  (assert (region-p regx))
+  (assert (pn-p pn))
+  (assert (bool-p pnc))
+  (assert (rulestore-p rules))
+
   (cond ((pn-eq pn *pn-one*)
            (if (/= 1 (rulestore-length rules))
              (return-from group-new-na "Rules length does not match pn value"))
@@ -86,9 +91,32 @@
 
     (let ((str "#S(GROUP "))
         (setf str (concatenate 'string str (format nil "region ~A" (region-str (group-region agrp)))))
+        (if (< (region-number-states (group-region agrp)) 3)
+          (setf str (concatenate 'string str " ")))
+
+        (setf str (concatenate 'string str (format nil "pnc ~A" (group-pnc agrp))))
         (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp)))))
         (setf str (concatenate 'string str ")"))
         str
+    )
+)
+
+;;; Print a group.
+(defun group-print (agrp)
+    (assert (group-p agrp))
+
+    (let ((str "("))
+        (setf str (concatenate 'string str (format nil "group ~A " (region-str (group-region agrp)))))
+        (if (< (region-number-states (group-region agrp)) 3)
+          (setf str (concatenate 'string str " ")))
+
+        (setf str (concatenate 'string str (format nil "pnc ~A" (group-pnc agrp))))
+        (if (group-pnc agrp)
+          (setf str (concatenate 'string str "  ")))
+
+        (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp)))))
+        (setf str (concatenate 'string str ")"))
+        (format t "~A" str)
     )
 )
 
@@ -210,12 +238,5 @@
 ;;; Return the number of bits used by elements withn a group.
 (defun group-num-bits (grpx) ; -> integer ge 0.
   (region-num-bits (group-region grpx))
-)
-
-;;; Print a group.
-(defun group-print (agrp)
-    (assert (group-p agrp))
-
-    (format t "  Group: ~A rules: ~A" (region-str (group-region agrp)) (rulestore-str (group-rules agrp)))
 )
 

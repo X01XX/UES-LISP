@@ -103,54 +103,93 @@
   (value-zerop (mask-value msk))
 )
 
-;;; Return the "and" bit mask of a mask or a state.
+;;; Return the Boolean "and" bit mask of a mask or a state.
 (defun mask-and (msk1 other) ; -> value.
   (assert (mask-p msk1))
-  (assert (or (mask-p other) (state-p other)))
 
-  (when (state-p other)
-    (assert (= (mask-num-bits msk1) (state-num-bits other)))
-
-    (return-from mask-and (value-and (mask-value msk1) (state-value other)))
+  (cond ((mask-p other)
+         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
+         (value-and (mask-value msk1) (mask-value other))
+        )
+        ((state-p other)
+         (assert (= (mask-num-bits msk1) (state-num-bits other)))
+         (value-and (mask-value msk1) (state-value other))
+        )
+        ((value-p other)
+         (assert (= (mask-num-bits msk1) (value-num-bits other)))
+         (value-and (mask-value msk1) other)
+        ) 
+        (t (error "~&other type not expected ~A" (type-of other)))
   )
-
-  (assert (= (mask-num-bits msk1) (mask-num-bits other)))
-
-  (value-and (mask-value msk1) (mask-value other))
 )
 
-;;; Return the "and" bit mask of the "not" of a mask or a state.
+;;; Return the Boolean "xor" bit mask of a mask or a state.
+(defun mask-xor (msk1 other) ; -> value.
+  (assert (mask-p msk1))
+
+  (cond ((mask-p other)
+         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
+         (value-xor (mask-value msk1) (mask-value other))
+        )
+        ((state-p other)
+         (assert (= (mask-num-bits msk1) (state-num-bits other)))
+         (value-xor (mask-value msk1) (state-value other))
+        )
+        ((value-p other)
+         (assert (= (mask-num-bits msk1) (value-num-bits other)))
+         (value-xor (mask-value msk1) other)
+        ) 
+        (t (error "~&other type not expected ~A" (type-of other)))
+  )
+)
+
+;;; Return the "and" bit mask of the "not" of a mask, state, or value.
 (defun mask-and-not (msk1 other) ; -> value.
   (assert (mask-p msk1))
-  (assert (or (mask-p other) (state-p other)))
 
-  (when (state-p other)
-    (assert (= (mask-num-bits msk1) (state-num-bits other)))
-
-    (return-from mask-and-not (value-and (mask-value msk1) (state-not other)))
+  (cond ((mask-p other)
+         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
+         (value-and (mask-value msk1) (mask-not other))
+        )
+        ((state-p other)
+         (assert (= (mask-num-bits msk1) (state-num-bits other)))
+         (value-and (mask-value msk1) (state-not other))
+        )
+        ((value-p other)
+         (assert (= (mask-num-bits msk1) (value-num-bits other)))
+         (value-and (mask-value msk1) (value-not other))
+        ) 
+        (t (error "~&other type not expected ~A" (type-of other)))
   )
-
-  (assert (= (mask-num-bits msk1) (mask-num-bits other)))
-
-  (mask-and msk1 (mask-not other))
 )
 
-;;; Return the Boolean "or" of two masks.
-(defun mask-or (msk1 msk2) ; -> value.
+;;; Return the Boolean "or" of a mask, and a mask, state, or value
+(defun mask-or (msk1 other) ; -> value.
   (assert (mask-p msk1))
-  (assert (mask-p msk2))
-  (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))
 
-  ; Create mask to return.
-  (value-or (mask-value msk1) (mask-value msk2))
+  ; Create value to return.
+  (cond ((mask-p other)
+         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
+         (value-or (mask-value msk1) (mask-value other))
+        )
+        ((state-p other)
+         (assert (= (mask-num-bits msk1) (state-num-bits other)))
+         (value-or (mask-value msk1) (state-value other))
+        )
+        ((value-p other)
+         (assert (= (mask-num-bits msk1) (value-num-bits other)))
+         (value-or (mask-value msk1) other)
+        ) 
+        (t (error "~&other type not expected ~A" (type-of other)))
+  )
 )
 
 ;;; Return the "not" bit mask of a given mask.
-(defun mask-not (msk) ; -> mask.
+(defun mask-not (msk) ; -> value.
   (assert (mask-p msk))
 
   ; Create mask to return.
-  (mask-new (value-not (mask-value msk)))
+  (value-not (mask-value msk))
 )
 
 ;;; Return the number of bits set to one in a mask.

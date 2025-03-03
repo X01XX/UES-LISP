@@ -117,6 +117,13 @@
   )
 )
 
+;;; Return the number of states that define a region.
+(defun region-number-states (regx) ; -> integer, gt zero.
+  (assert (region-p regx))
+
+  (statestore-length (region-states regx))
+)
+
 ;;; Return a string for a region.
 ;;; The state making up a region with one state, is obvious.
 ;;; The states making up a region with two states, can be read from the string representation.
@@ -131,7 +138,7 @@
     (let ((strs "r"))
       (setf strs (concatenate 'string strs (region-str-bits regx)))
 
-      (if (> (statestore-length (region-states regx)) 2)
+      (if (> (region-number-states regx) 2)
           (setf strs (concatenate 'string strs "+")))
 
       strs
@@ -358,7 +365,7 @@
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
-  (let ((mskn (mask-not mskx)))
+  (let ((mskn (mask-new (mask-not mskx))))
     (region-new (statestore-new (list (state-new (value-and (mask-value mskn) (state-value (region-high-state regx))))
                                       (state-new (value-and (mask-value mskn) (state-value (region-low-state regx)))))))
   )
@@ -451,5 +458,15 @@
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
   (= (region-distance-state regx stax) 0)
+)
+
+;;; Return the far state for, opposite a given state, in a region.
+(defun region-far-state (regx stax) ; -> state
+  (assert (region-p regx))
+  (assert (state-p stax))
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
+  (assert (region-intersects-state regx stax))
+
+  (state-new (state-xor stax (region-x-mask regx)))
 )
 

@@ -47,6 +47,7 @@
 )
 
 (defun pn-eq (pnx pny)
+  ;(format t "~&pn-eq: pnx ~A pny ~A" (type-of pnx) (type-of pny))
   (assert (pn-p pnx))
   (assert (pn-p pny))
 

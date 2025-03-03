@@ -8,12 +8,10 @@
 
 ;;; Define need reasons
 (defvar *state-not-in-group* 2003)
-(defvar *group-set-pnc*      2011)
-(defvar *form-group*         2017)
-(defvar *limit-group*        2027)
-(defvar *test-region*        2039)
-(defvar *change-defining-squares* 2053)
-(defvar *reasons* (list *state-not-in-group* *group-set-pnc* *form-group* *limit-group* *test-region* *change-defining-squares*))
+(defvar *confirm-group* 2007)
+(defvar *reasons* (list *state-not-in-group*
+                        *confirm-group*)
+   )
 
 (defstruct need
     (dom-id 0)      ; Domain ID, integer GE 0.
@@ -70,16 +68,8 @@
 
         (cond ((= (need-reason needx) *state-not-in-group*)
                 (setf str (concatenate 'string str ":reason State not in a group ")))
-              ((= (need-reason needx) *group-set-pnc*)
-                (setf str (concatenate 'string str ":reason Group set pnc ")))
-              ((= (need-reason needx) *form-group*)
-                (setf str (concatenate 'string str ":reason Form group ")))
-              ((= (need-reason needx) *limit-group*)
-                (setf str (concatenate 'string str ":reason Limit group ")))
-              ((= (need-reason needx) *change-defining-squares*)
-                (setf str (concatenate 'string str ":reason Change defining squares ")))
-              ((= (need-reason needx) *test-region*)
-                (setf str (concatenate 'string str ":reason Test region ")))
+              ((= (need-reason needx) *confirm-group*)
+                (setf str (concatenate 'string str ":reason Confirm Group ")))
         )
 
         (if (state-p (need-target needx))

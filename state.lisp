@@ -91,20 +91,24 @@
   (value-eq (state-value sta1) (state-value sta2))
 )
 
-;;; Return the value of a state xor another state, or, mask.
+;;; Return the value of a state xor another state, mask, or value.
 (defun state-xor (sta other) ; -> value inst.
   (assert (state-p sta))
-  (assert (or (state-p other) (mask-p other)))
 
-  (when (state-p other)
-    (assert (= (state-num-bits sta) (state-num-bits other)))
- 
-    (return-from state-xor (value-xor (state-value sta) (state-value other)))
+  (cond ((state-p other)
+         (assert (= (state-num-bits sta) (state-num-bits other)))
+         (value-xor (state-value sta) (state-value other))
+        )
+        ((mask-p other)
+         (assert (= (state-num-bits sta) (mask-num-bits other)))
+         (value-xor (state-value sta) (mask-value other))
+        )
+        ((value-p other)
+         (assert (= (state-num-bits sta) (value-num-bits other)))
+         (value-xor (state-value sta) other)
+        )
+        (t (error "~&other type not expected ~A" (type-of other)))
   )
-
-  (assert (= (state-num-bits sta) (mask-num-bits other)))
- 
-  (value-xor (state-value sta) (mask-value other))
 )
 
 ;;; Return true if a satate is between two others.
@@ -130,36 +134,44 @@
   (not (state-eq sta1 sta2))
 )
 
-;;; Return the value of a state and another state, or, mask.
+;;; Return the value of a state and another state, mask, or value.
 (defun state-and (sta other) ; -> value inst.
   (assert (state-p sta))
-  (assert (or (state-p other) (mask-p other)))
 
-  (when (state-p other)
-    (assert (= (state-num-bits sta) (state-num-bits other)))
- 
-    (return-from state-and (value-and (state-value sta) (state-value other)))
+  (cond ((state-p other)
+         (assert (= (state-num-bits sta) (state-num-bits other)))
+         (value-and (state-value sta) (state-value other))
+        )
+        ((mask-p other)
+         (assert (= (state-num-bits sta) (mask-num-bits other)))
+         (value-and (state-value sta) (mask-value other))
+        )
+        ((value-p other)
+         (assert (= (state-num-bits sta) (value-num-bits other)))
+         (value-and (state-value sta) other)
+        )
+        (t (error "~&other type not expected ~A" (type-of other)))
   )
-
-  (assert (= (state-num-bits sta) (mask-num-bits other)))
- 
-  (value-and (state-value sta) (mask-value other))
 )
 
-;;; Return the value of a state or another state, or, mask.
+;;; Return the value of a state or another state, mask, or value.
 (defun state-or (sta other) ; -> value inst.
   (assert (state-p sta))
-  (assert (or (state-p other) (mask-p other)))
 
-  (when (state-p other)
-    (assert (= (state-num-bits sta) (state-num-bits other)))
- 
-    (return-from state-or (value-or (state-value sta) (state-value other)))
+  (cond ((state-p other)
+         (assert (= (state-num-bits sta) (state-num-bits other)))
+         (value-or (state-value sta) (state-value other))
+        )
+        ((mask-p other)
+         (assert (= (state-num-bits sta) (mask-num-bits other)))
+         (value-or (state-value sta) (mask-value other))
+        )
+        ((value-p other)
+         (assert (= (state-num-bits sta) (value-num-bits other)))
+         (value-or (state-value sta) other)
+        )
+        (t (error "~&other type not expected ~A" (type-of other)))
   )
-
-  (assert (= (state-num-bits sta) (mask-num-bits other)))
- 
-  (value-or (state-value sta) (mask-value other))
 )
 
 ;;; Return the inverted, "not", value of a state.

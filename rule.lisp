@@ -380,7 +380,7 @@
   (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
   (let (msk-in rulz)
-    (setf msk-in (mask-not msk-out))
+    (setf msk-in (mask-new (mask-not msk-out)))
  
     (setf rulz (make-rule :m00 (rule-m00 rulex)
                           :m01 (rule-m01 rulex)
@@ -399,7 +399,7 @@
   (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
   (let (msk-in rulz)
-    (setf msk-in (mask-not msk-out))
+    (setf msk-in (mask-new (mask-not msk-out)))
  
     (setf rulz (make-rule :m00 (mask-new-and (rule-m00 rulex) msk-in)
                           :m01 (mask-new-and (rule-m01 rulex) msk-in)

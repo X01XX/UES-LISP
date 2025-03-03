@@ -163,7 +163,7 @@
 
   ; Test mask-not.
   (let (mskx)
-    (setf mskx (mask-not (mask-from 'm0101_1010)))
+    (setf mskx (mask-new (mask-not (mask-from 'm0101_1010))))
     (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm1010_0101))))
 
     (format t "~&  mask-not OK")
