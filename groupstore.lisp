@@ -39,7 +39,7 @@
   (if (groupstore-is-not-empty storex)
     (assert (= (group-num-bits groupx) (group-num-bits (groupstore-first storex)))))
 
-  (if (groupstore-contains storex groupx)
+  (if (groupstore-member storex groupx)
     (return-from groupstore-push false))
 
   (let (del-grps)
@@ -100,7 +100,7 @@
 )
 
 ; Return true if a groupstore contains a given group.
-(defun groupstore-contains (storex stax) ; -> bool
+(defun groupstore-member (storex stax) ; -> bool
   (assert (groupstore-p storex))
   (assert (group-p stax))
 
@@ -125,7 +125,7 @@
     (loop for grpx in (groupstore-groups storex) do
         (setf steps (group-get-steps grpx rule-to-goal within))
 	(loop for stpx in (stepstore-step-list steps) do
-	  (if (not (stepstore-contains ret-steps stpx))
+	  (if (not (stepstore-member ret-steps stpx))
 	    (stepstore-push ret-steps stpx)
 	  )	
 	)
@@ -254,5 +254,10 @@
       (group-print grpx)
     )
   )
+)
+
+;;; Return a groupstore with a group removed.
+(defun groupstore-remove-group (storex grpx) ; -> groupstore.
+  (make-groupstore :groups (remove grpx (groupstore-groups storex)))
 )
 

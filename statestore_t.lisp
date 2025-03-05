@@ -37,9 +37,9 @@
     (setf str2 (statestore-remove-unneeded str1))
     ;(format t "~&str ~A" str2)
     (assert (= (statestore-length str2) 3))
-    (assert (statestore-contains str2 (state-from 's0001)))
-    (assert (statestore-contains str2 (state-from 's0010)))
-    (assert (statestore-contains str2 (state-from 's0111)))
+    (assert (statestore-member str2 (state-from 's0001)))
+    (assert (statestore-member str2 (state-from 's0010)))
+    (assert (statestore-member str2 (state-from 's0111)))
 
     (format t "~&  statestore-remove-unneeded OK")
   )

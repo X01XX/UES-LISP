@@ -83,7 +83,7 @@
 )
 
 ;;; Return true if two statescorr are not equal.
-(defun statescorr-neq (stascorr1 stascorr2) ; -> bool
+(defun statescorr-ne (stascorr1 stascorr2) ; -> bool
   (assert (statescorr-p stascorr1))
   (assert (statescorr-p stascorr2))
   (assert (statescorr-congruent stascorr1 stascorr2))

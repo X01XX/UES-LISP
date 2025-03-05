@@ -26,7 +26,7 @@
 ;;; A nil act-id indicates it will be assigned later.
 (defun step-new (&key act-id rule)
   (assert (rule-p rule))
-  (assert (or (null act-id) (>= act-id 0)))
+  (assert (and (integerp act-id) (>= act-id 0)))
 
   (make-step :act-id act-id :rule rule)
 )
@@ -43,13 +43,13 @@
     )
 )
 
-; Return true if the argument is a list of steps.
+;;; Return true if the argument is a list of steps, or nil.
 (defun step-list-p (steps) ; -> bool
   ;(format t "~&step-list-p: ~A ~A" (type-of steps) steps)
   (if (not (listp steps))
     (return-from step-list-p false))
 
-  ; Check for a non-step.
+  ;; Check for a non-step.
   (loop for stpx in steps do
     (if (not (step-p stpx))
       (return-from step-list-p false))
@@ -57,6 +57,7 @@
   true
 )
 
+;;; Return true if two steps ar equal.
 (defun step-eq (stp1 stp2) ; -> bool
   (assert (step-p stp1))
   (assert (step-p stp2))

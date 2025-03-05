@@ -19,10 +19,10 @@
     (setf sqr1 (square-new smpl))
 
     (setf smpl (sample-new :initial (state-from 's0001) :result (state-from 's1011)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0001) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
@@ -38,31 +38,31 @@
     (setf sqr1 (square-new smpl))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-two*))
     (assert (square-pnc sqr1))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-one*))
     (assert (square-pnc sqr1))
@@ -77,25 +77,25 @@
     (setf sqr1 (square-new smpl))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1011)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-two*))
     (assert (null (square-pnc sqr1)))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-two*))
     (assert (null (square-pnc sqr1)))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1011)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-two*))
     (assert (square-pnc sqr1))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-two*))
     (assert (square-pnc sqr1))
@@ -110,10 +110,10 @@
     (setf sqr1 (square-new smpl))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1011)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
@@ -130,10 +130,10 @@
     (setf sqr1 (square-new smpl))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
-    (square-add-result sqr1 smpl)
+    (square-add-sample sqr1 smpl)
 
     (assert (eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))

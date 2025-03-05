@@ -298,8 +298,8 @@
     (sta2 (state-new (value-not (mask-or (rule-m01 rulx) (rule-m00 rulx))))))
 
     (if (state-eq sta1 sta2)
-      (region-new (statestore-new (list sta1)))
-      (region-new (statestore-new (list sta1 sta2))))
+      (region-new sta1)
+      (region-new (list sta1 sta2)))
   )
 )
 
@@ -318,8 +318,8 @@
     (setf sta2 (state-new (value-xor x-not-x (state-value sta2))))
 
     (if (state-eq sta1 sta2)
-      (region-new (statestore-new (list sta1)))
-      (region-new (statestore-new (list sta1 sta2))))
+      (region-new sta1)
+      (region-new (list sta1 sta2)))
   )
 )
 
@@ -505,11 +505,6 @@
 ;    )
 ;  )
 ;)
-
-;;; Return the number of unwanted changes.
-(defun rule-num-unwanted-changes (rulx) ; -> integer.
-  (change-num-changes (rule-unwanted-changes rulx))
-)
 
 ;;; Return the intersection of a rule and a change, as a change.
 (defun rule-intersection-change (rulx cngx) ; -> change

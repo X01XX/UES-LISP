@@ -89,8 +89,8 @@
 )
 
 ;;; Return true if a domainstore contains a given domain.
-(defun domainstore-contains (storex domx) ; -> bool
-  ;(format t "domainstore-contains storex ~A domx ~A" storex domx)
+(defun domainstore-member (storex domx) ; -> bool
+  ;(format t "domainstore-member storex ~A domx ~A" storex domx)
   (assert (domainstore-p storex))
   (assert (domain-p domx))
 

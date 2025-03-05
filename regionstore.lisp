@@ -121,8 +121,8 @@
 )
 
 ;;; Return true if a regionstore contains a given region.
-(defun regionstore-contains (storex regx) ; -> bool
-  ;(format t "regionstore-contains storex ~A regx ~A" storex regx)
+(defun regionstore-member (storex regx) ; -> bool
+  ;(format t "regionstore-member storex ~A regx ~A" storex regx)
   (assert (regionstore-p storex))
   (assert (region-p regx))
 
@@ -274,7 +274,7 @@
 
     ;; Remove duplicates, if any.
     (loop for regx in (regionstore-regions strx) do
-        (if (not (regionstore-contains remaining regx))
+        (if (not (regionstore-member remaining regx))
 	  (regionstore-push remaining regx))
     )
 
@@ -299,7 +299,7 @@
         (loop for regy in (regionstore-regions intersections) do
 	  (when (region-intersects regx regy)
 	    (setf intreg (region-intersection regx regy))
-            (if (not (regionstore-contains remaining intreg))
+            (if (not (regionstore-member remaining intreg))
 	      (regionstore-push remaining intreg))
 	  )
         )

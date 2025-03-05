@@ -34,7 +34,7 @@
   (assert (statestore-p store))
   (assert (state-p state))
 
-  (if (not (statestore-contains store state))
+  (if (not (statestore-member store state))
     (push state (statestore-states store)))
 )
 
@@ -76,7 +76,7 @@
 )
 
 ;;; Return true if a statestore contains a given state.
-(defun statestore-contains (storex stax) ; -> bool
+(defun statestore-member (storex stax) ; -> bool
   (assert (statestore-p storex))
   (assert (state-p stax))
 

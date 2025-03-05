@@ -71,7 +71,7 @@
 )
 
 ;;; Return true if a maskstore contains a given mask.
-(defun maskstore-contains (storex mskx) ; -> bool
+(defun maskstore-member (storex mskx) ; -> bool
   (assert (maskstore-p storex))
   (assert (mask-p mskx))
 

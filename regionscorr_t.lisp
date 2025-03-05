@@ -61,9 +61,9 @@
 
     (assert (= 2 (regionscorrstore-length list1)))
 
-    (assert (regionscorrstore-contains list1 (regionscorr-new (list (region-from 'r0X) (region-from 'r11)))))
+    (assert (regionscorrstore-member list1 (regionscorr-new (list (region-from 'r0X) (region-from 'r11)))))
 
-    (assert (regionscorrstore-contains list1 (regionscorr-new (list (region-from 'r01) (region-from 'r1X)))))
+    (assert (regionscorrstore-member list1 (regionscorr-new (list (region-from 'r01) (region-from 'r1X)))))
 
     (format t "~&  regionscorr-subtract OK")
   )

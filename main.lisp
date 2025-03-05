@@ -147,9 +147,14 @@
     (let ((can-do (sessiondata-can-do sessx)) (cant-do (sessiondata-cant-do sessx)))
       (format t "~& ~&-------------------------")
       (format t "~& ~&Needs that cannot be done:")
-      (format t "~&~A" (needstore-str cant-do))
+      (loop for needx in (needstore-need-list cant-do) do
+        (format t "~&   ~A" (need-str needx))
+      )
       (format t "~& ~&Needs that can be done:")
-      (format t "~&~A" (needstore-str can-do))
+      (loop for needx in (needstore-need-list can-do)
+            for inx from 0 to (needstore-length can-do) do
+        (format t "~&~2,' d ~A" inx (need-str needx))
+      )
     )
 )
 
@@ -167,10 +172,11 @@
   (format t "~& ~&command-loop: Commands:")
   (format t "~& ~&    Nothing, just press Enter - Attempt to satisfy a need that can be done, if any.")
   (format t "~& ~&    q - Quit.")
+  (format t "~& ~&    dn <number> - Do Need.")
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0))
+  (let (inp tokens token (step 0) inx dom-id act-id statex)
     (loop 
       (incf step)
       (format t "~&Step: ~D --------------------------------------------" step)
@@ -202,9 +208,53 @@
 
         ;(format t "~&tokens: ~A" tokens)
 
+        ;; Check for Quit.
         (if (string-equal (car tokens) #\q)
           (return-from command-loop))
 
+        ;; Check for do need.
+        (if (string-equal (car tokens) "dn")
+          (if (= (length tokens) 2)
+            (progn
+              (setf inx (read-from-string (second tokens)))
+              (if (integerp inx)
+                (if (< inx (needstore-length (sessiondata-can-do sessx)))
+                  (progn
+                    (format t "~&Need chosen: ~A" (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
+                    (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
+                  )
+                  (format t "~&Invalid need number in Do Need command"))
+                (format t "~&Invalid need number in Do Need command"))
+            )
+            (format t "~&Did not understand Do Need command"))
+        )
+
+        (if (string-equal (car tokens) "sneed")
+          (if (= (length tokens) 4)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (progn
+                      (setf statex (state-from-str (fourth tokens)))
+                      (if statex
+                         (sessiondata-take-action-need sessx dom-id act-id statex)
+                       )
+                       (format t "~&Did not understand state in sneed command")
+                    )
+                    (format t "~&Did not understand action id in sneed command")
+                  )
+                )
+                (format t "~&Did not understand domain id in sneed command")
+              )
+            )
+            (format t "~&Did not understand sneed command")
+          )
+        )
+
+        ;; Force specific domain action state sample, print square and square-count.
         (if (null tokens)
 	      ;; Process needs.
 	      (if (needstore-is-not-empty (sessiondata-can-do sessx))

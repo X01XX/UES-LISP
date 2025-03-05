@@ -80,7 +80,7 @@
   (assert (regionscorr-p regionscorrx))
   (assert (region-p regx))
 
-  (regionstore-contains (regionscorr-regionstore regionscorrx) regx)
+  (regionstore-member (regionscorr-regionstore regionscorrx) regx)
 )
 
 ;;; Return true if two regionscorrs intersect.
@@ -149,7 +149,7 @@
 )
 
 ;;; Return true if two regionscorr are not equal.
-(defun regionscorr-neq (regscorr1 regscorr2) ; -> bool
+(defun regionscorr-ne (regscorr1 regscorr2) ; -> bool
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
   (assert (regionscorr-congruent regscorr1 regscorr2))

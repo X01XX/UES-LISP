@@ -71,7 +71,7 @@
 )
 
 ; Return true if a selectregionsstore contains a given selectregions.
-(defun selectregionsstore-contains (storex sregsx) ; -> bool
+(defun selectregionsstore-member (storex sregsx) ; -> bool
   (assert (selectregionsstore-p storex))
   (assert (selectregions-p sregsx))
 

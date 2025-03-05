@@ -61,17 +61,17 @@
            (if (/= 1 (rulestore-length rules))
              (return-from group-new-na "Rules length does not match pn value"))
 
-           (if (region-neq regx (rule-initial-region (rulestore-first rules)))
+           (if (region-ne regx (rule-initial-region (rulestore-first rules)))
              (return-from group-new-na "Region does not match rules"))
          )
         ((pn-eq pn *pn-two*)
            (if (/= 2 (rulestore-length rules))
              (return-from group-new-na "Rules length does not match pn value"))
 
-           (if (region-neq regx (rule-initial-region (rulestore-first rules)))
+           (if (region-ne regx (rule-initial-region (rulestore-first rules)))
              (return-from group-new-na "Region does not match rules"))
 
-          (if (region-neq (rule-initial-region (rulestore-first rules))
+          (if (region-ne (rule-initial-region (rulestore-first rules))
                           (rule-initial-region (rulestore-second rules)))
              (return-from group-new-na (err-new "Rulestore initial regions do not match")))
          )
@@ -94,7 +94,7 @@
         (if (< (region-number-states (group-region agrp)) 3)
           (setf str (concatenate 'string str " ")))
 
-        (setf str (concatenate 'string str (format nil "pnc ~A" (group-pnc agrp))))
+        (setf str (concatenate 'string str (format nil " pnc ~A" (group-pnc agrp))))
         (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp)))))
         (setf str (concatenate 'string str ")"))
         str
@@ -136,11 +136,15 @@
   (assert (= (group-num-bits grpx) (region-num-bits within)))
 
   (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
-	(wanted-changes (rule-wanted-changes rule-to-goal))
-        (unwanted-changes (rule-unwanted-changes rule-to-goal))
+	    (wanted-changes (rule-wanted-changes rule-to-goal))
+        (unwanted-changes (region-unwanted-changes (rule-result-region rule-to-goal)))
         num-wanted num-unwanted
-	step-rule
+	    step-rule
        )
+
+    ;; TODO Handle *pn-two* groups.
+    (if (pn-ne (group-pn grpx) *pn-one*)
+      (return-from group-get-steps ret-steps))
 
     (setf from-reg (rule-initial-region rule-to-goal))
     (setf to-reg (rule-result-region rule-to-goal))
@@ -150,8 +154,8 @@
 
     (loop for ruly in (rulestore-rules (group-rules grpx)) do
 
-      (when (or (value-is-not-low (mask-and (rule-b01 ruly) (change-b01 wanted-changes)))
-                (value-is-not-low (mask-and (rule-b10 ruly) (change-b10 wanted-changes))))
+      (when (or (value-is-not-low (mask-and (rule-m01 ruly) (change-m01 wanted-changes)))
+                (value-is-not-low (mask-and (rule-m10 ruly) (change-m10 wanted-changes))))
         ;(format t "~&ruly ~A" ruly)
   
         ;; Where wanted changes are at a position where the rule is X->x,
@@ -161,11 +165,11 @@
 	(setf rulz ruly)
 
         ;; Calc needed masks.
-        (setf x-not-x (mask-new-and (rule-b01 ruly) (rule-b10 ruly))) ; Get mask of X->x.
+        (setf x-not-x (mask-new-and (rule-m01 ruly) (rule-m10 ruly))) ; Get mask of X->x.
   
         ;; Get wanted change masks.
-        (setf w01 (change-b01 wanted-changes)) ; get wanted 0->1s.
-        (setf w10 (change-b10 wanted-changes)) ; get wanted 1->0s.
+        (setf w01 (change-m01 wanted-changes)) ; get wanted 0->1s.
+        (setf w10 (change-m10 wanted-changes)) ; get wanted 1->0s.
   
         ;; Parse wanted 0->1 changes in X->x
         (setf msk-change (mask-new-and w01 x-not-x))
@@ -205,21 +209,21 @@
                              (region-intersects (rule-result-region rulz) to-reg))
 
 			(setf step-rule (rule-restrict-initial-region rulz from-reg))
-                        (stepstore-push ret-steps (step-new :act-id nil
+                        (stepstore-push ret-steps (step-new :act-id 0   ; Caller may change.
 							    :rule step-rule
 							    )))
   
                        ((region-intersects (rule-initial-region rulz) from-reg)
 
 			(setf step-rule (rule-restrict-initial-region rulz from-reg))
-                        (stepstore-push ret-steps (step-new :act-id nil 
+                        (stepstore-push ret-steps (step-new :act-id 0   ; Caller may change
 							    :rule step-rule
 							    )))
   
                        ((region-intersects (rule-result-region rulz) to-reg)
 
 			(setf step-rule (rule-restrict-result-region rulz to-reg))
-                        (stepstore-push ret-steps (step-new :act-id nil 
+                        (stepstore-push ret-steps (step-new :act-id 0   ; Caller may change
 							    :rule step-rule
 							    )))
   

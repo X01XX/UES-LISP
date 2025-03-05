@@ -118,8 +118,8 @@
 )
 
 ;;; Return true if a regionscorrstore contains a given region.
-(defun regionscorrstore-contains (storex regx) ; -> bool
-  ;(format t "regionscorrstore-contains storex ~A regx ~A" storex regx)
+(defun regionscorrstore-member (storex regx) ; -> bool
+  ;(format t "regionscorrstore-member storex ~A regx ~A" storex regx)
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
 
@@ -253,8 +253,8 @@
   (let (links ; Store of regions that intersect both given regions.
        )
     (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
-      (if (and (and (regionscorr-neq regx left-reg) (regionscorr-intersects regx left-reg))
-	       (and (regionscorr-neq regx right-reg) (regionscorr-intersects regx right-reg)))
+      (if (and (and (regionscorr-ne regx left-reg) (regionscorr-intersects regx left-reg))
+	       (and (regionscorr-ne regx right-reg) (regionscorr-intersects regx right-reg)))
 	(push regx links)
       )
     )
@@ -308,14 +308,14 @@
     (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
 
       ;; Find regions that intersect the left region, and at least one other region.
-      (when (and (regionscorr-neq regx left-reg) (regionscorr-intersects regx left-reg))
+      (when (and (regionscorr-ne regx left-reg) (regionscorr-intersects regx left-reg))
 	;; Check if the region intersects any other region, that left-reg does not intersect.
 	(if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg left-reg)
 	  (push regx links)
 	)
       )
       ;; Find regions that intersect the right region, and at least one other region.
-      (when (and (regionscorr-neq regx right-reg) (regionscorr-intersects regx right-reg))
+      (when (and (regionscorr-ne regx right-reg) (regionscorr-intersects regx right-reg))
 	;; Check if the region intersects any other region, that left-reg does not intersect.
 	(if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg right-reg)
 	  (push regx links)
@@ -358,7 +358,7 @@
 
     ;; Remove dups, if any.
     (loop for regscorrx in (regionscorrstore-regionscorr-list store1) do
-      (if (not (regionscorrstore-contains store2 regscorrx))
+      (if (not (regionscorrstore-member store2 regscorrx))
 	(regionscorrstore-push store2 regscorrx)
       )
     )
@@ -378,7 +378,7 @@
 
           (loop for regscorry in (regionscorrstore-regionscorr-list store2) do
     
-            (if (regionscorr-neq regscorrx regscorry)
+            (if (regionscorr-ne regscorrx regscorry)
   
               (when (regionscorrstore-any-intersection tmpstore regscorry)
   

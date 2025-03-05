@@ -126,7 +126,7 @@
 )
 
 ;;; Return true if two states are not equal.
-(defun state-neq (sta1 sta2) ; -> bool
+(defun state-ne (sta1 sta2) ; -> bool
   (assert (state-p sta1))
   (assert (state-p sta2))
   (assert (= (state-num-bits sta1) (state-num-bits sta2)))

@@ -105,7 +105,7 @@
   (let ((last-step))
     (loop for stepx in (plan-step-list planx) do
         (when last-step
-	  (when (region-neq (step-result-region last-step) (step-initial-region stepx))
+	  (when (region-ne (step-result-region last-step) (step-initial-region stepx))
 	    (format t "~&~A -> ~A ?" (step-result-region last-step) (step-initial-region stepx))
             (return-from plan-is-valid false))
 	)

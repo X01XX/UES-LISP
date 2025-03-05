@@ -36,8 +36,8 @@
     (setf sample2 (sample-new :initial high-state :result high-state))
 
     (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample1) (rule-new sample2)))))))
-    (action-process-sample act0 sample1)
-    (action-process-sample act0 sample2)
+    (action-take-sample-for-need act0 high-state)
+    (action-take-sample-for-need act0 low-state)
 
     (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state)
   )
@@ -110,7 +110,7 @@
 
 ;;; Return the maximum region for a domain.
 (defun domain-max-region (domx) ; -> region.
-  (region-new (statestore-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx))))))
+  (region-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx)))))
 )
 
 ;;; Return a plan to change a current region to a goal region.
@@ -130,64 +130,64 @@
     (return-from domain-get-plan nil))
 
   (let ((steps (domain-get-steps domx (rule-new-region-to-region from-reg to-reg) with-reg)) stepy)
-    (format t "~&steps found ~A" steps)
+    ;(format t "~&steps found ~A" (stepstore-str steps))
     ;; Check for one step that spans the gap.
     (let (span-steps)
       (loop for stepx in (stepstore-step-list steps) do
-        (when (eq (step-kind stepx) 's)
+        (when (and (region-superset-of :sup (rule-initial-region (step-rule stepx)) :sub from-reg)
+                   (region-superset-of :sup (rule-result-region (step-rule stepx)) :sub to-reg))
           (push stepx span-steps)) 
-	; TODO test restrict rule initial region has result region in from-reg.
       )
       (when span-steps
-	(setf stepy (nth (random (length span-steps)) span-steps))
-	(return-from domain-get-plan (plan-new (list stepy)))
+	    (setf stepy (nth (random (length span-steps)) span-steps))
+	    (return-from domain-get-plan (plan-new (list stepy)))
       )
+    )
 
-      ;; Gather steps that intersect the from-reg or two-reg.
-      (let (step-list stepy planx)
-        (loop for stepx in (stepstore-step-list steps) do
-	  ;(format t "~& rule ~A initial ~A result ~A" (step-rule stepx) (rule-initial-region (step-rule stepx))
-	  ;                                                              (rule-result-region (step-rule stepx)))
-	  (format t "~&rule initial ~A intersects ~A = ~A" (rule-initial-region (step-rule stepx)) from-reg
-		                                           (region-intersects (rule-initial-region (step-rule stepx)) from-reg))
-	  (format t "~&rule result ~A intersects ~A = ~A" (rule-result-region (step-rule stepx)) to-reg
-		                                          (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-	  (when (or (region-intersects (rule-initial-region (step-rule stepx)) from-reg)
-	            (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-	    (push stepx step-list))
-        )
-	(when step-list
-	  ;; Choose a random step.
-	  (setf stepy (nth (random (length step-list)) step-list))
+    ;; Gather steps that intersect the from-reg or two-reg.
+    (let (step-list stepy planx)
+      (loop for stepx in (stepstore-step-list steps) do
+	    ;(format t "~& rule ~A initial ~A result ~A" (step-rule stepx) (rule-initial-region (step-rule stepx))
+	    ;                                                              (rule-result-region (step-rule stepx)))
+	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepx))) (region-str from-reg)
+	    ;    	                                         (region-intersects (rule-initial-region (step-rule stepx)) from-reg))
+	    ;(format t "~&rule result ~A intersects ~A = ~A" (region-str (rule-result-region (step-rule stepx))) (region-str to-reg)
+		;                                                (region-intersects (rule-result-region (step-rule stepx)) to-reg))
+	    (when (or (region-intersects (rule-initial-region (step-rule stepx)) from-reg)
+	              (region-intersects (rule-result-region (step-rule stepx)) to-reg))
+	      (push stepx step-list))
+      )
+	  (when step-list
+	    ;; Choose a random step.
+	    (setf stepy (nth (random (length step-list)) step-list))
 
-	  ;; Recurse to build the rest of the plan.
-	  (format t "~&rule initial ~A intersects ~A = ~A" (rule-initial-region (step-rule stepy)) from-reg
-		                                           (region-intersects (rule-initial-region (step-rule stepy)) from-reg))
-	  (when (region-intersects (rule-initial-region (step-rule stepy)) from-reg)
-	    (setf stepy (step-restrict-initial-region stepy from-reg))
-	    (if stepy
-	      (progn
-	        (setf planx (domain-get-plan domx (step-result-region stepy) to-reg with-reg (1- depth)))
-	        (if planx
-                  (return-from domain-get-plan (plan-link (plan-new (list stepy)) planx))
-                  (return-from domain-get-plan nil)
+	    ;; Recurse to build the rest of the plan.
+	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepy))) (region-str from-reg)
+		;                                                 (region-intersects (rule-initial-region (step-rule stepy)) from-reg))
+	    (when (region-intersects (rule-initial-region (step-rule stepy)) from-reg)
+	      (setf stepy (step-restrict-initial-region stepy from-reg))
+	      (if stepy
+	        (progn
+	          (setf planx (domain-get-plan domx (step-result-region stepy) to-reg with-reg (1- depth)))
+	          (if planx
+                (return-from domain-get-plan (plan-link (plan-new (list stepy)) planx))
+                (return-from domain-get-plan nil)
+	          )
 	        )
+            (return-from domain-get-plan nil)
 	      )
-              (return-from domain-get-plan nil)
-	    )
-          )
-	  (format t "~&rule result ~A intersects ~A = ~A" (rule-result-region (step-rule stepy)) to-reg
-		                                          (region-intersects (rule-result-region (step-rule stepy)) to-reg))
-	  (when (region-intersects (rule-result-region (step-rule stepy)) to-reg)
-	    (setf stepy (step-restrict-result-region stepy to-reg))
-            (setf planx (domain-get-plan domx from-reg (step-initial-region stepy) with-reg (1- depth)))
-	    (if planx
-              (return-from domain-get-plan (plan-link planx (plan-new (list stepy)))) 
-              (return-from domain-get-plan nil))
-          )
-	)
-	(return-from domain-get-plan nil)
-      ) ; end-let
+        )
+	    ;(format t "~&rule result ~A intersects ~A = ~A" (region-str (rule-result-region (step-rule stepy))) (region-str to-reg)
+		;                                                (region-intersects (rule-result-region (step-rule stepy)) to-reg))
+	    (when (region-intersects (rule-result-region (step-rule stepy)) to-reg)
+	      (setf stepy (step-restrict-result-region stepy to-reg))
+          (setf planx (domain-get-plan domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+	      (if planx
+            (return-from domain-get-plan (plan-link planx (plan-new (list stepy)))) 
+            (return-from domain-get-plan nil))
+        )
+	  )
+	  (return-from domain-get-plan nil)
     ) ; end-let
   ) ; end-let
 )
@@ -201,12 +201,15 @@
     (needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
 
     ;; Find plan for each need.
-    (loop for nedx in (needstore-needs needs) do
-        (cond ((state-p (need-target nedx))
-                (if (state-eq (need-target nedx) (domain-current-state domx))
-                  (setf (need-plan nedx) (plan-new nil)))
+    (loop for needx in (needstore-needs needs) do
+        (cond ((state-p (need-target needx))
+                (if (state-eq (need-target needx) (domain-current-state domx))
+                  (setf (need-plan needx) (plan-new nil))
+                  (setf (need-plan needx) (domain-get-plan domx (region-new (domain-current-state domx))
+                                                               (region-new (need-target needx))
+                                                               (domain-max-region domx) 10)))
               )
-              ((region-p (need-target nedx))
+              ((region-p (need-target needx))
               )
               (t (error "Unrecognized target type"))
         )
@@ -250,15 +253,45 @@
     )
 )
 
-;;; Process a need.
-(defun domain-process-need (domx nedx) ; -> sample instance.
-   ;(format t "~&domain-process-need: ~A ~A" (type-of domx) (type-of nedx)) 
-   (assert (domain-p domx))
-   (assert (need-p nedx))
+;;; Run a plan.
+(defun domain-run-plan (domx planx) ; -> side effect, domain may be changed.
+  (assert (domain-p domx))
+  (assert (plan-p planx))
 
-   (let ((act-id (need-act-id nedx)) smpl)
-      (setf smpl (action-take-sample (actionstore-nth (domain-actions domx) act-id) (need-target nedx)))
-      (setf (domain-current-state domx) (sample-result smpl))
+  (let (smpl)
+    (format t "~&Domain: ~D, running plan: ~A" (domain-id domx) (plan-str planx))
+    (loop for stepx in (plan-step-list planx) do
+      (if (region-superset-of-state (step-initial-region stepx) (domain-current-state domx))
+        (progn
+          (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
+          (setf (domain-current-state domx) (sample-result smpl))
+        )
+        (progn
+          (format t "~&step initial region is not a superset of the current state")
+          (return-from domain-run-plan)
+        )
+      ) 
+    ) ; next stepx
+  )
+)
+
+;;; Process a need.
+(defun domain-process-need (domx needx) ; -> sample instance.
+   ;(format t "~&domain-process-need: ~A ~A" (type-of domx) (type-of needx)) 
+   (assert (domain-p domx))
+   (assert (need-p needx))
+
+   (let ((act-id (need-act-id needx)) smpl)
+      (if (plan-is-not-empty (need-plan needx))
+        (domain-run-plan domx (need-plan needx))
+      )
+      (if (state-eq (domain-current-state domx) (need-target needx))
+        (progn
+          (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) act-id) (domain-current-state domx)))
+          (setf (domain-current-state domx) (sample-result smpl))
+        )
+        (format t "~&need action not taken")
+      )
    )
 )
 

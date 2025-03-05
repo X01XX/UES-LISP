@@ -90,21 +90,21 @@
      (format t "~&  state-between OK")
   )
 
-  ; Test state-neq.
+  ; Test state-ne.
   (let (boolx sta1 sta2 sta3)
     (setf sta1 (state-from 's0001))
     (setf sta2 (state-from 's0010))
     (setf sta3 (state-from 's0001))
 
     ; Test two states that are eq.
-    (setf boolx (state-neq sta1 sta3))
+    (setf boolx (state-ne sta1 sta3))
     (assert (and (bool-p boolx) (not boolx)))
 
     ; Test two states that are not eq.
     (setf boolx (state-eq sta1 sta2))
     (assert (and (bool-p boolx) (not boolx)))
 
-    (format t "~&  state-neq OK")
+    (format t "~&  state-ne OK")
   )
 
   ; Test state-and.

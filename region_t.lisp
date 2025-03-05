@@ -4,7 +4,7 @@
 
  ; Test region-new
  (let (states regx)
-   (setf states (statestore-new (list (state-from 's0001) (state-from 's0010) (state-from 's0100))))
+   (setf states (list (state-from 's0001) (state-from 's0010) (state-from 's0100)))
    (setf regx (region-new states))
    (assert (region-p regx))
    (assert (and (region-p regx) (string= (region-str regx) "r0xxX+")))
@@ -25,7 +25,7 @@
    (assert (and (state-p stax) (state-eq stax (state-from 's0110))))
 
    ; Test three-state region.
-   (setf states (statestore-new (list (state-from 's0001) (state-from 's0010) (state-from 's0100))))
+   (setf states (list (state-from 's0001) (state-from 's0010) (state-from 's0100)))
    (setf regx (region-new states))
    (setf stax (region-high-state regx))
    (assert (and (state-p stax) (state-eq stax (state-from 's0111))))
@@ -46,7 +46,7 @@
    (assert (and (state-p stax) (state-eq stax (state-from 's0101))))
 
    ; Test three-state region.
-   (setf states (statestore-new (list (state-from 's0001) (state-from 's0011) (state-from 's0101))))
+   (setf states (list (state-from 's0001) (state-from 's0011) (state-from 's0101)))
    (setf regx (region-new states))
    (setf stax (region-low-state regx))
    (assert (and (state-p stax) (state-eq stax (state-from 's0001))))
@@ -67,9 +67,9 @@
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0010))))
 
    ; Test three-state region.
-   (setf regx (region-new (statestore-new (list (state-from 's0001)
-                                                (state-from 's0010)
-                                                (state-from 's0101)))))
+   (setf regx (region-new (list (state-from 's0001)
+                                (state-from 's0010)
+                                (state-from 's0101))))
    (setf mskx (region-x-mask regx))
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0111))))
 
@@ -89,9 +89,9 @@
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0101))))
 
    ; Test three-state region.
-   (setf regx (region-new (statestore-new (list (state-from 's1000)
-                                                (state-from 's1010)
-						                        (state-from 's1100)))))
+   (setf regx (region-new (list (state-from 's1000)
+                                (state-from 's1010)
+						        (state-from 's1100))))
    (setf mskx (region-1-mask regx))
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm1000))))
 
@@ -111,9 +111,9 @@
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm1000))))
 
    ; Test three-state region.
-   (setf regx (region-new (statestore-new (list (state-from 's1000)
-                                                (state-from 's1010)
-						                        (state-from 's1100)))))
+   (setf regx (region-new (list (state-from 's1000)
+                                (state-from 's1010)
+						        (state-from 's1100))))
    (setf mskx (region-0-mask regx))
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0001))))
 
@@ -133,9 +133,9 @@
    (assert (and (state-p stax) (state-eq stax (state-from 's0101))))
 
    ; Test three-state region.
-   (setf regx (region-new (statestore-new (list (state-from 's0001)
-                                                (state-from 's0010)
-                                                (state-from 's0111)))))
+   (setf regx (region-new (list (state-from 's0001)
+                                (state-from 's0010)
+                                (state-from 's0111))))
    (setf stax (region-second-state regx))
    (assert (and (state-p stax) (state-eq stax (state-from 's0110))))
 
@@ -319,23 +319,23 @@
     (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
     ;(format t "~&regstr 1: ~A" regstr)
     (assert (= (regionstore-length regstr) 2))
-    (assert (regionstore-contains regstr (region-from 'r01X1)))
-    (assert (regionstore-contains regstr (region-from 'r0x01)))
+    (assert (regionstore-member regstr (region-from 'r01X1)))
+    (assert (regionstore-member regstr (region-from 'r0x01)))
 
     ; Test subtracting an intersecting region.
     (setf reg2 (region-from 'rX01x))
     (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
     ;(format t "~&regstr 2: ~A" regstr)
     (assert (= (regionstore-length regstr) 2))
-    (assert (regionstore-contains regstr (region-from 'r01X1)))
-    (assert (regionstore-contains regstr (region-from 'r0x01)))
+    (assert (regionstore-member regstr (region-from 'r01X1)))
+    (assert (regionstore-member regstr (region-from 'r0x01)))
 
     ; Test subtracting a non-intersecting region.
     (setf reg2 (region-from 'rX010))
     (setf regstr (region-subtract :min-reg reg1 :sub-reg reg2))
     ;(format t "~&regstr 3: ~A" regstr)
     (assert (= (regionstore-length regstr) 1))
-    (assert (regionstore-contains regstr (region-from 'r0XX1)))
+    (assert (regionstore-member regstr (region-from 'r0XX1)))
 
     ; Test subtracting a superset region.
     (setf reg2 (region-from 'rXXXX))

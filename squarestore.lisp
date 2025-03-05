@@ -25,27 +25,32 @@
 (defun squarestore-new () ; -> squarestore.
   ;(format t "~&squarestore-new")
 
-  (make-squarestore :squares (make-hash-table))
+  (make-squarestore :squares (make-hash-table :test #'equalp)) ; equalp can detect state struct equality.
 )
 
 ;;; Add a square.
-(defun squarestore-add(storex sqrx) ; -> square.
-  ;(format t "~&squarestore-add")
+(defun squarestore-add(storex sqrx) ; -> side-effect, squarestore changed.
+  ;(format t "~&squarestore-add ~A" (square-str sqrx))
   (assert (squarestore-p storex))
   (assert (square-p sqrx))
 
   (setf (gethash (square-state sqrx) (squarestore-squares storex)) sqrx) 
+
+  (setf keyx (state-new (state-value (square-state sqrx))))
+  ;(format t "~&squarestore-add: find after ~A" (type-of (squarestore-find storex keyx)))
 )
 
 ;;; Find a square, given a state.
 (defun squarestore-find (storex key) ; -> square, or nil.
+  ;(format t "~&squarestore-find ~A" (state-str key))
   (assert (squarestore-p storex))
   (assert (state-p key))
 
-  (assert (squarestore-p storex))
-  (assert (state-p key))
-
-  (gethash key (squarestore-squares storex))
+  (let (sqrx)
+    (setf sqrx (gethash key (squarestore-squares storex)))
+    ;(format t "~&squarestore-find: found ~A" (type-of sqrx))
+    sqrx
+  )
 )
 
 ;;; Return the most recent result of a square.
@@ -132,6 +137,7 @@
 
 ;; Check if a region of states, representing squares, is valid.
 (defun squarestore-region-is-valid (storex regx) ; -> bool
+  ;(format t "~&squarestore-region-is-valid: ~A ~A" (region-str regx) (statestore-str (region-states regx)))
   (assert (squarestore-p storex))
   (assert (region-p regx))
 

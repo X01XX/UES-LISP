@@ -80,7 +80,7 @@
 )
 
 ;;; Return true if two selectregionss are not equal.
-(defun selectregions-neq (sregs1 sregs2) ; -> bool
+(defun selectregions-ne (sregs1 sregs2) ; -> bool
   (assert (selectregions-p sregs1))
   (assert (selectregions-p sregs2))
 

@@ -26,7 +26,7 @@
 
   (let ((ret (make-actionstore :actions nil)))
     (loop for actx in actions do 
-      (if (not (actionstore-contains ret actx))
+      (if (not (actionstore-member ret actx))
         (actionstore-push ret actx))
     )
     ret
@@ -84,7 +84,7 @@
 )
 
 ; Return true if a actionstore contains a given action.
-(defun actionstore-contains (storex actx) ; -> bool
+(defun actionstore-member (storex actx) ; -> bool
   (assert (actionstore-p storex))
   (assert (action-p actx))
 

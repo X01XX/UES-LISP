@@ -62,7 +62,7 @@
 
         ;; Check for pn 1
         (loop for inx from 1 to (1- (square-results-length square)) do
-            (if (state-neq (aref (square-results square) inx) result0) (setf pn-one nil))
+            (if (state-ne (aref (square-results square) inx) result0) (setf pn-one nil))
         )
 
         ;; Calc pn, pnc values, rules.
@@ -73,12 +73,12 @@
         ;; Try to disprove pn-two
         (when (> (square-count square) 2)
 
-	    (if (state-neq result0 (aref (square-results square) 2))
+	    (if (state-ne result0 (aref (square-results square) 2))
                 (return-from square-calc-pn *pn-none*))
 
             (when (> (square-count square) 3)
 
-	        (if (state-neq (aref (square-results square) 1) (aref (square-results square) 3))
+	        (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
                     (return-from square-calc-pn *pn-none*))
 	    )
 	)
@@ -107,7 +107,7 @@
 ;;; Add a result to a square.
 ;;; An existing square will have at least one result already.
 ;;; Return true if the square pn value or pnc bool changes.
-(defun square-add-result (square smpl) ; -> bool
+(defun square-add-sample (square smpl) ; -> bool
     (assert (square-p square))
     (assert (sample-p smpl))
     (assert (state-eq (sample-initial smpl) (square-state square)))
@@ -117,6 +117,7 @@
     (setf (aref (square-results square) (mod (square-count square) 4)) (sample-result smpl))
 
     (incf (square-count square))
+
 
     (let (pnnew pncnew ret)
 
@@ -150,13 +151,13 @@
             (format t "~&square ~A pn ~A pnc changed from ~A to ~A"
 		    (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
             (setf (square-pnc square) pncnew)
-            (return-from square-add-result t)
+            (return-from square-add-sample t)
         )
         ; (if (null ret)
 	;    (format t "~&square ~A nothing changed pn ~A pnc ~A" (state-str(square-state square)) (pn-str (square-pn square)) (square-pnc square)))
         ret
     ) ; end let
-) ; end square-add-result
+) ; end square-add-sample
 
 ;;; Return the most recent result of a square.
 (defun square-most-recent-result (sqrx) ; -> state.
@@ -201,7 +202,7 @@
 (defun square-can-combine-now (sqrx sqry) ; -> bool
     (assert (square-p sqrx))
     (assert (square-p sqry))
-    (assert (state-neq (square-state sqrx) (square-state sqry)))
+    (assert (state-ne (square-state sqrx) (square-state sqry)))
 
     (let ((pnx (square-pn sqrx)) (pny (square-pn sqry))
           (rulsx (square-rules sqrx)) (rulsy (square-rules sqry)))
@@ -221,10 +222,10 @@
 (defun square-compatible (sqrx sqry) ; -> bool
     (assert (square-p sqrx))
     (assert (square-p sqry))
-    (assert (state-neq (square-state sqrx) (square-state sqry)))
+    (assert (state-ne (square-state sqrx) (square-state sqry)))
 
     ; Trying to combine the same square is probably an error in logic.
-    (assert (state-neq (square-state sqrx) (square-state sqry)))
+    (assert (state-ne (square-state sqrx) (square-state sqry)))
 
     (if (pn-gt (square-pn sqry) (square-pn sqrx))
         (return-from square-compatible nil))
@@ -240,5 +241,19 @@
 
     ;(format t "~&about to compare ~A and ~A" (rulestore-str (square-rules sqrx)) (rulestore-str (square-rules sqry)))
     (not (null (rulestore-union (square-rules sqrx) (square-rules sqry))))
+)
+
+;;; Return true if the argument is a list of squares, or nil.
+(defun square-list-p (squares) ; -> bool
+  ;(format t "~&square-list-p: ~A ~A" (type-of squares) squares)
+  (if (not (listp squares))
+    (return-from square-list-p false))
+
+  ;; Check for a non-square.
+  (loop for stpx in squares do
+    (if (not (square-p stpx))
+      (return-from square-list-p false))
+  )
+  true
 )
 

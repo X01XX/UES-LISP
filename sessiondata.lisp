@@ -127,3 +127,42 @@
   (domainstore-process-need (sessiondata-domains sessx) nedx)
 )
 
+;;; Return the number of domains.
+(defun sessiondata-num-domains (sessx) ; -> integer
+  (assert (sessiondata-p sessx))
+
+  (domainstore-length (sessiondata-domains sessx))
+)
+
+;;; Return the number of actions for a given domain.
+(defun sessiondata-num-actions (sessx dom-id) ; -> integer
+  (assert (sessiondata-p sessx))
+  (assert (integerp dom-id))
+  (assert (< dom-id (sessiondata-num-domains sessx)))
+ 
+  (actionstore-length (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)))
+)
+
+;;; Tak a domain action for need.
+(defun sessiondata-take-action-need (sessx dom-id act-id statex)
+  (assert (sessiondata-p sessx))
+  (assert (integerp dom-id))
+  (assert (< dom-id (sessiondata-num-domains sessx)))
+  (assert (integerp act-id))
+  (assert (< act-id (sessiondata-num-actions sessx dom-id)))
+
+  (action-take-sample-for-need (actionstore-nth (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id) statex)
+  
+)
+
+(defun sessiondata-find-square (sessx dom-id act-id statex) ; -> square, or nil.
+  (assert (sessiondata-p sessx))
+  (assert (integerp dom-id))
+  (assert (< dom-id (sessiondata-num-domains sessx)))
+  (assert (integerp act-id))
+  (assert (< act-id (sessiondata-num-actions sessx dom-id)))
+
+  (action-find-square (actionstore-nth (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id) statex)
+)
+
+

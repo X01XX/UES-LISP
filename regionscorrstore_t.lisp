@@ -26,20 +26,20 @@
 
     (assert (= (regionscorrstore-length store2) 3))
 
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'rXX) (region-from 'rX0)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'rXX) (region-from 'r0X)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'rX0) (region-from 'rXX)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rXX) (region-from 'rX0)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rXX) (region-from 'r0X)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rX0) (region-from 'rXX)))))
 
     (setf store3 (regionscorrstore-subtract-regionscorr store2 (regionscorr-new (list (region-from 'r00) (region-from 'r0x)))))
 
     (assert (= (regionscorrstore-length store3) 7))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r1X)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'r10) (region-from 'rXX)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rX1) (region-from 'r0X)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'r1X) (region-from 'r0X)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rXX) (region-from 'r10)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rX1) (region-from 'rX0)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'r1X) (region-from 'rX0)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r1X)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'r10) (region-from 'rXX)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rX1) (region-from 'r0X)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'r1X) (region-from 'r0X)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rXX) (region-from 'r10)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rX1) (region-from 'rX0)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'r1X) (region-from 'rX0)))))
 
     (format t "~&  regionscorrstore-subtract-regionscorr OK")
   )
@@ -53,9 +53,9 @@
     (setf store3 (regionscorrstore-append store1 store2))
 
     (assert (= 4 (regionscorrstore-length store3)))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r00)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r01)))))
-    (assert (regionscorrstore-contains store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r11)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r00)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r01)))))
+    (assert (regionscorrstore-member store3 (regionscorr-new (list (region-from 'rX0) (region-from 'r11)))))
 
     (format t "~&  regionscorrstore-append OK")
   )
@@ -162,12 +162,12 @@
     (setf store2 (regionscorrstore-intersections-of-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 6))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r0101)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'rX100)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r1111)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r00X1)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r0111)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r1101)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r0101)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rX100)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r1111)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r00X1)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r0111)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r1101)))))
 
     ;; Test one region that is a proper subset of another.
     (setf store1 (regionscorrstore-new (list
@@ -177,9 +177,9 @@
     (setf store2 (regionscorrstore-intersections-of-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 3))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'rX1X0)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r11XX)))))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'r01X1)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rX1X0)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r11XX)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r01X1)))))
 
     ;; Test duplicate regionscorr.
     (setf store1 (regionscorrstore-new (list
@@ -189,7 +189,7 @@
     (setf store2 (regionscorrstore-intersections-of-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 1))
-    (assert (regionscorrstore-contains store2 (regionscorr-new (list (region-from 'rX1XX)))))
+    (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rX1XX)))))
 
     ;; Test no regionscorr.
     (setf store1 (regionscorrstore-new nil))

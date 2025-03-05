@@ -24,6 +24,12 @@
 
 ;;; Return a new region, made up of one, or more, states.
 (defun region-new (states) ; -> region.
+  (if (listp states)
+      (setf states (statestore-new states)))
+
+  (if (state-p states)
+      (setf states (statestore-new (list states))))
+
   (assert (statestore-p states))
   (assert (> (statestore-length states) 0))
   (assert (statestore-same-num-bits states))
@@ -240,8 +246,8 @@
     (if (= (length state-first) 1)
       (return-from region-from-str (err-new "region-from-str: No valid character found")))
 
-    (region-new (statestore-new (list (state-new (value-from-str state-first))
-                                      (state-new (value-from-str state-second)))))
+    (region-new (list (state-new (value-from-str state-first))
+                      (state-new (value-from-str state-second))))
   )
 )
 
@@ -261,7 +267,7 @@
 )
 
 ;;; Return true if two regions are not equal.
-(defun region-neq (reg1 reg2) ; -> bool
+(defun region-ne (reg1 reg2) ; -> bool
   (not (region-eq reg1 reg2))
 )
 
@@ -288,8 +294,8 @@
   (if (not (region-intersects reg1 reg2))
     (return-from region-intersection nil))
 
-  (region-new (statestore-new (list (state-new (state-and (region-high-state reg1) (region-high-state reg2)))
-                                    (state-new (state-or  (region-low-state reg1) (region-low-state reg2))))))
+  (region-new (list (state-new (state-and (region-high-state reg1) (region-high-state reg2)))
+                    (state-new (state-or  (region-low-state reg1) (region-low-state reg2)))))
 )
 
 ;;; Return the union of two regions.
@@ -298,8 +304,8 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  (region-new (statestore-new (list (state-new (state-or  (region-high-state reg1) (region-high-state reg2)))
-                                    (state-new (state-and (region-low-state reg1) (region-low-state reg2))))))
+  (region-new (list (state-new (state-or  (region-high-state reg1) (region-high-state reg2)))
+                    (state-new (state-and (region-low-state reg1) (region-low-state reg2)))))
 )
 
 ;;; Return a mask of edge bit positions.
@@ -355,8 +361,8 @@
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
-  (region-new (statestore-new (list (state-new (value-or (mask-value mskx) (state-value (region-high-state regx))))
-                                    (state-new (value-or (mask-value mskx) (state-value (region-low-state regx)))))))
+  (region-new (list (state-new (value-or (mask-value mskx) (state-value (region-high-state regx))))
+                    (state-new (value-or (mask-value mskx) (state-value (region-low-state regx))))))
 )
 
 ;;; Return a region with edges of a mask set to zeros.
@@ -366,8 +372,8 @@
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
   (let ((mskn (mask-new (mask-not mskx))))
-    (region-new (statestore-new (list (state-new (value-and (mask-value mskn) (state-value (region-high-state regx))))
-                                      (state-new (value-and (mask-value mskn) (state-value (region-low-state regx)))))))
+    (region-new (list (state-new (value-and (mask-value mskn) (state-value (region-high-state regx))))
+                      (state-new (value-and (mask-value mskn) (state-value (region-low-state regx))))))
   )
 )
 
@@ -426,6 +432,11 @@
               :m10 (region-1-mask regx)
   )
 
+)
+
+;;; Return the number of unwanted changes.
+(defun region-num-unwanted-changes (regx) ; -> integer.
+  (change-num-changes (region-unwanted-changes regx))
 )
 
 ;;; Return the distance between a region and a state.

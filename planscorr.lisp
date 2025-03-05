@@ -79,7 +79,7 @@
 
   (loop for plnx1 in (planscorr-plan-list plnsc1)
         for plnx2 in (planscorr-plan-list plnsc2) do
-	(if (region-neq (plan-result-region plnx1) (plan-initial-region plnx2))
+	(if (region-ne (plan-result-region plnx1) (plan-initial-region plnx2))
 	  (return-from planscorr-are-sequence false))
   )
   true

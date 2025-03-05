@@ -62,20 +62,24 @@
 (defun stepstore-str (storex) ; -> string.
   (assert (stepstore-p storex))
 
-  (let ((ret "#S(STEPSTORE ") (start t))
+  (when (stepstore-is-empty storex)
+    (return-from stepstore-str "(steps: NIL)")
+  ) 
+  (let ((ret "(steps: ") (start t))
 
     (loop for stpx in (stepstore-step-list storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (format nil " ~&  ~A" (step-str stpx))))
     )
+    (setf ret (concatenate 'string ret ")"))
 
     ret
   )
 )
 
 ; Return true if a stepstore contains a given step.
-(defun stepstore-contains (storex stpx) ; -> bool
+(defun stepstore-member (storex stpx) ; -> bool
   (assert (stepstore-p storex))
   (assert (step-p stpx))
 

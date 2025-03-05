@@ -162,3 +162,10 @@
   (length (needstore-needs storex))
 )
 
+;;; Return a list of needs.
+(defun needstore-need-list (storex) ; -> list of needs.
+  (assert (needstore-p storex))
+
+  (needstore-needs storex)
+)
+

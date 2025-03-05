@@ -112,7 +112,7 @@
   (assert (pathscorr-p pathscorrx))
   (assert (regionscorr-p regx))
 
-  (regionscorrstore-contains (pathscorr-regionscorrstore pathscorrx) regx)
+  (regionscorrstore-member (pathscorr-regionscorrstore pathscorrx) regx)
 )
 
 ;;; Return the first regionscorr in a non-empty pathscorr.
