@@ -425,25 +425,14 @@
   (assert (action-p actx))
   (assert (state-p stax))
 
-  (let (smpl sqrx invalidated-groups square-changed)
+  (let (smpl sqrx)
     (setf smpl (action-get-sample actx stax))
 
     ;; Update, or add, square.
     (setf sqrx (action-find-square actx stax))
     (if sqrx
-      (progn
-        (setf square-changed (square-add-sample sqrx smpl))
-        (if square-changed
-          (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
-      )
-      (progn
-        (setf sqrx (square-new smpl))
-        (squarestore-add (action-squares actx) sqrx)
-        (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
-      )
-    )
-    (if invalidated-groups
-      (action-process-invalidated-groups actx invalidated-groups)
+        (action-add-square-sample actx sqrx smpl)
+        (action-add-square actx (square-new smpl))
     )
     smpl
   )
@@ -457,29 +446,21 @@
   (assert (action-p actx))
   (assert (state-p stax))
 
-  (let (smpl sqrx invalidated-groups)
+  (let (smpl sqrx)
     (setf smpl (action-get-sample actx stax))
 
     ;; If a square exists, update it.
     (setf sqrx (action-find-square actx stax))
     (if sqrx
-      (progn
-        (setf square-changed (square-add-sample sqrx smpl))
-        (if square-changed
-          (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
-      )
-      (progn
+      (action-add-square-sample actx sqrx smpl)
+      (let (invalidated-groups)
         ;; No square exists.
         (setf invalidated-groups (groupstore-groups-invalidated-by-sample (action-groups actx) smpl))
         ;; If any groups invalidated by the sample, add a square.
         (if invalidated-groups
-          (setf sqrx (square-new smpl))
-          (squarestore-add (action-squares actx) sqrx)
+          (action-add-square actx (square-new smpl)) ; unfoutunately causes another run of groupstore-groups-invalidated-by-sample
         )
       )
-    )
-    (if invalidated-groups
-      (action-process-invalidated-groups actx invalidated-groups)
     )
     smpl
   )
@@ -579,15 +560,50 @@
   (squarestore-find (action-squares actx) stax)
 )
 
-;;; Add a square.
+;;; Add a new square, from only one place in action.lisp.
+;;; To support additional logic.
 (defun action-add-square (actx sqrx) ; -> side effect, action instance is changed.
   (assert (action-p actx))
   (assert (square-p sqrx))
 
   ;; Check for overwrite.
   (if (squarestore-find (action-squares actx) (square-state sqrx))
-    (error "Readding a square?")
-    (squarestore-add (action-squares actx) sqrx))
+    (error "Readding a square?"))
+
+  (let (invalidated-groups)
+    ;; Add square to action-squares.
+    (squarestore-add (action-squares actx) sqrx)
+
+    ;; Check if any groups are invalidated by the square.
+    (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
+
+    (if invalidated-groups
+      ;; Process invalidated groups.
+      (action-process-invalidated-groups actx invalidated-groups))
+  )
+)
+
+;;; Add a sample to a square, from only one place in action.lisp.
+;;; To support additional logic.
+(defun action-add-square-sample (actx sqrx smpl) ; -> bool, true if a pn, or pnc, change happens.
+  (assert (action-p actx))
+  (assert (square-p sqrx))
+  (assert (sample-p smpl))
+
+  (let (cng)
+    ;; Add sample to square.
+    (setf cng (square-add-sample sqrx smpl))
+
+    (if cng 
+      ;; If square pn, or pnc, changed, check for invalidated groups.
+      (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
+
+      (if invalidated-groups
+        ;; Process invalidated groups.
+        (action-process-invalidated-groups actx invalidated-groups))
+    )
+    cng
+  )
 )
 
 ;;; Combine possible regions of similar squares, if possible.

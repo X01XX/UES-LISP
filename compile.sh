@@ -11,3 +11,13 @@
 /usr/bin/egrep -i "Compiling|Warning:|Error:" ./tmp.txt | /usr/bin/grep -v DEPTH | /usr/bin/egrep -i -B 1 "Warning:|Error:"
 /usr/bin/rm ./*.o ./tmp.txt
 
+# Check some things.
+if [ `/usr/bin/grep -c -- squarestore-add action.lisp` -ne 1 ]
+then
+  /usr/bin/echo "squarestore-add calls in action.lisp gt 1?"
+fi
+
+if [ `/usr/bin/grep -c -- square-add-sample action.lisp` -ne 1 ]
+then
+  /usr/bin/echo "square-add-sample calls in action.lisp gt 1?"
+fi
