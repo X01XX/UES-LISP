@@ -124,7 +124,7 @@
         (setf pnnew (square-calc-pn square))
 
         (when (neq pnnew (square-pn square))
-            (format t "~&                 square ~A pn  changed from ~A to ~A" (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
+            (format t "~&square ~A pn  changed from ~A to ~A" (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
             (setf (square-pn square) pnnew) ; set new pn, so subsequent pnc calc works correctly.
 
 	    (cond ((eq pnnew *pn-one*)
@@ -168,7 +168,7 @@
 (defun square-str (asqr)  ; -> string
     (assert (square-p asqr))
  
-    (let ((str "#S[SQUARE "))
+    (let ((str "["))
         (setf str (concatenate 'string str (state-str (square-state asqr))))
         (setf str (concatenate 'string str (format nil " :pn ~D :pnc ~A" (pn-str (square-pn asqr)) (square-pnc asqr))))
         (setf str (concatenate 'string str (format nil " :rules ~A" (rulestore-str (square-rules asqr)))))
@@ -217,15 +217,15 @@
   ) ; end let
 )
 
-;;; Return true if two squares may be compatible as-is, or with more samples of
-;;; the second square given.
+;;; Return true if two squares may be compatible as-is.
 (defun square-compatible (sqrx sqry) ; -> bool
     (assert (square-p sqrx))
     (assert (square-p sqry))
-    (assert (state-ne (square-state sqrx) (square-state sqry)))
 
     ; Trying to combine the same square is probably an error in logic.
     (assert (state-ne (square-state sqrx) (square-state sqry)))
+    (if (pn-ne (square-pn sqrx) (square-pn sqry))
+        (return-from square-compatible nil))
 
     (if (pn-gt (square-pn sqry) (square-pn sqrx))
         (return-from square-compatible nil))
@@ -233,14 +233,14 @@
     (if (and (pn-lt (square-pn sqry) (square-pn sqrx)) (square-pnc sqry))
         (return-from square-compatible nil))
 
-    (if (eq (square-pn sqrx) *pn-none*)
-        (return-from square-compatible t))
-
-    (if (rulestore-union (square-rules sqrx) (square-rules sqry))
+    (if (pn-eq (square-pn sqrx) *pn-none*)
         (return-from square-compatible t))
 
     ;(format t "~&about to compare ~A and ~A" (rulestore-str (square-rules sqrx)) (rulestore-str (square-rules sqry)))
-    (not (null (rulestore-union (square-rules sqrx) (square-rules sqry))))
+    (if (rulestore-union (square-rules sqrx) (square-rules sqry))
+        (return-from square-compatible t))
+
+    nil
 )
 
 ;;; Return true if the argument is a list of squares, or nil.

@@ -36,8 +36,7 @@
 
   (setf (gethash (square-state sqrx) (squarestore-squares storex)) sqrx) 
 
-  (setf keyx (state-new (state-value (square-state sqrx))))
-  ;(format t "~&squarestore-add: find after ~A" (type-of (squarestore-find storex keyx)))
+  ;(format t "~&squarestore-add: find after ~A" (type-of (squarestore-find storex (square-state sqrx))))
 )
 
 ;;; Find a square, given a state.
@@ -184,7 +183,7 @@
         (setf rules (rulestore-union rules (square-rules sqrx))))
 
       (if (null rules)
-        (error "Squares defining a region cannot form a union?"))
+        (return-from squarestore-region-is-valid false))
     )
 
     ;; Check other square rules in region.
@@ -194,5 +193,17 @@
     )
 
     true
+  )
+)
+
+;;; Return a string of squares contained in a squarestore.
+(defun squarestore-str (storex) ; -> string
+  (assert (squarestore-p storex))
+
+  (let ((ret ""))
+    (loop for sqrx being the hash-values of (squarestore-squares storex) do
+        (setf ret (concatenate 'string ret (format nil "~& ~A" (square-str sqrx))))
+    )
+    ret
   )
 )

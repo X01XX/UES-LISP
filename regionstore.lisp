@@ -252,8 +252,8 @@
   (assert (regionstore-p sub-store))
 
   (let ((ret min-store))
-    (loop for regscorrx in (regionstore-regions sub-store) do
-      (setf ret (regionstore-subtract-region ret regscorrx))
+    (loop for regx in (regionstore-regions sub-store) do
+      (setf ret (regionstore-subtract-region ret regx))
     )
     
     ;(format t "~&regionstore-subtract returning" ret)
@@ -309,3 +309,44 @@
     fragments
   )
 )
+
+;;; Return the intersection of two regionstores.
+(defun regionstore-intersection (storex storey) ; -> RegionStore.
+  (assert (regionstore-p storex))
+  (assert (regionstore-p storey))
+
+  (let ((ret (regionstore-new nil)))
+
+    (loop for regx in (regionstore-regions storex) do
+
+      (loop for regy in (regionstore-regions storey) do
+
+        (if (region-intersects regx regy)
+          (regionstore-push-nosubs ret (region-intersection regx regy))
+        )
+      )
+    )
+    ret
+  )
+)
+
+;;; Return the union of two regionstores.
+(defun regionstore-union (storex storey) ; -> RegionStore.
+  (assert (regionstore-p storex))
+  (assert (regionstore-p storey))
+
+  (let ((ret (regionstore-new nil)))
+
+    (loop for regx in (regionstore-regions storex) do
+      (regionstore-push-nosubs ret regx)
+    )
+
+    (loop for regy in (regionstore-regions storey) do
+      (regionstore-push-nosubs ret regy)
+    )
+
+    ret
+  )
+)
+
+

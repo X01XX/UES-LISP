@@ -116,6 +116,14 @@
       (setf (sessiondata-can-do sessx) can-do)
       (setf (sessiondata-cant-do sessx) cant-do)
   )
+  ;(let (act6)
+  ;  (when (needstore-is-empty (sessiondata-needs sessx))
+  ;    (setf act6 (actionstore-nth (domain-actions (domainstore-nth (sessiondata-domains sessx) 1)) 6))
+  ;    (format t "~&act6 id ~D" (action-id act6))
+  ;    (format t "~&act6 squares ~A" (squarestore-str (action-squares act6)))
+  ;  )
+  ;)
+
 )
 
 ;;; Process a given need.

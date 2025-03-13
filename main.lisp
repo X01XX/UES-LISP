@@ -145,7 +145,6 @@
     (assert (sessiondata-p sessx))
 
     (let ((can-do (sessiondata-can-do sessx)) (cant-do (sessiondata-cant-do sessx)))
-      (format t "~& ~&-------------------------")
       (format t "~& ~&Needs that cannot be done:")
       (loop for needx in (needstore-need-list cant-do) do
         (format t "~&   ~A" (need-str needx))
@@ -173,13 +172,15 @@
   (format t "~& ~&    Nothing, just press Enter - Attempt to satisfy a need that can be done, if any.")
   (format t "~& ~&    q - Quit.")
   (format t "~& ~&    dn <number> - Do Need.")
+  (format t "~& ~&    ss <domain-number> <action-number> state - Sample State for a domain and action.")
+  (format t "~& ~&    sqrs <domain-number> <action-number> - Show squares of a domain and action.")
 
   (assert (sessiondata-p sessx))
 
   (let (inp tokens token (step 0) inx dom-id act-id statex)
     (loop 
       (incf step)
-      (format t "~&Step: ~D --------------------------------------------" step)
+      (format t "~& ~&Step: ~D --------------------------------------------" step)
       (sessiondata-print sessx)
       (generate-and-display-needs sessx)
 
@@ -220,7 +221,7 @@
               (if (integerp inx)
                 (if (< inx (needstore-length (sessiondata-can-do sessx)))
                   (progn
-                    (format t "~&Need chosen: ~A" (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
+                    (format t "~&Need chosen: ~A~& " (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
                     (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
                   )
                   (format t "~&Invalid need number in Do Need command"))
@@ -229,7 +230,7 @@
             (format t "~&Did not understand Do Need command"))
         )
 
-        (if (string-equal (car tokens) "sneed")
+        (if (string-equal (car tokens) "ss")
           (if (= (length tokens) 4)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -241,8 +242,7 @@
                       (setf statex (state-from-str (fourth tokens)))
                       (if statex
                          (sessiondata-take-action-need sessx dom-id act-id statex)
-                       )
-                       (format t "~&Did not understand state in sneed command")
+                         (format t "~&Did not understand state in sneed command"))
                     )
                     (format t "~&Did not understand action id in sneed command")
                   )
@@ -254,8 +254,30 @@
           )
         )
 
+        (if (string-equal (car tokens) "sqrs")
+          (if (= (length tokens) 3)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (format t "~&squares: ~A" (squarestore-str (action-squares
+                                                   (actionstore-nth
+                                                     (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
+                                                   act-id))))
+                    (format t "~&Did not understand action id in sqrs command")
+                  )
+                )
+                (format t "~&Did not understand domain id in sqrs command")
+              )
+            )
+            (format t "~&Did not understand sqrs command")
+          )
+        )
+
         ;; Force specific domain action state sample, print square and square-count.
-        (if (null tokens)
+        (if (null tokens) ; An unrecgnized token will cause this to be skipped. so the effect is to just rerun get-needs.
 	      ;; Process needs.
 	      (if (needstore-is-not-empty (sessiondata-can-do sessx))
 	        (do-any-need sessx)
@@ -273,7 +295,7 @@
       (when (needstore-is-not-empty can-do)
         (setf inx (random (needstore-length can-do)))
         (setf nedx (needstore-nth can-do inx))
-        (format t "~&Need chosen: ~A" (need-str nedx))
+        (format t "~&Need chosen: ~A~& " (need-str nedx))
         (sessiondata-process-need sessx nedx)
         (return-from do-any-need)
       )

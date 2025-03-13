@@ -94,17 +94,18 @@
 
       (setf ret (concatenate 'string ret (format nil " ~&    ~A" (group-str grpx))))
     )
+    (setf ret (concatenate 'string ret ")"))
 
     ret
   )
 )
 
 ; Return true if a groupstore contains a given group.
-(defun groupstore-member (storex stax) ; -> bool
+(defun groupstore-member (storex grpx) ; -> bool
   (assert (groupstore-p storex))
-  (assert (group-p stax))
+  (assert (group-p grpx))
 
-  (if (member stax (groupstore-groups storex) :test #'group-eq) true false)
+  (if (member grpx (groupstore-groups storex) :test #'group-eq) true false)
 )
 
 (defun groupstore-first (storex) ; -> group
@@ -147,6 +148,19 @@
   false
 )
 
+;;; Return true if a state is in a group made with more than one state.
+(defun groupstore-multistate-groups-state-in (groups stax) ; -> bool.
+  ;(format t "~&groupstore-state-in-group: ~A ~A" (type-of groups) (type-of stax))
+  (assert (groupstore-p groups))
+  (assert (state-p stax))
+
+  (loop for grpx in (groupstore-groups groups) do 
+    (if (and (> (region-number-states (group-region grpx)) 1) (region-superset-of-state (group-region grpx) stax))
+        (return-from groupstore-multistate-groups-state-in true))
+  )
+  false
+)
+
 ;;; Return a list of groups a state is in.
 (defun groupstore-groups-state-in (groups stax) ; -> GroupStore instance.
   ;(format t "~&groupstore-groups-state-in: ~A ~A" (type-of groups) (type-of stax))
@@ -160,6 +174,19 @@
     )
     ret
   )
+)
+
+;;; Return true if a state is in at least one group.
+(defun groupstore-state-in (groups stax) ; -> bool.
+  ;(format t "~&groupstore-state-in: ~A ~A" (type-of groups) (type-of stax))
+  (assert (groupstore-p groups))
+  (assert (state-p stax))
+
+  (loop for grpx in (groupstore-groups groups) do 
+    (if (region-superset-of-state (group-region grpx) stax)
+       (return-from groupstore-state-in true))
+  )
+  false
 )
 
 ;;; Return a list of groups invalidate by a sample.
@@ -184,6 +211,7 @@
 
 ;;; Return a list of groups invalidate by a square.
 (defun groupstore-groups-invalidated-by-square (groups sqrx) ; -> groupstore instance.
+  ;(format t "~&groupstore-groups-invalidated-by-square: ~A" (square-str sqrx))
   (assert (groupstore-p groups))
   (assert (square-p sqrx))
 
@@ -197,6 +225,9 @@
    
       )
     ) ; next grpx
+    (if (groupstore-is-not-empty ret)
+      (format t "~&groupstore-groups-invalidated-by-square: ~A returning ~A" (state-str (square-state sqrx)) (groupstore-str ret))
+    )
     ret
   )
 )

@@ -40,6 +40,7 @@
 
 ;;; Return a new group.
 (defun group-new (regx pn pnc rules)
+  ;(format t "~&group-new ~A ~A ~A ~A" (region-str regx) (pn-str pn) pnc (rulestore-str rules))
   (assert (region-p regx))
   (assert (pn-p pn))
   (assert (bool-p pnc))
@@ -89,7 +90,7 @@
 (defun group-str (agrp)
     (assert (group-p agrp))
 
-    (let ((str "#S(GROUP "))
+    (let ((str "("))
         (setf str (concatenate 'string str (format nil "region ~A" (region-str (group-region agrp)))))
         (if (< (region-number-states (group-region agrp)) 3)
           (setf str (concatenate 'string str " ")))
@@ -242,5 +243,16 @@
 ;;; Return the number of bits used by elements withn a group.
 (defun group-num-bits (grpx) ; -> integer ge 0.
   (region-num-bits (group-region grpx))
+)
+
+;;; Set the group pnc to a differont value.
+(defun group-set-pnc (grpx pnc) ; side-effect, group pnc changed.
+  (assert (group-p grpx))
+  (assert (bool-p pnc))
+
+  (when (xor pnc (group-pnc grpx))
+    (format t "~&group ~A pnc changed from ~A to ~A" (region-str (group-region grpx)) (group-pnc grpx) pnc)
+    (setf (group-pnc grpx) pnc)
+  )
 )
 

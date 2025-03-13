@@ -48,7 +48,8 @@
   (let ((ret "(") (start t))
 
     (loop for rulx in (rulestore-rules storex) do
-      (if start (setf start false)
+      (if start
+        (setf start false)
         (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (rule-str rulx)))
@@ -138,7 +139,7 @@
 ;;; Translate a string into a rulestore.
 ;;; Like [], [[01/10]], or [[01/10], [00/11/11]].
 (defun rulestore-from-str (rsx) ; -> rulestore
-   ;(format t "~&rulestore-from-str1 ~A" rsx)
+   ;(format t "~&rulestore-from-str ~A" rsx)
    (when (stringp rsx)
 
       (if (not (string-equal (subseq rsx 0 1) "["))
@@ -155,14 +156,14 @@
 
    (assert (listp rsx))
 
-    ;(assert (eq (car symbols) 'QUOTE))
-    ;(setf symbols (second symbols))
-
-    (let (rules)
+    (let (rules store)
         (loop for tokx in rsx do
             (push (rule-from tokx) rules)
         )
-       (rulestore-new (reverse rules))
+       
+       (setf store (rulestore-new (reverse rules)))
+       ;(format t "~&   returning store ~A" (rulestore-str store))
+       store
   )
 )
 
@@ -237,6 +238,7 @@
 )
 
 (defun rulestore-union (storex storey) ; -> rulestore instance, or nil.
+  ;(format t "~&rulestore-union: ~A ~A" (type-of storex) (type-of storey))
   (assert (rulestore-p storex))
   (assert (rulestore-p storey))
   (assert (= (rulestore-length storex) (rulestore-length storey)))
@@ -252,7 +254,7 @@
     )
   )
 
-  (when (= 1 (rulestore-length storex))
+  (when (= 2 (rulestore-length storex))
     (let (unx uny rul1 rul2)
       (setf rul1 (rule-union (rulestore-first storex) (rulestore-first storey)))
       (setf rul2 (rule-union (rulestore-second storex) (rulestore-second storey)))
@@ -264,6 +266,7 @@
       (if (and (not (null rul1)) (not (null rul2)))
         (setf uny (rulestore-new (list rul1 rul2))))
 
+     ;(format t "~&unx ~A uny ~A" (type-of unx) (type-of uny))
      (if (and (null unx) (null uny))
         (return-from rulestore-union nil))
 
