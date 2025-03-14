@@ -503,13 +503,18 @@
   (assert (action-p actx))
   (assert (group-p grpx))
 
-  (let ((pnc t))
-    (loop for stax in (statestore-states (region-states (group-region grpx))) do
-      (setf sqrx (squarestore-find (action-squares actx) stax))
-      (if sqrx
-        (if (not (square-pnc sqrx))
-            (setf pnc nil))
-        (error "Group region state square not found?")
+  (let ((pnc t) sqrx)
+    (if (> (region-number-states (group-region grpx)) 2)
+      (setf pnc nil)
+      (progn
+        (loop for stax in (statestore-states (region-states (group-region grpx))) do
+          (setf sqrx (squarestore-find (action-squares actx) stax))
+          (if sqrx
+            (if (not (square-pnc sqrx))
+              (setf pnc nil))
+            (error "Group region state square not found?")
+          )
+        )
       )
     )
     (if (xor pnc (group-pnc grpx))

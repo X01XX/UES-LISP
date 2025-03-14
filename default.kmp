@@ -14,7 +14,8 @@
             (ACT ("[00/Xx/XX]")) ;; 1XXX, not accounted for here, will default to no change.
             (ACT ("[11/Xx/XX]")) 
             (ACT ("[Xx/XX/XX]"))
-            (ACT ("[01/XX/XX]" "[00/XX/Xx]"))) ;; Two different rules, for same the region, in one rulestore.
+            (ACT ("[01/XX/XX]" "[00/XX/Xx]")) ;; Two different rules, for same the region, in one rulestore.
+            (ACT ("[Xx/XX/XX]" "[XX/XX/Xx]" "[XX/Xx/XX]"))) ;; Three different rules, for same the region, in one rulestore, interpretted as unpredictable.
         )
       )
       (SR (RC (r110X r110)) -1)
