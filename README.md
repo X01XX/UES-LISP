@@ -33,3 +33,7 @@ Then: (main) or (all-tests)
 For basic code checks: (load #p "compile.lisp"), but delete *.o files later.
 
 This is still in the early development stage.
+
+I'm using gcl v2.6.14. It has some improvements, though I'm not sure what version they were first implemented in.
+A hash table can have equalp as a test, so a struct can be a key.
+There was a version that did not let me give the name "step" to a struct.  I complained about that, the response was kind of "thats the way it is", but v2.6.14 allows it.
