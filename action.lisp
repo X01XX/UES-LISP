@@ -522,7 +522,36 @@
   )
 )
 
-;;; Process a square that changed due to a new sample.
+;;; Add a new square, from only one place in action.lisp.
+;;; To support additional logic.
+;;; Presumably, Pn == *pn-one*, pnc == nil.
+;;; Invalidated groups may be nil, that is not yet checked for, or a groupstore of invalidated groups.
+(defun action-new-square (actx sqrx invalidated-groups) ; -> side effect, action instance is changed.
+  (format t "~&action-new-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
+  (assert (action-p actx))
+  (assert (square-p sqrx))
+  (assert (or (null invalidated-groups) (groupstore-p invalidated-groups)))
+
+  ;; Check for overwrite.
+  (if (squarestore-find (action-squares actx) (square-state sqrx))
+    (error "Readding a square?"))
+
+  ;; Add the square.
+  (squarestore-add (action-squares actx) sqrx)
+
+  ;; Process added square.
+
+  (if (null invalidated-groups)
+    ;; Check if any groups are invalidated by the square.
+    (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
+
+  (if (groupstore-is-not-empty invalidated-groups)
+      ;; Process invalidated groups.
+      (action-process-invalidated-groups actx invalidated-groups)
+  )
+)
+
+;;; Process a square that changed (pn, pnc) due to a new sample.
 (defun action-process-changed-square (actx sqrx)
   (assert (action-p actx))
   (assert (square-p sqrx))
@@ -534,7 +563,13 @@
           (action-check-group-pnc actx grpx))
     )
   )
-  ;; TODO check for invalidated groups?
+  ;; Check for invalidated groups.
+  (let (invalidated-groups)
+     (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
+     (if (groupstore-is-not-empty invalidated-groups)
+       (action-process-invalidated-groups actx invalidated-groups)
+     )
+   )
 )
 
 ;;; Take an action, for a given state, required for a need.
@@ -551,16 +586,15 @@
     ;; Update, or add, square.
     (setf sqrx (action-find-square actx stax))
     (if sqrx
-        (progn
-          (if (action-add-square-sample actx sqrx smpl)
-            (action-process-changed-square actx sqrx)
-          )
+        (if (action-add-square-sample actx sqrx smpl)
+          (action-process-changed-square actx sqrx)
         )
-        (action-add-square actx (square-new smpl))
+        (action-new-square actx (square-new smpl) nil)
     )
 
+    ;; Make a one-square group, if needed.
+    ;; The target of a need is presumed to be stored, while the target of a step may, or may not, be stored.
     (when (not (groupstore-state-in (action-groups actx) stax))
-      ;; Make a one-square group.
       (setf sqrx (action-find-square actx stax))
       (action-make-groups-from-square actx sqrx)
     )
@@ -579,18 +613,15 @@
   (let (smpl sqrx)
     (setf smpl (action-get-sample actx stax))
 
-    ;; If a square exists, update it.
+    ;; If a square exists, update it. If it changed, process changed square.
+    ;; If a square does not exist, look for invalidated groups.
+    ;;   If the sample invalidated a group, add it as a new square.
     (setf sqrx (action-find-square actx stax))
     (if sqrx
-      (action-add-square-sample actx sqrx smpl)
-      (let (invalidated-groups)
-        ;; No square exists.
-        (setf invalidated-groups (groupstore-groups-invalidated-by-sample (action-groups actx) smpl))
-        ;; If any groups invalidated by the sample, add a square.
-        (if invalidated-groups
-          (action-add-square actx (square-new smpl)) ; unfoutunately causes another run of groupstore-groups-invalidated-by-sample
-        )
-      )
+      (if (action-add-square-sample actx sqrx smpl)
+        (action-process-changed-square actx sqrx))
+
+      (action-new-square actx (square-new smpl) (groupstore-groups-invalidated-by-sample (action-groups actx) smpl))
     )
     smpl
   )
@@ -694,29 +725,6 @@
   (squarestore-find (action-squares actx) stax)
 )
 
-;;; Add a new square, from only one place in action.lisp.
-;;; To support additional logic.
-(defun action-add-square (actx sqrx) ; -> side effect, action instance is changed.
-  (format t "~&action-add-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
-  (assert (action-p actx))
-  (assert (square-p sqrx))
-
-  ;; Check for overwrite.
-  (if (squarestore-find (action-squares actx) (square-state sqrx))
-    (error "Readding a square?"))
-
-  (let (invalidated-groups)
-    ;; Add square to action-squares.
-    (squarestore-add (action-squares actx) sqrx)
-
-    ;; Check if any groups are invalidated by the square.
-    (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
-
-    (if (groupstore-is-not-empty invalidated-groups)
-      ;; Process invalidated groups.
-      (action-process-invalidated-groups actx invalidated-groups))
-  )
-)
 
 ;;; Add a sample to a square, from only one place in action.lisp.
 ;;; To support additional logic.
