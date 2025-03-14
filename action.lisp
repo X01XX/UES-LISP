@@ -525,7 +525,7 @@
 ;;; Add a new square, from only one place in action.lisp.
 ;;; To support additional logic.
 ;;; Presumably, Pn == *pn-one*, pnc == nil.
-;;; Invalidated groups may be nil, that is not yet checked for, or a groupstore of invalidated groups.
+;;; Invalidated groups may be nil, that is not yet checked for, or otherwise a groupstore, which may be empty. 
 (defun action-new-square (actx sqrx invalidated-groups) ; -> side effect, action instance is changed.
   (format t "~&action-new-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
   (assert (action-p actx))
@@ -541,18 +541,21 @@
 
   ;; Process added square.
 
+  ;; Check if any groups are invalidated by the square.
   (if (null invalidated-groups)
-    ;; Check if any groups are invalidated by the square.
     (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
 
+  ;; Check for invalidated groups.
   (if (groupstore-is-not-empty invalidated-groups)
-      ;; Process invalidated groups.
-      (action-process-invalidated-groups actx invalidated-groups)
-  )
+    (action-process-invalidated-groups actx invalidated-groups))
+
+  ;; Make groups from square, or at least a one-square group.
+  (if (not (groupstore-state-in (action-groups actx) (square-state sqrx)))
+    (action-make-groups-from-square actx sqrx))
 )
 
 ;;; Process a square that changed (pn, pnc) due to a new sample.
-(defun action-process-changed-square (actx sqrx)
+(defun action-process-changed-square (actx sqrx) a ; -> side effect, action instance is changed.
   (assert (action-p actx))
   (assert (square-p sqrx))
 
@@ -563,19 +566,23 @@
           (action-check-group-pnc actx grpx))
     )
   )
+
   ;; Check for invalidated groups.
   (let (invalidated-groups)
      (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
      (if (groupstore-is-not-empty invalidated-groups)
-       (action-process-invalidated-groups actx invalidated-groups)
-     )
-   )
+       (action-process-invalidated-groups actx invalidated-groups))
+  )
+
+  ;; Make groups from square, or at least a one-square group.
+  (if (not (groupstore-state-in (action-groups actx) (square-state sqrx)))
+    (action-make-groups-from-square actx sqrx))
 )
 
 ;;; Take an action, for a given state, required for a need.
 ;;; An existitg square will be updated.
 ;;; For a need, it is assumed that a new square will be created if needed.
-(defun action-take-sample-for-need (actx stax) ; -> sample
+(defun action-take-sample-for-need (actx stax) ; -> sample,  side effect, action instance is changed.
   ;(format t "~&action-take-sample-for-need: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
@@ -591,13 +598,6 @@
         )
         (action-new-square actx (square-new smpl) nil)
     )
-
-    ;; Make a one-square group, if needed.
-    ;; The target of a need is presumed to be stored, while the target of a step may, or may not, be stored.
-    (when (not (groupstore-state-in (action-groups actx) stax))
-      (setf sqrx (action-find-square actx stax))
-      (action-make-groups-from-square actx sqrx)
-    )
     smpl
   )
 )
@@ -605,7 +605,7 @@
 ;;; Take an action, for a given state, required for a step.
 ;;; An existitg square will be updated.
 ;;; When a step works, in most cases, its unnecessary to create a new square.
-(defun action-take-sample-for-step (actx stax) ; -> sample 
+(defun action-take-sample-for-step (actx stax) ; -> sample, side effect, action instance is changed.
   ;(format t "~&action-take-sample-for-step: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
@@ -621,7 +621,11 @@
       (if (action-add-square-sample actx sqrx smpl)
         (action-process-changed-square actx sqrx))
 
-      (action-new-square actx (square-new smpl) (groupstore-groups-invalidated-by-sample (action-groups actx) smpl))
+      (progn
+        (setf invalidated-groups (groupstore-groups-invalidated-by-sample (action-groups actx) smpl))
+        (if (groupstore-is-not-empty invalidated-groups)
+          (action-new-square actx (square-new smpl) invalidated-groups))
+      )
     )
     smpl
   )
