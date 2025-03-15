@@ -23,6 +23,7 @@
     (plan nil)      ; Plan to position the current state to the target.
                     ; Nil means no plan to target.
                     ; An empty plan means the position is already at the target.
+    (group-region nil)     ; A group region, or nil.
 )
 
 ; Functions automatically created by defstruct:
@@ -38,7 +39,7 @@
 ; (typep <instance> 'need) -> t
 
 ; Return a new need instance.
-(defun need-new (&key (dom-id 0) act-id kind reason target (extra-info ""))
+(defun need-new (&key (dom-id 0) act-id kind reason target (extra-info "") (group-region nil))
     (assert (integerp dom-id))
     (assert (integerp act-id))
     (assert (numberp kind))
@@ -46,8 +47,9 @@
     (assert (numberp reason))
     (assert (member reason *reasons*))
     (assert (stringp extra-info))
+    (assert (or (null group-region) (region-p group-region)))
 
-    (make-need :dom-id dom-id :act-id act-id :kind kind :reason reason :target target :extra-info extra-info)
+    (make-need :dom-id dom-id :act-id act-id :kind kind :reason reason :target target :extra-info extra-info :group-region group-region)
 )
 
 ;;; Return a string representing a need.
@@ -69,7 +71,7 @@
         (cond ((= (need-reason needx) *state-not-in-group*)
                 (setf str (concatenate 'string str ":reason State not in a group ")))
               ((= (need-reason needx) *confirm-group*)
-                (setf str (concatenate 'string str ":reason Confirm Group ")))
+                (setf str (concatenate 'string str (format nil ":reason Confirm Group ~A" (region-str (need-group-region needx))))))
         )
 
         (if (state-p (need-target needx))

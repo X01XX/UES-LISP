@@ -336,3 +336,20 @@
   (value-new :num-bits (value-num-bits valx) :bits 0)
 )
 
+;;; Return a string for a value list;
+(defun value-list-str (vlist) ; -> string
+  (assert (listp vlist))
+
+  (let ((ret "(") (first t))
+    (loop for valx in vlist do
+      (assert (value-p valx))
+      (if first
+        (setf first nil)
+        (setf ret (concatenate 'string ret " ")))
+      
+      (setf ret (concatenate 'string ret (value-str valx)))
+    )
+    (setf ret (concatenate 'string ret ")"))
+    ret
+  )
+)

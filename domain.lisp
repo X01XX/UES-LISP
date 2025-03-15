@@ -36,8 +36,8 @@
     (setf sample2 (sample-new :initial high-state :result high-state))
 
     (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample1) (rule-new sample2)))))))
-    (action-take-sample-for-need act0 high-state)
-    (action-take-sample-for-need act0 low-state)
+    (action-take-sample-arbitrary act0 high-state)
+    (action-take-sample-arbitrary act0 low-state)
 
     (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state)
   )
@@ -287,7 +287,7 @@
       )
       (if (state-eq (domain-current-state domx) (need-target needx))
         (progn
-          (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) act-id) (domain-current-state domx)))
+          (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) act-id) (domain-current-state domx) needx))
           (setf (domain-current-state domx) (sample-result smpl))
         )
         (format t "~&need action not taken")

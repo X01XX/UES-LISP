@@ -209,14 +209,11 @@
   (assert (not (group-pnc grpx)))
 
   (format t "~&Act: ~D Group: ~A, pnc set to true." (action-id actx) (region-str (group-region grpx)))
-  (setf (group-pnc grpx) true)
+  (group-set-pnc grpx true)
 )
 
 ;;; Return confirm needs for a group.
 ;;; Resample first state in group region and/or far state, until both are pnc.
-;;; If the group region is defined with gt 2 states:
-;;;   If a pn-eq far-from-first-state square exists, replace the region with a two-state region.
-;;;   else sample the far state.
 (defun action-confirm-group-needs (actx grpx) ; -> needstore.
   (assert (action-p actx))
   (assert (group-p grpx))
@@ -237,13 +234,9 @@
 
         ;(format t "~&  square ~A found" (square-str sqr-first))
         ;; Check if more samples needed.
-        (if (square-pnc sqr-first)
-          (progn 
-            (setf (group-pnc grpx) true)
-            (format t "~&Act: ~D Group: ~A, pnc set to true." (action-id actx) (region-str (group-region grpx)))
-          )
+        (if (not (square-pnc sqr-first))
           (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
-               (concatenate 'string "For group " (region-str (group-region grpx))))))
+               "" grp-reg)))
 
           ;(format t "~&action-confirm-group-needs: return 1 Act: ~D Group: ~A needs: ~A"
           ;(action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -263,7 +256,7 @@
         ;; Check if more samples needed.
         (if (not (square-pnc sqr-first))
           (needstore-push needs (action-get-need-resample-state actx (square-state sqr-first) *confirm-group*
-                (concatenate 'string "For group " (region-str (group-region grpx))))))
+                "" grp-reg)))
 
         (setf sqr-far (squarestore-find (action-squares actx) (region-second-state grp-reg)))
         (if (null sqr-far)
@@ -272,11 +265,7 @@
         ;; Check if more samples needed.
         (if (not (square-pnc sqr-far))
           (needstore-push needs (action-get-need-resample-state actx (square-state sqr-far) *confirm-group*
-                 (concatenate 'string "For group " (region-str (group-region grpx))))))
-
-        ;; Set group pnc, if needed.
-        (if (needstore-is-empty needs)
-          (action-group-set-pnc actx grpx))
+                 "" grp-reg)))
 
         ;(format t "~&action-confirm-group-needs: return 2 Act: ~D Group: ~A needs: ~A"
         ;    (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -297,7 +286,7 @@
       ;; Check if more samples needed.
       (if (not (square-pnc sqr-first))
         (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
-                  (concatenate 'string "For group " (region-str (group-region grpx))))))
+                  "" grp-reg)))
 
       ;; Calc far state.
       (setf sta-far (region-far-state (group-region grpx) sta-first))
@@ -307,24 +296,19 @@
 
       ;; Generate far sample needs.
       (when sqr-far
-        (if (square-pnc sqr-far)
-          (setf (group-region grpx) (region-new (list sta-first sta-far)))
+        (if (not (square-pnc sqr-far))
           (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group*
-             (concatenate 'string "For group " (region-str (group-region grpx))))))
+             "" grp-reg)))
 
             ;(format t "~&action-confirm-group-needs: return 3 Act: ~D Group: ~A needs: ~A"
             ;  (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
-
-        ;; Set group pnc, if needed.
-        (if (needstore-is-empty needs)
-          (action-group-set-pnc actx grpx))
 
         (return-from action-confirm-group-needs needs)
       )
 
       ;; sqr-far not found.
       (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group*
-          (concatenate 'string "For group " (region-str (group-region grpx)))))
+          "" grp-reg))
 
       ;(format t "~&action-confirm-group-needs: return 4 Act: ~D Group: ~A needs: ~A"
       ;      (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -363,8 +347,8 @@
                    (setf stax (state-from-str (subseq sname 0 pos)))
                    (if pos
                        (dotimes (i (read-from-string (subseq sname (1+ pos)))) 
-                         (action-take-sample-for-need actx stax))
-                       (action-take-sample-for-need actx stax))
+                         (action-take-sample-arbitrary actx stax))
+                       (action-take-sample-arbitrary actx stax))
                        ; (format t "~&state found ~A sample ~D times" (subseq sname 0 pos)
                        ;          (read-from-string (subseq sname (1+ pos))))
                        ; (format t "~&state found ~A" tokx))
@@ -377,10 +361,12 @@
 )
 
 ;;; Get a need to sample a state, after some checks.
-(defun action-get-need-sample-state (actx stax reason &optional extra-info) ; -> need instance.
+(defun action-get-need-sample-state (actx stax reason &optional extra-info group-region) ; -> need instance.
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (integerp reason))
+  (assert (or (null extra-info) (stringp extra-info)))
+  (assert (or (null group-region) (region-p group-region)))
 
   (if (null extra-info)
     (setf extra-info ""))
@@ -394,15 +380,18 @@
               :kind *first-sample-of-state*
               :reason reason
               :target stax
-              :extra-info extra-info)
+              :extra-info extra-info
+              :group-region group-region)
   )
 )
 
 ;;; Get a need to resample a state, after some checks.
-(defun action-get-need-resample-state (actx stax reason &optional extra-info) ; -> need instance.
+(defun action-get-need-resample-state (actx stax reason &optional extra-info group-region) ; -> need instance.
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (integerp reason))
+  (assert (or (null extra-info) (stringp extra-info)))
+  (assert (or (null group-region) (region-p group-region)))
 
   (if (null extra-info)
     (setf extra-info ""))
@@ -420,15 +409,18 @@
               :kind *resample-state*
               :reason reason
               :target stax
-              :extra-info extra-info)
+              :extra-info extra-info
+              :group-region group-region)
   )
 )
 
 ;;; Get a need to sample a region, after some checks.
-(defun action-get-need-sample-region (actx regx reason &optional extra-info) ; -> need instance.
+(defun action-get-need-sample-region (actx regx reason &optional extra-info group-region) ; -> need instance.
   (assert (action-p actx))
   (assert (region-p regx))
   (assert (integerp reason))
+  (assert (or (null extra-info) (stringp extra-info)))
+  (assert (or (null group-region) (region-p group-region)))
 
   (if (null extra-info)
     (setf extra-info ""))
@@ -441,7 +433,8 @@
             :kind *sample-in-region*
             :reason reason
             :target regx
-            :extra-info extra-info)
+            :extra-info extra-info
+            :group-region group-region)
 )
 
 ;;; Get sample for a given state.
@@ -555,7 +548,7 @@
 )
 
 ;;; Process a square that changed (pn, pnc) due to a new sample.
-(defun action-process-changed-square (actx sqrx) a ; -> side effect, action instance is changed.
+(defun action-process-changed-square (actx sqrx) ; -> side effect, action instance is changed.
   (assert (action-p actx))
   (assert (square-p sqrx))
 
@@ -582,8 +575,80 @@
 ;;; Take an action, for a given state, required for a need.
 ;;; An existitg square will be updated.
 ;;; For a need, it is assumed that a new square will be created if needed.
-(defun action-take-sample-for-need (actx stax) ; -> sample,  side effect, action instance is changed.
+(defun action-take-sample-for-need (actx stax need) ; -> sample,  side effect, action instance is changed.
   ;(format t "~&action-take-sample-for-need: ~A ~A" (type-of actx) (type-of stax)) 
+  (assert (action-p actx))
+  (assert (state-p stax))
+  (assert (need-p need))
+  (format t "~&action-take-sample-for-need: need: ~A" (need-str need))
+
+  (let (smpl sqrx)
+    (setf smpl (action-get-sample actx stax))
+
+    ;; Update, or add, square.
+    (setf sqrx (action-find-square actx stax))
+    (if sqrx
+        (if (action-add-square-sample actx sqrx smpl)
+          (action-process-changed-square actx sqrx)
+        )
+        (action-new-square actx (square-new smpl) nil)
+    )
+
+    ;; Check group pnc and region, if gt 2 states.
+    (cond ((= (need-reason need) *confirm-group*)
+             (setf sqrx (action-find-square actx stax))
+             (if (null sqrx) (error "action-take-sample-for-need: sqrx not found?"))
+             (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
+               (setf grps (groupstore-groups-state-in (action-groups actx) (square-state sqrx)))
+               (loop for grpx in (groupstore-groups grps) do
+                 ;; Change group region.
+                 (cond ((group-pnc grpx) nil)
+                       ((= (region-number-states (group-region grpx)) 1)
+                        (if (square-pnc sqrx)
+                          (group-set-pnc grpx true))
+                       )
+                       ((= (region-number-states (group-region grpx)) 2)
+                          (when (square-pnc sqrx)
+                            (when (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
+                              (setf sqry (action-find-square actx (region-second-state (group-region grpx))))
+                              (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
+                              (if (and (square-pnc sqry) (square-pnc sqrx))
+                                (group-set-pnc grpx true))
+                            )
+                            (when (state-eq (square-state sqrx) (region-second-state (group-region grpx)))
+                              (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
+                              (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
+                              (if (and (square-pnc sqry) (square-pnc sqrx))
+                                (group-set-pnc grpx true))
+                            )
+                          )
+                       )
+                       (t ; Number states GT 2.
+                         (when (state-eq (square-state sqrx)
+                                         (region-far-state (group-region grpx) (region-first-state (group-region grpx))))
+
+                           (group-set-region grpx (region-new (list (region-first-state (group-region grpx)) (square-state sqrx))))
+                           (when (square-pnc sqrx)
+                             (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
+                             (if (and (square-pnc sqry) (square-pnc sqrx))
+                               (group-set-pnc grpx true))
+                           )
+                         )
+                       )
+                 )
+               ) ; next grpx
+             )
+           )
+    )
+    smpl
+  )
+)
+
+;;; Take an action, for a given state, arbitrarily.
+;;; An existitg square will be updated.
+;;; For a need, it is assumed that a new square will be created if needed.
+(defun action-take-sample-arbitrary (actx stax) ; -> sample,  side effect, action instance is changed.
+  ;(format t "~&action-take-sample-arbitrarily: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
 
@@ -610,7 +675,7 @@
   (assert (action-p actx))
   (assert (state-p stax))
 
-  (let (smpl sqrx)
+  (let (smpl sqrx invalidated-groups)
     (setf smpl (action-get-sample actx stax))
 
     ;; If a square exists, update it. If it changed, process changed square.

@@ -245,7 +245,7 @@
   (region-num-bits (group-region grpx))
 )
 
-;;; Set the group pnc to a differont value.
+;;; Set the group pnc to a different value.
 (defun group-set-pnc (grpx pnc) ; side-effect, group pnc changed.
   (assert (group-p grpx))
   (assert (bool-p pnc))
@@ -253,6 +253,24 @@
   (when (xor pnc (group-pnc grpx))
     (format t "~&group ~A pnc changed from ~A to ~A" (region-str (group-region grpx)) (group-pnc grpx) pnc)
     (setf (group-pnc grpx) pnc)
+    (return-from group-set-pnc )
   )
+  (format t "~&Problem: group-set-pnc: pnc not changed?")
 )
 
+;;; Set the group region to a equal value, with different states.
+(defun group-set-region (grpx regx) ; side-effect, group region changed.
+  (assert (group-p grpx))
+  (assert (region-p regx))
+  (assert (region-eq regx (group-region grpx)))
+
+  (when (or (/= (region-number-states regx) (region-number-states (group-region grpx)))
+            (state-ne (region-first-state rgex) (region-first-state grpx)))
+    (format t "~&group ~A region changed from ~A to ~A" (region-str regx)
+                                                        (statestore-str (region-states (group-region grpx)))
+                                                        (statestore-str (region-states regx)))
+    (setf (group-region grpx) regx)
+    (return-from group-set-region)
+  )
+  (format t "~&Problem: group-set-region: region not changed?")
+)

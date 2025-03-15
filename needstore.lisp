@@ -50,7 +50,7 @@
 )
 
 ;;; Returns true if a need of a given kind and target are in a needstore.
-(defun needstore-find-kind-target (needs kind target)
+(defun needstore-find-kind-target (needs kind target) ; -> bool
     (assert (needstore-p needs))
     (assert (integerp kind))
     (assert (or (zerop kind) (plusp kind)))

@@ -292,3 +292,15 @@
   (make-groupstore :groups (remove grpx (groupstore-groups storex)))
 )
 
+;;; Returns a group, given a region.
+(defun groupstore-find (storex regx) ; -> group, or nil.
+    (assert (groupstore-p storex))
+    (assert (region-p regx))
+
+    (loop for grpx in (groupstore-groups storex) do
+        (if (region-eq (group-region grpx) regx)
+          (return-from groupstore-find grpx)) 
+    )
+    nil 
+)
+
