@@ -24,6 +24,8 @@ Unlike Rust, LISP does not have an awkward discontinuity between an item and its
 
 On the other hand, Rust has a number of good qualities, like no garbage collection, easy parallelism, speed of execution, avoiding many memory exploits (the future of programming), and compiler suggestions to correct an error.
 
+Rust will not let you serialize a struct that contains a reference.  Lisp silently converts multiple links to the same structure into multiple copies of the structure.
+
 To run: gcl
 
 Then: (load #p "main.lisp")
