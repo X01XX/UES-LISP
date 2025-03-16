@@ -38,6 +38,10 @@
     (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample1) (rule-new sample2)))))))
     (action-take-sample-arbitrary act0 high-state)
     (action-take-sample-arbitrary act0 low-state)
+    (action-take-sample-arbitrary act0 high-state)
+    (action-take-sample-arbitrary act0 low-state)
+    (action-take-sample-arbitrary act0 high-state)
+    (action-take-sample-arbitrary act0 low-state)
 
     (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state)
   )

@@ -133,9 +133,10 @@
 
 ;;; Return needs for sample in a region, an initial sample, or resample of existing non-pnc square.
 ;;; There should be no pnc square in the region.
-(defun action-needs-for-region (actx regx) ; -> needstore.
+(defun action-needs-for-region (actx regx ex-in) ; -> needstore.
   (assert (action-p actx))
   (assert (region-p regx))
+  (assert (stringp ex-in))
 
   (let ((ret (needstore-new nil)) ; The return struct.
         (sqrs-in (squarestore-squares-in-region (action-squares actx) regx)) ; The squares in the given region.
@@ -149,6 +150,7 @@
                                       :kind *sample-in-region*
                                       :reason *contradictory-intersection*
                                       :target regx
+                                      :extra-info ex-in
                             ))
         (return-from action-needs-for-region ret)
     )
@@ -173,6 +175,7 @@
                                       :kind *sample-in-region*
                                       :reason *contradictory-intersection*
                                       :target (square-state sqrx) 
+                                      :extra-info ex-in
                             ))
     )
     ret
@@ -251,19 +254,22 @@
 
               (when reg-int
                 (cond ((pn-ne (group-pn grpx) (group-pn grpy))
-                        (setf needs (needstore-append needs (action-needs-for-region actx reg-int)))
+                        (setf needs (needstore-append needs (action-needs-for-region actx reg-int
+                                    (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                       )
                       ((pn-eq (group-pn grpx) *pn-none*) nil)
                       (t
                         ;; both pn-one or pn-two.
                         (setf rules-int (rulestore-intersection (group-rules grpx) (group-rules grpy)))
                         (cond ((null rules-int)
-                                (setf needs (needstore-append needs (action-needs-for-region actx reg-int)))
+                                (setf needs (needstore-append needs (action-needs-for-region actx reg-int
+                                    (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                               )
                               ((region-eq reg-int (rulestore-initial-region rules-int)) nil)
                               (t
                                 (setf reg-far (region-far-region reg-int (rulestore-initial-region rules-int)))
-                                (setf needs (needstore-append needs (action-needs-for-region actx reg-far)))
+                                (setf needs (needstore-append needs (action-needs-for-region actx reg-far 
+                                    (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                               )
                         )
                       )
@@ -679,9 +685,7 @@
                (setf grpx (groupstore-find (action-groups actx) (need-group-region need)))
                ;; Change group region.
                (cond ((null grpx) nil) ; Running a plan to satisfy the need, can change the groupstore.
-                     ((group-pnc grpx) 
-                       (format t "Problem: Group pnc: ~A" (group-str grpx))
-                     )
+                     ((group-pnc grpx) nil)
                      ((= (region-number-states (group-region grpx)) 1)
                       ;; Group probably set to pnc before this.
                       (if (square-pnc sqrx)

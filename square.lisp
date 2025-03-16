@@ -92,7 +92,7 @@
     (assert (square-p square))
 
     (if (eq (square-pn square) *pn-one*)
-        (if (> (square-count square) 1)
+        (if (> (square-count square) 2)
             (return-from square-calc-pnc t)
             (return-from square-calc-pnc nil)))
 
