@@ -574,27 +574,82 @@
   )
 )
 
-;;; Check a group for pnc change.
-(defun action-check-group-pnc (actx grpx) ; side-effect, group pnc may be changed.
+;;; Check a group for pnc, or region, change, given a new, or changed. square.
+;;;
+;;; For a non-pnc group defined by one state, if the passed squares' state matches that state,
+;;; the passed square becoming pnc makes the group pnc.
+;;;
+;;; For a non-pnc group defined by two states, if the passed squares' state matches one of the states,
+;;;    both states being pnc makes the group pnc.
+;;;
+;;; For a non-pnc group defined by more than two states, the regions' potential second state is calculated
+;;; from the first state. If the second state matches the passed squares' state:
+;;;
+;;;    If the group is *pn-one*, or the passed square is pnc,
+;;;    change the group region to be defined by the regions' first state and the passed squares' state. 
+;;;
+;;;    If the regions' first states' square and the passed square are pnc, the group becomes pnc.
+;;;
+(defun action-check-group-pnc (actx grpx sqrx) ; side-effect, group pnc may be changed.
   (assert (action-p actx))
   (assert (group-p grpx))
+  (assert (square-p sqrx))
 
-  (let ((pnc t) sqrx)
-    (if (> (region-number-states (group-region grpx)) 2)
-      (setf pnc nil)
-      (progn
-        (loop for stax in (statestore-states (region-states (group-region grpx))) do
-          (setf sqrx (squarestore-find (action-squares actx) stax))
-          (if sqrx
+  (if (group-pnc grpx)
+    (return-from action-check-group-pnc))
+
+  (if (not (or (square-pnc sqrx) (pn-eq (square-pn sqrx) *pn-one*)))
+    (return-from action-check-group-pnc))
+
+  (let (sta-f sqr-f sta-s sqr-s)
+    (cond ((= (region-number-states (group-region grpx)) 1)
             (if (not (square-pnc sqrx))
-              (setf pnc nil))
-            (error "Group region state square not found?")
+              (return-from action-check-group-pnc))
+            
+            (if (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
+              (action-group-set-pnc actx grpx))
           )
-        )
-      )
+          ((= (region-number-states (group-region grpx)) 2)
+            (if (not (square-pnc sqrx))
+              (return-from action-check-group-pnc))
+            
+            (setf sta-f (region-first-state (group-region grpx)))
+            (setf sqr-f (squarestore-find (action-squares actx) sta-f))
+            (if (null sqr-f) (error "region first state square not found?"))
+    
+            (setf sta-s (region-second-state (group-region grpx)))
+    
+            (cond 
+                ((state-eq (square-state sqrx) sta-s)
+                 (setf sqr-f (squarestore-find (action-squares actx) sta-f))
+                 (if (null sqr-f) (error "region first state square not found?"))
+                 (if (square-pnc sqr-f)
+                   (action-group-set-pnc actx grpx))
+                )
+                ((state-eq (square-state sqrx) sta-f)
+                 (setf sqr-s (squarestore-find (action-squares actx) sta-s))
+                 (if (null sqr-s) (error "region second state square not found?"))
+                 (if (square-pnc sqr-s)
+                   (action-group-set-pnc actx grpx))
+                )
+            )
+          )
+          (t ; group region number states gt 2.
+            (if (and (pn-ne (group-pn grpx) *pn-one*) (not (square-pnc sqrx)))
+              (return-from action-check-group-pnc))
+
+            (setf sta-f (region-first-state (group-region grpx)))
+            (setf sta-s (region-far-state (group-region grpx) sta-f))
+
+            (when (state-eq (square-state sqrx) sta-s)
+              (group-set-region grpx (region-new (list sta-f sta-s)))
+              (setf sqr-f (action-find-square actx sta-f))
+              (if (null sqr-f) (error "region first state square not found?"))
+              (if (and (square-pnc sqr-f) (square-pnc sqrx))
+                (action-group-set-pnc actx grpx))
+            )
+          )
     )
-    (if (xor pnc (group-pnc grpx))
-      (group-set-pnc grpx pnc))
   )
 )
 
@@ -637,9 +692,9 @@
 
   ;; Check for group changes.
   (loop for grpx in (groupstore-groups (action-groups actx)) do
-    (if (region-superset-of-state (group-region grpx) (square-state sqrx))
+    (if (and (not (group-pnc grpx)) (region-superset-of-state (group-region grpx) (square-state sqrx)))
        (if (statestore-member (region-states (group-region grpx)) (square-state sqrx))
-          (action-check-group-pnc actx grpx))
+          (action-check-group-pnc actx grpx sqrx))
     )
   )
 
@@ -677,50 +732,52 @@
         (action-new-square actx (square-new smpl) nil)
     )
 
-    ;; Check group pnc and region, if gt 2 states.
-    (cond ((= (need-reason need) *confirm-group*)
-             (setf sqrx (action-find-square actx stax))
-             (if (null sqrx) (error "action-take-sample-for-need: sqrx not found?"))
-             (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
-               (setf grpx (groupstore-find (action-groups actx) (need-group-region need)))
-               ;; Change group region.
-               (cond ((null grpx) nil) ; Running a plan to satisfy the need, can change the groupstore.
-                     ((group-pnc grpx) nil)
-                     ((= (region-number-states (group-region grpx)) 1)
-                      ;; Group probably set to pnc before this.
-                      (if (square-pnc sqrx)
-                        (group-set-pnc grpx true))
-                     )
-                     ((= (region-number-states (group-region grpx)) 2)
-                        (when (square-pnc sqrx)
-                          (when (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
-                            (setf sqry (action-find-square actx (region-second-state (group-region grpx))))
-                            (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
-                          )
-                          (when (state-eq (square-state sqrx) (region-second-state (group-region grpx)))
-                            (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
-                            (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
-                          )
-                          (if (and (square-pnc sqry) (square-pnc sqrx))
-                            (group-set-pnc grpx true))
-                        )
-                     )
-                     (t ; Number states GT 2.
-                       (when (state-eq (square-state sqrx)
-                                       (region-far-state (group-region grpx) (region-first-state (group-region grpx))))
+    ;; Processes for specific needs.
 
-                         (group-set-region grpx (region-new (list (region-first-state (group-region grpx)) (square-state sqrx))))
-                         (when (square-pnc sqrx)
-                           (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
-                           (if (and (square-pnc sqry) (square-pnc sqrx))
-                              (group-set-pnc grpx true))
-                         )
-                       )
-                     )
-                 )
-             )
-           )
-    )
+    ;; Check group pnc and region, if gt 2 states.
+;    (cond ((= (need-reason need) *confirm-group*)
+;             (setf sqrx (action-find-square actx stax))
+;             (if (null sqrx) (error "action-take-sample-for-need: sqrx not found?"))
+;             (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
+;               (setf grpx (groupstore-find (action-groups actx) (need-group-region need)))
+;                Change group region.
+;               (cond ((null grpx) nil) ; Running a plan to satisfy the need, can change the groupstore.
+;                    ((group-pnc grpx) nil)
+;                    ((= (region-number-states (group-region grpx)) 1)
+;                     ;; Group probably set to pnc before this.
+;                     (if (square-pnc sqrx)
+;                       (group-set-pnc grpx true))
+;                    )
+;                    ((= (region-number-states (group-region grpx)) 2)
+;                       (when (square-pnc sqrx)
+;                         (when (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
+;                           (setf sqry (action-find-square actx (region-second-state (group-region grpx))))
+;                           (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
+;                         )
+;                        (when (state-eq (square-state sqrx) (region-second-state (group-region grpx)))
+;                           (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
+;                           (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
+;                        )
+;                         (if (and (square-pnc sqry) (square-pnc sqrx))
+;                           (group-set-pnc grpx true))
+;                       )
+;                   )
+;                    (t ; Number states GT 2.
+;                       (when (state-eq (square-state sqrx)
+;                                       (region-far-state (group-region grpx) (region-first-state (group-region grpx))))
+;
+;                         (group-set-region grpx (region-new (list (region-first-state (group-region grpx)) (square-state sqrx))))
+;                         (when (square-pnc sqrx)
+;                           (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
+;                           (if (and (square-pnc sqry) (square-pnc sqrx))
+;                              (group-set-pnc grpx true))
+;                         )
+;                       )
+;                     )
+;                 )
+;             )
+;           )
+;    )
     smpl
   )
 )
