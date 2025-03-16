@@ -45,6 +45,7 @@
   (assert (pn-p pn))
   (assert (bool-p pnc))
   (assert (rulestore-p rules))
+  (assert (or (< (region-number-states regx) 3) (not pnc)))
 
   (let ((ret (group-new-na regx pn pnc rules)))
     (cond ((err-p ret) (error (err-str ret)))
@@ -79,7 +80,8 @@
         ((pn-eq pn *pn-none*)
            (if (/= 0 (rulestore-length rules))
              (return-from group-new-na "Rules length does not match pn value"))
-           (setf pnc t)
+           (if (< (region-number-states regx) 3)
+             (setf pnc t))
          )
         (t (return-from group-new-na "unrecognized pn value")))
 
@@ -250,12 +252,11 @@
   (assert (group-p grpx))
   (assert (bool-p pnc))
 
-  (when (xor pnc (group-pnc grpx))
+  (when (and (< (region-number-states (group-region grpx)) 3) (xor pnc (group-pnc grpx)))
     (format t "~&group ~A pnc changed from ~A to ~A" (region-str (group-region grpx)) (group-pnc grpx) pnc)
     (setf (group-pnc grpx) pnc)
     (return-from group-set-pnc )
   )
-  (format t "~&Problem: group-set-pnc: pnc not changed?")
 )
 
 ;;; Set the group region to a equal value, with different states.

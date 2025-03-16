@@ -225,9 +225,9 @@
    
       )
     ) ; next grpx
-    (if (groupstore-is-not-empty ret)
-      (format t "~&groupstore-groups-invalidated-by-square: ~A returning ~A" (state-str (square-state sqrx)) (groupstore-str ret))
-    )
+    ;(if (groupstore-is-not-empty ret)
+    ;  (format t "~&groupstore-groups-invalidated-by-square: ~A returning ~A" (state-str (square-state sqrx)) (groupstore-str ret))
+    ;)
     ret
   )
 )
@@ -302,5 +302,16 @@
           (return-from groupstore-find grpx)) 
     )
     nil 
+)
+
+;;; Return the nth element of a GroupStore.
+(defun groupstore-nth (storex inx) ; -> group instance, or nil.
+  (assert (groupstore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (groupstore-length storex))
+    (return-from groupstore-nth nil))
+
+  (nth inx (groupstore-groups storex))
 )
 

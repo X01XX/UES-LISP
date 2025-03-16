@@ -9,8 +9,10 @@
 ;;; Define need reasons
 (defvar *state-not-in-group* 2003)
 (defvar *confirm-group* 2007)
+(defvar *contradictory-intersection* 2011)
 (defvar *reasons* (list *state-not-in-group*
-                        *confirm-group*)
+                        *confirm-group*
+                        *contradictory-intersection*)
    )
 
 (defstruct need
@@ -56,35 +58,37 @@
 (defun need-str (needx)
     (assert (need-p needx))
 
-    (let ((str "#S[NEED "))
-        (setf str (concatenate 'string str (format nil ":dom ~D " (need-dom-id needx))))
-        (setf str (concatenate 'string str (format nil ":act ~D " (need-act-id needx))))
+    (let ((str "#S[NEED"))
+        (setf str (concatenate 'string str (format nil " :dom ~D" (need-dom-id needx))))
+        (setf str (concatenate 'string str (format nil " :act ~D" (need-act-id needx))))
 
         (cond ((= (need-kind needx) *first-sample-of-state*)
-                (setf str (concatenate 'string str ":kind Get first sample of state ")))
+                (setf str (concatenate 'string str " :kind Get first sample of state")))
               ((= (need-kind needx) *resample-state*)
-                (setf str (concatenate 'string str ":kind Resample state ")))
+                (setf str (concatenate 'string str " :kind Resample state")))
               ((= (need-kind needx) *sample-in-region*)
-                (setf str (concatenate 'string str ":kind Get sample in region ")))
+                (setf str (concatenate 'string str " :kind Get sample in region")))
         )
 
         (cond ((= (need-reason needx) *state-not-in-group*)
-                (setf str (concatenate 'string str ":reason State not in a group ")))
+                (setf str (concatenate 'string str " :reason State not in a group")))
               ((= (need-reason needx) *confirm-group*)
-                (setf str (concatenate 'string str (format nil ":reason Confirm Group ~A" (region-str (need-group-region needx))))))
+                (setf str (concatenate 'string str (format nil " :reason Confirm Group ~A" (region-str (need-group-region needx))))))
+              ((= (need-reason needx) *contradictory-intersection*)
+                (setf str (concatenate 'string str (format nil " :reason Contradictory intersection"))))
         )
 
         (if (state-p (need-target needx))
-            (setf str (concatenate 'string str (format nil ":target ~A " (state-str (need-target needx)))))
-            (setf str (concatenate 'string str (format nil ":target ~A " (region-str (need-target needx))))))
+            (setf str (concatenate 'string str (format nil " :target ~A" (state-str (need-target needx)))))
+            (setf str (concatenate 'string str (format nil " :target ~A" (region-str (need-target needx))))))
 
         (if (string/= (need-extra-info needx) "")
-            (setf str (concatenate 'string str (format nil ":info ~A " (need-extra-info needx)))))
+            (setf str (concatenate 'string str (format nil " :info ~A" (need-extra-info needx)))))
 
         (when (not (null (need-plan needx)))
             (if (plan-is-empty (need-plan needx))
-              (setf str (concatenate 'string str "At target"))
-              (setf str (concatenate 'string str (plan-str (need-plan needx)))))
+              (setf str (concatenate 'string str " At target"))
+              (setf str (concatenate 'string str (format nil " :plan ~A" (plan-str (need-plan needx))))))
         )
   
         (setf str (concatenate 'string str "]"))

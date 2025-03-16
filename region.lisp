@@ -481,3 +481,18 @@
   (state-new (state-xor stax (region-x-mask regx)))
 )
 
+;;; Return the far region for, opposite a given subregion, in a region.
+(defun region-far-region (regx subx) ; -> region
+  ;(format t "~&region-far-region: ~A ~A" (region-str regx) (region-str subx))
+  (assert (region-p regx))
+  (assert (region-p subx))
+  (assert (= (region-num-bits regx) (region-num-bits subx)))
+  (assert (region-ne regx subx))
+  (assert (region-superset-of :sup regx :sub subx))
+
+  (let ((msk (mask-new (mask-and (region-x-mask regx) (region-edge-mask subx)))))
+    (region-new (list (state-new (state-xor (region-first-state subx) msk))
+                      (state-new (state-xor (region-second-state subx) msk))))
+  )
+)
+

@@ -210,6 +210,11 @@
                                                                (domain-max-region domx) 10)))
               )
               ((region-p (need-target needx))
+                (if (region-superset-of-state (need-target needx) (domain-current-state domx))
+                  (setf (need-plan needx) (plan-new nil))
+                  (setf (need-plan needx) (domain-get-plan domx (region-new (domain-current-state domx))
+                                                               (need-target needx)
+                                                               (domain-max-region domx) 10)))
               )
               (t (error "Unrecognized target type"))
         )
@@ -285,7 +290,10 @@
       (if (plan-is-not-empty (need-plan needx))
         (domain-run-plan domx (need-plan needx))
       )
-      (if (state-eq (domain-current-state domx) (need-target needx))
+      (if (or
+           (and (state-p (need-target needx)) (state-eq (domain-current-state domx) (need-target needx)))
+           (and (region-p (need-target needx)) (region-superset-of-state (need-target needx) (domain-current-state domx)))
+          )
         (progn
           (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) act-id) (domain-current-state domx) needx))
           (setf (domain-current-state domx) (sample-result smpl))

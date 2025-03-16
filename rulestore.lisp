@@ -187,7 +187,7 @@
     (let (ret)
       (setf ret (rule-intersection (rulestore-first storex) (rulestore-first storey)))
       (if (rule-is-valid-intersection ret)
-        (return-from rulestore-intersection ret)
+        (return-from rulestore-intersection (rulestore-new (list ret)))
         (return-from rulestore-intersection nil))
     )
   )

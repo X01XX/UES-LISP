@@ -131,13 +131,59 @@
   )
 )
 
+;;; Return needs for sample in a region, an initial sample, or resample of existing non-pnc square.
+;;; There should be no pnc square in the region.
+(defun action-needs-for-region (actx regx) ; -> needstore.
+  (assert (action-p actx))
+  (assert (region-p regx))
+
+  (let ((ret (needstore-new nil)) ; The return struct.
+        (sqrs-in (squarestore-squares-in-region (action-squares actx) regx)) ; The squares in the given region.
+        sqrs-high-num-results ; Squares in the given region with the highest number of samples.
+        (sqrs-highest-num-results 0) ; Maximum number samples found for a square.
+       )
+
+    ;; Check for no squares in region.
+    (when (null sqrs-in)
+        (needstore-push ret (need-new :act-id (action-id actx)
+                                      :kind *sample-in-region*
+                                      :reason *contradictory-intersection*
+                                      :target regx
+                            ))
+        (return-from action-needs-for-region ret)
+    )
+
+    ;; Get list of squares with the higest number of results.
+    (loop for sqrx in sqrs-in do
+      (when (square-pnc sqrx) 
+        (format t "~&Problem: Act ~D pnc square ~A in contradictory region ~A" (action-id actx) (state-str (square-state sqrx)) (region-str regx))
+        (return-from action-needs-for-region ret)
+      )
+      (when (> (square-results-length sqrx) sqrs-highest-num-results)
+        (setf sqrs-highest-num-results (square-results-length sqrx))
+        (setf sqrs-high-num-results nil)
+      )
+      (if (= (square-results-length sqrx) sqrs-highest-num-results)
+        (push sqrx sqrs-high-num-results))
+    )
+
+    ;; Load needs for squares with the higest number of results.
+    (loop for sqrx in sqrs-high-num-results do
+        (needstore-push ret (need-new :act-id (action-id actx)
+                                      :kind *sample-in-region*
+                                      :reason *contradictory-intersection*
+                                      :target (square-state sqrx) 
+                            ))
+    )
+    ret
+  )
+)
+
+;;; Return action needs to improve the understanding of the logic behind the samples, so far.
 (defun action-get-needs (actx cur-state) ; -> NeedStore.
   ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
   (assert (action-p actx))
   (assert (state-p cur-state))
-  ;  (if (and (= 6 (action-id actx)) (= 3 (action-num-bits actx)))
-  ;(format t "~&action-get-needs: ~d ~A" (action-id actx) (state-str cur-state))
-  ;  )
 
   (let ((needs (needstore-new nil)))
     ;; Generate need for a cur-state that is not in a group.
@@ -154,25 +200,16 @@
       )
     )
 
-    ;;; Recheck single-square groups.
+    ;; Recheck single-square groups.
     (let (sqrx sqrs)
       (loop for grpx in (groupstore-groups (action-groups actx)) do
-        ;(when (and (= 6 (action-id actx)) (= 3 (action-num-bits actx)))
-        ;  (format t "~&checking group ~A num states ~D pnc ~A" (region-str (group-region grpx)) (region-number-states (group-region grpx)) (group-pnc grpx))
-        ;)
-
-        ;(format t "~&bool = ~A" (and (= 1 (region-number-states (group-region grpx))) (group-pnc grpx)))
         (when (and (= 1 (region-number-states (group-region grpx))) (group-pnc grpx))
             (setf sqrx (action-find-square actx (region-first-state (group-region grpx))))
-            ;(format t "~&square ~A" (square-str sqrx))
             (if sqrx
               (push sqrx sqrs)
               (error "Square defining group not found?"))
         )
       )
-      ;(if (and (= 6 (action-id actx)) (= 3 (action-num-bits actx)))
-      ;  (format t "~&single-state groups found: ~d" (length sqrs))
-      ;)
 
       (loop for sqrx in sqrs do
         (when (not (groupstore-multistate-groups-state-in (action-groups actx) (square-state sqrx)))
@@ -182,7 +219,7 @@
       )
     )
 
-    ;;; Generate needs to confirm groups.
+    ;; Generate needs to confirm groups.
     (let (grp-needs)
       (loop for grpx in (groupstore-groups (action-groups actx)) do
         ;(format t "~&checking group ~A" (region-str (group-region grpx)))
@@ -196,8 +233,48 @@
       ) ; next grpx
     )
 
-    ;(if (and (= 6 (action-id actx)) (= 3 (action-num-bits actx)))
-    ;  (format t "~&action-get-needs: returning: ~A" (needstore-str needs)))
+    ;; Generate needs for resolving contradictory intersections.
+    (let (grpx grpy reg-int rules-int reg-far)
+      (loop for inx from 0 below (1- (groupstore-length (action-groups actx))) do
+
+        (setf grpx (groupstore-nth (action-groups actx) inx))
+
+        (when (group-pnc grpx)
+
+          (loop for iny from (1+ inx) below (groupstore-length (action-groups actx)) do
+
+            (setf grpy (groupstore-nth (action-groups actx) iny))
+
+            (when (group-pnc grpy)
+
+              (setf reg-int (region-intersection (group-region grpx) (group-region grpy)))
+
+              (when reg-int
+                (cond ((pn-ne (group-pn grpx) (group-pn grpy))
+                        (setf needs (needstore-append needs (action-needs-for-region actx reg-int)))
+                      )
+                      ((pn-eq (group-pn grpx) *pn-none*) nil)
+                      (t
+                        ;; both pn-one or pn-two.
+                        (setf rules-int (rulestore-intersection (group-rules grpx) (group-rules grpy)))
+                        (cond ((null rules-int)
+                                (setf needs (needstore-append needs (action-needs-for-region actx reg-int)))
+                              )
+                              ((region-eq reg-int (rulestore-initial-region rules-int)) nil)
+                              (t
+                                (setf reg-far (region-far-region reg-int (rulestore-initial-region rules-int)))
+                                (setf needs (needstore-append needs (action-needs-for-region actx reg-far)))
+                              )
+                        )
+                      )
+                )
+              )
+            )
+
+          ) ; next iny.
+        )
+      ) ; next inx.
+    )
     needs
   )
 )
@@ -580,9 +657,9 @@
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (need-p need))
-  (format t "~&action-take-sample-for-need: need: ~A" (need-str need))
+  ;(format t "~&action-take-sample-for-need: need: ~A" (need-str need))
 
-  (let (smpl sqrx)
+  (let (smpl sqrx grpx sqry)
     (setf smpl (action-get-sample actx stax))
 
     ;; Update, or add, square.
@@ -599,44 +676,44 @@
              (setf sqrx (action-find-square actx stax))
              (if (null sqrx) (error "action-take-sample-for-need: sqrx not found?"))
              (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
-               (setf grps (groupstore-groups-state-in (action-groups actx) (square-state sqrx)))
-               (loop for grpx in (groupstore-groups grps) do
-                 ;; Change group region.
-                 (cond ((group-pnc grpx) nil)
-                       ((= (region-number-states (group-region grpx)) 1)
-                        (if (square-pnc sqrx)
-                          (group-set-pnc grpx true))
-                       )
-                       ((= (region-number-states (group-region grpx)) 2)
-                          (when (square-pnc sqrx)
-                            (when (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
-                              (setf sqry (action-find-square actx (region-second-state (group-region grpx))))
-                              (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
-                              (if (and (square-pnc sqry) (square-pnc sqrx))
-                                (group-set-pnc grpx true))
-                            )
-                            (when (state-eq (square-state sqrx) (region-second-state (group-region grpx)))
-                              (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
-                              (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
-                              (if (and (square-pnc sqry) (square-pnc sqrx))
-                                (group-set-pnc grpx true))
-                            )
+               (setf grpx (groupstore-find (action-groups actx) (need-group-region need)))
+               ;; Change group region.
+               (cond ((null grpx) nil) ; Running a plan to satisfy the need, can change the groupstore.
+                     ((group-pnc grpx) 
+                       (format t "Problem: Group pnc: ~A" (group-str grpx))
+                     )
+                     ((= (region-number-states (group-region grpx)) 1)
+                      ;; Group probably set to pnc before this.
+                      (if (square-pnc sqrx)
+                        (group-set-pnc grpx true))
+                     )
+                     ((= (region-number-states (group-region grpx)) 2)
+                        (when (square-pnc sqrx)
+                          (when (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
+                            (setf sqry (action-find-square actx (region-second-state (group-region grpx))))
+                            (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
                           )
-                       )
-                       (t ; Number states GT 2.
-                         (when (state-eq (square-state sqrx)
-                                         (region-far-state (group-region grpx) (region-first-state (group-region grpx))))
+                          (when (state-eq (square-state sqrx) (region-second-state (group-region grpx)))
+                            (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
+                            (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
+                          )
+                          (if (and (square-pnc sqry) (square-pnc sqrx))
+                            (group-set-pnc grpx true))
+                        )
+                     )
+                     (t ; Number states GT 2.
+                       (when (state-eq (square-state sqrx)
+                                       (region-far-state (group-region grpx) (region-first-state (group-region grpx))))
 
-                           (group-set-region grpx (region-new (list (region-first-state (group-region grpx)) (square-state sqrx))))
-                           (when (square-pnc sqrx)
-                             (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
-                             (if (and (square-pnc sqry) (square-pnc sqrx))
-                               (group-set-pnc grpx true))
-                           )
+                         (group-set-region grpx (region-new (list (region-first-state (group-region grpx)) (square-state sqrx))))
+                         (when (square-pnc sqrx)
+                           (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
+                           (if (and (square-pnc sqry) (square-pnc sqrx))
+                              (group-set-pnc grpx true))
                          )
                        )
+                     )
                  )
-               ) ; next grpx
              )
            )
     )
@@ -725,7 +802,7 @@
 
 ;;; Process orphaned squares into groups.
 (defun action-make-groups-from-squares (actx sqrs) ; side-effect, action changed.
-  (format t "~&action-make-groups-from-squares: Act ~D ~A" (action-id actx) (mapcar #'(lambda (x) (state-str (square-state x))) sqrs))
+  ;(format t "~&action-make-groups-from-squares: Act ~D ~A" (action-id actx) (mapcar #'(lambda (x) (state-str (square-state x))) sqrs))
   (assert (action-p actx))
   (assert (square-list-p sqrs))
 
@@ -869,7 +946,8 @@
   (assert (action-p actx))
   (assert (region-p region))
 
-  (let (pn (pnc t) sqrx (rules (rulestore-new nil)))
+  (let (pn (pnc (< (region-number-states region) 3)) sqrx (rules (rulestore-new nil)))
+    ;(format t "~&action-make-group: pnc ~A num states ~D" pnc (region-number-states region))
     ;; Check region states.
     (loop for stax in (region-state-list region) do
        ;; Get square from region state.
@@ -891,6 +969,7 @@
        )
     )
 
+    ;(format t "~&action-make-group: Act ~D region ~A returning ~A" (action-id actx) (region-str region) (group-str (group-new region pn pnc rules)))
     (group-new region pn pnc rules)
   )
 )
