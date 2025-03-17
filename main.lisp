@@ -173,11 +173,12 @@
   (format t "~& ~&    q - Quit.")
   (format t "~& ~&    dn <number> - Do Need.")
   (format t "~& ~&    ss <domain-number> <action-number> state - Sample State for a domain and action.")
-  (format t "~& ~&    sqrs <domain-number> <action-number> - Show squares of a domain and action.")
+  (format t "~& ~&    act-sqrs <domain-number> <action-number> - Show squares of a domain and action.")
+  (format t "~& ~&    grp-sqrs <domain-number> <action-number> <region> - Show squares of a domain and action.")
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0) inx dom-id act-id statex)
+  (let (inp tokens token (step 0) inx dom-id act-id statex regx sqrs grpx actx)
     (loop 
       (incf step)
       (format t "~& ~&Step: ~D --------------------------------------------" step)
@@ -242,19 +243,19 @@
                       (setf statex (state-from-str (fourth tokens)))
                       (if statex
                          (sessiondata-take-action-need sessx dom-id act-id statex)
-                         (format t "~&Did not understand state in sneed command"))
+                         (format t "~&Did not understand state in ss command"))
                     )
-                    (format t "~&Did not understand action id in sneed command")
+                    (format t "~&Did not understand action id in ss command")
                   )
                 )
-                (format t "~&Did not understand domain id in sneed command")
+                (format t "~&Did not understand domain id in ss command")
               )
             )
-            (format t "~&Did not understand sneed command")
+            (format t "~&Did not understand ss command")
           )
         )
 
-        (if (string-equal (car tokens) "sqrs")
+        (if (string-equal (car tokens) "act-sqrs")
           (if (= (length tokens) 3)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -273,6 +274,44 @@
               )
             )
             (format t "~&Did not understand sqrs command")
+          )
+        )
+
+        (if (string-equal (car tokens) "grp-sqrs")
+          (if (= (length tokens) 4)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (progn
+                      (setf regx (region-from-str (fourth tokens)))
+                      (if regx
+                        (progn
+                          (setf actx (actionstore-nth
+                                          (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
+                          (setf grpx (groupstore-find (action-groups actx) regx))
+                          (if grpx
+                            (progn
+                              (loop for stax in (region-state-list (group-region grpx)) do
+                                (setf sqrx (squarestore-find (action-squares actx) stax))
+                                (if sqrx
+                                   (format t "~&~A" (square-str sqrx))
+                                   (format t "~&Square ~A not found?" (state-str sqrx)))
+                              )
+                            )
+                            (format t "~&Group not found in grp-sqrs command"))
+                        )
+                        (format t "~&Did not understand region in grp-sqrs command"))
+                    )
+                    (format t "~&Did not understand action id in grp-sqrs command")
+                  )
+                )
+                (format t "~&Did not understand domain id in grp-sqrs command")
+              )
+            )
+            (format t "~&Did not understand grp-sqrs command")
           )
         )
 

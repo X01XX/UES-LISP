@@ -635,11 +635,12 @@
             )
           )
           (t ; group region number states gt 2.
+            
             (if (and (pn-ne (group-pn grpx) *pn-one*) (not (square-pnc sqrx)))
               (return-from action-check-group-pnc))
 
             (setf sta-f (region-first-state (group-region grpx)))
-            (setf sta-s (region-far-state (group-region grpx) sta-f))
+            (setf sta-s (region-second-state (group-region grpx)))
 
             (when (state-eq (square-state sqrx) sta-s)
               (group-set-region grpx (region-new (list sta-f sta-s)))
@@ -683,6 +684,12 @@
   ;; Make groups from square, or at least a one-square group.
   (if (not (groupstore-state-in (action-groups actx) (square-state sqrx)))
     (action-make-groups-from-square actx sqrx))
+
+  ;; Check for group changes.
+  (loop for grpx in (groupstore-groups (action-groups actx)) do
+    (if (and (not (group-pnc grpx)) (region-superset-of-state (group-region grpx) (square-state sqrx)))
+          (action-check-group-pnc actx grpx sqrx))
+  )
 )
 
 ;;; Process a square that changed (pn, pnc) due to a new sample.
@@ -720,64 +727,11 @@
   (assert (need-p need))
   ;(format t "~&action-take-sample-for-need: need: ~A" (need-str need))
 
-  (let (smpl sqrx grpx sqry)
-    (setf smpl (action-get-sample actx stax))
-
-    ;; Update, or add, square.
-    (setf sqrx (action-find-square actx stax))
-    (if sqrx
-        (if (action-add-square-sample actx sqrx smpl)
-          (action-process-changed-square actx sqrx)
-        )
-        (action-new-square actx (square-new smpl) nil)
-    )
+  (let (smpl)
+    (setf smpl (action-take-sample-arbitrary actx stax))
 
     ;; Processes for specific needs.
 
-    ;; Check group pnc and region, if gt 2 states.
-;    (cond ((= (need-reason need) *confirm-group*)
-;             (setf sqrx (action-find-square actx stax))
-;             (if (null sqrx) (error "action-take-sample-for-need: sqrx not found?"))
-;             (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
-;               (setf grpx (groupstore-find (action-groups actx) (need-group-region need)))
-;                Change group region.
-;               (cond ((null grpx) nil) ; Running a plan to satisfy the need, can change the groupstore.
-;                    ((group-pnc grpx) nil)
-;                    ((= (region-number-states (group-region grpx)) 1)
-;                     ;; Group probably set to pnc before this.
-;                     (if (square-pnc sqrx)
-;                       (group-set-pnc grpx true))
-;                    )
-;                    ((= (region-number-states (group-region grpx)) 2)
-;                       (when (square-pnc sqrx)
-;                         (when (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
-;                           (setf sqry (action-find-square actx (region-second-state (group-region grpx))))
-;                           (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
-;                         )
-;                        (when (state-eq (square-state sqrx) (region-second-state (group-region grpx)))
-;                           (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
-;                           (if (null sqry) (error "action-take-sample-for-need: sqry not found?"))
-;                        )
-;                         (if (and (square-pnc sqry) (square-pnc sqrx))
-;                           (group-set-pnc grpx true))
-;                       )
-;                   )
-;                    (t ; Number states GT 2.
-;                       (when (state-eq (square-state sqrx)
-;                                       (region-far-state (group-region grpx) (region-first-state (group-region grpx))))
-;
-;                         (group-set-region grpx (region-new (list (region-first-state (group-region grpx)) (square-state sqrx))))
-;                         (when (square-pnc sqrx)
-;                           (setf sqry (action-find-square actx (region-first-state (group-region grpx))))
-;                           (if (and (square-pnc sqry) (square-pnc sqrx))
-;                              (group-set-pnc grpx true))
-;                         )
-;                       )
-;                     )
-;                 )
-;             )
-;           )
-;    )
     smpl
   )
 )
