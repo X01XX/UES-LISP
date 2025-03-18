@@ -12,10 +12,12 @@
 (defvar *contradictory-intersection* 2011)
 (defvar *confirm-ip* 2013)
 (defvar *between-ip* 2017)
+(defvar *expand-group* 2019)
 (defvar *reasons* (list *state-not-in-group*
                         *confirm-group*
                         *contradictory-intersection*
                         *confirm-ip*
+                        *expand-group*
                         *between-ip*)
    )
 
@@ -84,6 +86,8 @@
                 (setf str (concatenate 'string str (format nil " :reason Confirm Incompatible Pair "))))
               ((= (need-reason needx) *between-ip*)
                 (setf str (concatenate 'string str (format nil " :reason Between Incompatible Pair "))))
+              ((= (need-reason needx) *expand-group*)
+                (setf str (concatenate 'string str (format nil " :reason To expand group ~A " (region-str (need-group-region needx))))))
         )
 
         (if (state-p (need-target needx))

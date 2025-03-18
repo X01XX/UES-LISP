@@ -284,6 +284,30 @@
 
       ;; Get structure needs.
       (setf needs (needstore-append needs (action-structure-needs actx change-surface)))
+
+      (let (regs far-reg)
+        (when (not (null (action-logical-structure actx)))
+
+          (loop for grpx in (groupstore-groups (action-groups actx)) do
+             (setf regs (regionstore-regions-superset (action-logical-structure actx) (group-region grpx)))  
+
+             (loop for regx in regs do
+
+                (when (not (region-eq regx (group-region grpx)))
+                  (setf far-reg (region-far-region regx (group-region grpx)))
+
+                  (needstore-push needs (need-new :act-id (action-id actx)
+                                        :kind *sample-in-region*
+                                        :reason *expand-group*
+                                        :target far-reg
+                                        :group-region (group-region grpx)
+                             ))
+
+                )
+             ) ; next regx
+          ) ; next grpx
+        )
+      )
     )
     needs
   )

@@ -347,6 +347,13 @@
             (setf nedx nedy))
         )
 
+        ;; Check for *expand-group*
+        (loop for nedy in (needstore-needs can-do)
+              while (null nedx) do
+          (if (= (need-reason nedy) *expand-group*)
+            (setf nedx nedy))
+        )
+
         ;; Make a random choice.
         (when (null nedx)
           (setf inx (random (needstore-length can-do)))

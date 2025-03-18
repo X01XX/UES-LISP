@@ -310,6 +310,7 @@
 )
 
 ;;; Return the domain change surface.
+;;; The aggregation of all action group rule initial-regions that allow a predictable change to be made.
 (defun domain-change-surface (domx) ; -> regionstore.
   (assert (domain-p domx))
 

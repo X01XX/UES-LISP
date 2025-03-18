@@ -415,4 +415,17 @@
   )
 )
 
+;;; Return a list of regions that are superset, or equal, to a given region.
+(defun regionstore-regions-superset (storex regx) ; -> list of regions.
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+
+  (let (ret)
+    (loop for regy in (regionstore-regions storex) do
+      (if (region-superset-of :sup regy :sub regx)
+        (push regy ret))
+    )
+    ret
+  )
+)
 
