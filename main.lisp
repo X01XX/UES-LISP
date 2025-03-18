@@ -178,7 +178,7 @@
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0) inx dom-id act-id statex regx sqrs grpx actx)
+  (let (inp tokens token (step 0) inx dom-id act-id statex regx grpx actx sqrx)
     (loop 
       (incf step)
       (format t "~& ~&Step: ~D --------------------------------------------" step)
@@ -332,8 +332,27 @@
 
   (let (inx nedx (can-do (sessiondata-can-do sessx)))
       (when (needstore-is-not-empty can-do)
-        (setf inx (random (needstore-length can-do)))
-        (setf nedx (needstore-nth can-do inx))
+
+        ;; Check for *confirm-ip*
+        (loop for nedy in (needstore-needs can-do)
+              while (null nedx) do
+          (if (= (need-reason nedy) *confirm-ip*)
+            (setf nedx nedy))
+        )
+
+        ;; Check for *between-ip*
+        (loop for nedy in (needstore-needs can-do)
+              while (null nedx) do
+          (if (= (need-reason nedy) *between-ip*)
+            (setf nedx nedy))
+        )
+
+        ;; Make a random choice.
+        (when (null nedx)
+          (setf inx (random (needstore-length can-do)))
+          (setf nedx (needstore-nth can-do inx))
+        )
+
         (format t "~&Need chosen: ~A~& " (need-str nedx))
         (sessiondata-process-need sessx nedx)
         (return-from do-any-need)

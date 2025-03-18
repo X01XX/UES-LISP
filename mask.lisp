@@ -163,6 +163,19 @@
   )
 )
 
+;;; Return the Boolean "or" of a mask list.
+(defun mask-list-or (msks) ; -> mask.
+  (assert (listp msks))
+  (assert (not (null msks)))
+
+  (let ((ret (car msks)))
+    (loop for mskx in (cdr msks) do
+      (setf ret (mask-new (mask-or ret mskx)))
+    )
+    ret
+  )
+)
+
 ;;; Return the Boolean "or" of a mask, and a mask, state, or value
 (defun mask-or (msk1 other) ; -> value.
   (assert (mask-p msk1))

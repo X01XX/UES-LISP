@@ -257,3 +257,9 @@
   true
 )
 
+;; Return true if two squares are adjacent.
+(defun square-is-adjacent (sqr1 sqr2) ; -> bool
+  (states-is-adjacent (square-state sqr1) (square-state sqr2))
+)
+
+

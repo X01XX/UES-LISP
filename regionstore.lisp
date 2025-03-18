@@ -45,9 +45,9 @@
   (setf (regionstore-regions storex) (append (regionstore-regions storex) (list regx)))
 )
 
-;;; Return true if a region was pushed into a regionstore.
-;;; Preserve region order.
-(defun regionstore-push-nosubs (storex regx) ; -> bool, side-effect regionstore is changed.
+;;; Add a region to a regionstore if there are no regions that are superset.
+;;; Delete subsets of new region.
+(defun regionstore-push-nosubs (storex regx) ; -> bool, true if regionstore is changed.
   ;(format t "~&regionstore-push-nosubs ~A ~A" storex regx)
   (assert (regionstore-p storex))
   (assert (region-p regx))
@@ -67,6 +67,50 @@
       )
     )
     ;; Remove the subset regions.
+    (loop for regy in del-regs do
+      (setf (regionstore-regions storex) (remove regy (regionstore-regions storex) :test #'region-eq))
+    )
+  )
+
+  ;; Add the region.
+  (regionstore-add-end storex regx)
+  true
+)
+
+;;; Return true if any region in a store is a superset (or eq) of a given region.
+(defun regionstore-any-superset-of (storex regx) ; -> bool
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+
+  (loop for regy in (regionstore-regions storex) do
+    (if (region-superset-of :sup regy :sub regx)
+      (return-from regionstore-any-superset-of true))
+  )
+  false
+)
+
+;;; Add a region to a regionstore if there are no regions that are subset.
+;;; Delete supersets of new region.
+(defun regionstore-push-nosups (storex regx) ; -> bool, true if regionstore is changed.
+  ;(format t "~&regionstore-push-nosups ~A ~A" storex regx)
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+
+  ;; Check if the new region is a superset of any store region.
+  (loop for regy in (regionstore-regions storex) do
+    (if (region-superset-of :sup regx :sub regy)
+      (return-from regionstore-push-nosups false))
+  )
+
+  ;; Check for regions that are a superset of the new region.
+  (let (del-regs)
+    ;; Find regions that are a subset of the new region.
+    (loop for regy in (regionstore-regions storex) do
+      (if (region-superset-of :sup regy :sub regx)
+        (push regy del-regs)
+      )
+    )
+    ;; Remove the superset regions.
     (loop for regy in del-regs do
       (setf (regionstore-regions storex) (remove regy (regionstore-regions storex) :test #'region-eq))
     )

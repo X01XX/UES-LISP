@@ -205,3 +205,13 @@
     )
 )
 
+;;; Return true if two states are adjacent.
+(defun state-is-adjacent (sta1 sta2) ; -> bool
+  (value-is-adjacent (state-value sta1) (state-value sta2))
+)
+
+;;; Return the distance between two states.
+(defun state-distance (sta1 sta2) ; -> integer
+  (value-num-ones (state-xor sta1 sta2))
+)
+
