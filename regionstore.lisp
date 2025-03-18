@@ -210,12 +210,34 @@
         (cond ((region-superset-of :sup regx :sub regy) nil)
 	      ((region-intersects regy regx)
 	         (setf tmpstore (region-subtract :min-reg regy :sub-reg regx))
-		 (loop for regz in (regionstore-regions tmpstore) do
-		   (regionstore-push-nosubs ret regz)
-		 )
+		     (loop for regz in (regionstore-regions tmpstore) do
+		       (regionstore-push-nosubs ret regz)
+		     )
 	       )
 	      (t (regionstore-push-nosubs ret regy))
 	)
+    )
+    ret
+  )
+)
+
+;;; Return a regionstore minus a state.
+(defun regionstore-subtract-state (storex stax) ; -> regionstore.
+  (assert (regionstore-p storex))
+  (assert (state-p stax))
+
+  (let ((ret (regionstore-new nil)) tmpstore)
+
+    (loop for regy in (regionstore-regions storex) do
+      (cond ((region-superset-of-state regy stax)
+	         (setf tmpstore (region-subtract-state regy stax))
+
+		     (loop for regz in (regionstore-regions tmpstore) do
+		       (regionstore-push-nosubs ret regz)
+		     )
+	       )
+	       (t (regionstore-push-nosubs ret regy))
+	  )
     )
     ret
   )

@@ -394,15 +394,41 @@
        )
     (loop for bitx in sub-bits do
       (if (mask-is-low (mask-new-and bitx (mask-new (state-value (region-first-state sub-reg)))))
-	  (regionstore-push-nosubs ret (region-set-to-ones min-reg bitx))
-	  (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
+	    (regionstore-push-nosubs ret (region-set-to-ones min-reg bitx))
+	    (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
       )
     )
-    ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" min-reg sub-reg ret) 
+    ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" (region-str min-reg) (region-str sub-reg) (regionstore-str ret)) 
     ret
   )
 )
 
+;;; Return a region minus a state.
+(defun region-subtract-state (regx stax) ; -> regionstore.
+  (assert (region-p regx))
+  (assert (state-p  stax))
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
+
+  (if (not (region-superset-of-state regx stax))
+    (return-from region-subtract-state (regionstore-new (list regx))))
+
+  (if (and (= 1 (region-number-states regx)) (state-eq (region-first-state regx) stax))
+    (return-from region-subtract-state (regionstore-new nil)))
+
+  (let ((ret (regionstore-new nil))
+        (sub-bits (mask-split (region-x-mask regx))))
+
+    (loop for bitx in sub-bits do
+      (if (mask-is-low (mask-new-and bitx (mask-new (state-value stax))))
+	    (regionstore-push-nosubs ret (region-set-to-ones regx bitx))
+	    (regionstore-push-nosubs ret (region-set-to-zeros regx bitx))
+      )
+    )
+    ;(format t "~&region-subtract-state ~A minus ~A returns ~A" (region-str regx) (state-str stax) (regionstore-str ret)) 
+    ret
+  )
+)
+ 
 ;;; Return true if a list is a list of regions of the same number of bits.
 ;;; An empty list will return true.
 (defun region-list-same-num-bits-p (reglst) ; -> bool

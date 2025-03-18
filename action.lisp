@@ -8,6 +8,7 @@
   groups	  ; A groupstore.
   squares     ; A Squarestore.
   base-rules  ; A list of rulestores to use in generating samples.
+  logical-structure ; A regionstore.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -59,7 +60,7 @@
       )
     )
 
-    (setf actx (make-action :id id :groups (groupstore-new nil) :squares (squarestore-new) :base-rules rules))
+    (setf actx (make-action :id id :groups (groupstore-new nil) :squares (squarestore-new) :base-rules rules :logical-structure nil))
     ;(format t "~&returning act: ~A" (action-str actx))
     actx
   )
@@ -591,7 +592,15 @@
 (defun action-structure-needs (actx) ; -> needstore
   (assert (action-p actx))
 
-  (let ((pairs (regionstore-new nil)) needs)
+  (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
+        (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
+        (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
+        (non-adj-pairs2 (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
+        (logical-structure (regionstore-new nil))   ; Best guess for logical structure.
+        needs                                       ; Needstore to return.
+        max-region                                  ; Region with all bit positions set to X.
+        (max-regionstore (regionstore-new nil))     ; Regionstore with one region, with all bit positions set to X.
+        )
 
     ;; Make a list of all squares.
     (let (sqrs sqr-y)
@@ -612,31 +621,77 @@
           )
         ) ; next iny.
       ) ; next inx.
-    )
-    (if (regionstore-is-empty pairs)
-      (return-from action-structure-needs (needstore-new nil)))
 
-    (format t "~&Act ~D pairs ~A" (action-id actx) (regionstore-str pairs))
+      ;; Check if at least one disimilar pair was found.
+      (if (regionstore-is-empty pairs)
+        (return-from action-structure-needs (needstore-new nil)))
+
+      ;; Init max-region.
+      (setf max-region (region-new (list (state-new-high (square-state (car sqrs)))
+                                         (state-new-low  (square-state (car sqrs))))))
+    )
+
+    ;; Seperate adjacent from non-adjacent pairs.
+    (loop for prx in (regionstore-regions pairs) do
+      (if (state-is-adjacent (region-first-state prx) (region-second-state prx))
+        (regionstore-push adj-pairs prx)
+        (regionstore-push non-adj-pairs prx))
+    )
+
+    ;; Calc logical structure.
+
+    ;; Init working variables.
+    (regionstore-push logical-structure max-region)
+    (regionstore-push max-regionstore   max-region)
+
+    ;; First pass at calculating structure.
+    (loop for prx in (regionstore-regions adj-pairs) do
+      (setf logical-structure (regionstore-intersection logical-structure
+         (regionstore-union
+             (regionstore-subtract-state max-regionstore (region-first-state prx))
+             (regionstore-subtract-state max-regionstore (region-second-state prx)))))
+    )
+
+    ;; Populate non-adj-pairs2 store.
+    (loop for prx in (regionstore-regions non-adj-pairs) do
+      (if (regionstore-any-superset-of logical-structure prx)
+        (regionstore-push non-adj-pairs2 prx))
+    )
+    
+    ;; Second pass at calculating structure.
+    (loop for prx in (regionstore-regions non-adj-pairs2) do
+      (setf logical-structure (regionstore-intersection logical-structure
+         (regionstore-union
+             (Regionstore-subtract-state max-regionstore (region-first-state prx))
+             (Regionstore-subtract-state max-regionstore (region-second-state prx)))))
+    )
+
+    ;; Store structure.
+    (setf action-logical-structure logical-structure)
+
+    (format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
+
+    ;; Get needs.
 
     ;; Check for adjacent incompatible square needs.
-    (setf needs (action-adjacent-incompatible-square-needs actx pairs))
+    (setf needs (action-adjacent-incompatible-square-needs actx adj-pairs))
 
     (if (needstore-is-not-empty needs)
       (return-from action-structure-needs needs))
 
     ;; Check for non-adjacent incompatible square pnc needs.
-    (setf needs (action-non-adjacent-incompatible-square-needs actx pairs))
+    (setf needs (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2))
 
     (if (needstore-is-not-empty needs)
       (return-from action-structure-needs needs))
 
     ;; Check for non-adjacent incompatible square between needs.
-    (action-non-adjacent-incompatible-square-between-needs actx pairs)
+    (action-non-adjacent-incompatible-square-between-needs actx non-adj-pairs2)
   )
 )
 
 ;;; Return an action instance, given a list of symbols.
-;;; Thi action ID defaulst to zero, the caller may need to set it.
+;;; The action ID defaults to zero, the caller may need to set it.
 (defun action-from (symbols) ; -> action
     ;(format t "~&action-from: ~A ~A" (type-of symbols) symbols)
     (assert (listp symbols))
