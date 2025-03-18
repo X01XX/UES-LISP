@@ -321,7 +321,7 @@
     (format t "~&  rule-restrict-result-region OK")
   )
 
-  ; Test rule-wanted-changes.
+  ; Test rule-changes.
   (let (rul1 reg1 reg2 wanted)
     (setf reg1 (region-from 'r000_111_xxx))
     (setf reg2 (region-from 'r01x_01x_01x))
@@ -329,7 +329,7 @@
     (setf rul1 (rule-new-region-to-region reg1 reg2))
     ;(format t "~&rul1       ~A" rul1)
 
-    (setf wanted (rule-wanted-changes rul1))
+    (setf wanted (rule-changes rul1))
     ;(format t "~& wanted ~A" wanted)
 
     ;                                                     "000_111_xxx"
@@ -337,7 +337,7 @@
     (assert (mask-eq (change-m01 wanted) (mask-from 'm010_000_010)))
     (assert (mask-eq (change-m10 wanted) (mask-from 'm000_100_100)))
 
-    (format t "~&  rule-wanted-changes OK")
+    (format t "~&  rule-changes OK")
   )
 
   ; Test rule-order-bad.

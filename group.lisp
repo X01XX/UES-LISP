@@ -139,7 +139,7 @@
   (assert (= (group-num-bits grpx) (region-num-bits within)))
 
   (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
-	    (wanted-changes (rule-wanted-changes rule-to-goal))
+	    (wanted-changes (rule-changes rule-to-goal))
         (unwanted-changes (region-unwanted-changes (rule-result-region rule-to-goal)))
         num-wanted num-unwanted
 	    step-rule
@@ -275,3 +275,17 @@
   )
   (format t "~&Problem: group-set-region: region not changed?")
 )
+
+;;; Return true if a group makes a predicable change.
+(defun group-makes-predictable-change (grpx) ; -> bool
+  (assert (group-p grpx))
+
+  (if (pn-eq (group-pn grpx) *pn-none*)
+    (return-from group-makes-predictable-change false))
+
+  (if (pn-eq (group-pn grpx) *pn-two*)
+    (return-from group-makes-predictable-change true))
+
+  (change-is-not-low (rule-changes (rulestore-first (group-rules grpx))))
+)
+

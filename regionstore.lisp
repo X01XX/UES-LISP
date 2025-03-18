@@ -157,7 +157,7 @@
     (loop for regx in (regionstore-regions storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
-      (setf ret (concatenate 'string ret (region-str-bits regx)))
+      (setf ret (concatenate 'string ret (region-str regx)))
     )
     (setf ret (concatenate 'string ret "]"))
     ret

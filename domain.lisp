@@ -71,7 +71,9 @@
 (defun domain-print (domx)
     (assert (domain-p domx))
 
-    (format t "~&Domain ~D current-state ~A" (domain-id domx) (state-str (domain-current-state domx)))
+    (format t "~&Domain ~D current-state ~A change-surface: ~A" (domain-id domx) (state-str (domain-current-state domx))
+      (regionstore-str (domain-change-surface domx)))
+
     (actionstore-print (domain-actions domx))
 )
 
@@ -200,7 +202,7 @@
   ;(format t "~&domain-get-needs: ~A" (type-of domx))
   (assert (domain-p domx))
 
-  (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx))))
+  (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-change-surface domx))))
 
     (needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
 
@@ -305,5 +307,23 @@
         (format t "~&need action not taken")
       )
    )
+)
+
+;;; Return the domain change surface.
+(defun domain-change-surface (domx) ; -> regionstore.
+  (assert (domain-p domx))
+
+  (let (ret
+        (max-region (region-new (list (state-new-high (domain-current-state domx)) (state-new-low (domain-current-state domx)))))
+       )
+    ;; Get change surface.
+    (setf ret (actionstore-change-surface (domain-actions domx)))
+
+    ;; Combine regions, like (1xxx, 0xxx) or (01x1, 11x1, x101, x111).
+    (setf ret (regionstore-subtract :min-store (regionstore-new (list max-region)) :sub-store ret))
+    (setf ret (regionstore-subtract :min-store (regionstore-new (list max-region)) :sub-store ret))
+
+    ret
+  )
 )
 

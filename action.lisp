@@ -184,10 +184,11 @@
 )
 
 ;;; Return action needs to improve the understanding of the logic behind the samples, so far.
-(defun action-get-needs (actx cur-state) ; -> NeedStore.
+(defun action-get-needs (actx cur-state change-surface) ; -> NeedStore.
   ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
   (assert (action-p actx))
   (assert (state-p cur-state))
+  (assert (regionstore-p change-surface))
 
   (let ((needs (needstore-new nil)))
     ;; Generate need for a cur-state that is not in a group.
@@ -282,7 +283,7 @@
       ) ; next inx.
 
       ;; Get structure needs.
-      (setf needs (needstore-append needs (action-structure-needs actx)))
+      (setf needs (needstore-append needs (action-structure-needs actx change-surface)))
     )
     needs
   )
@@ -589,18 +590,20 @@
 )
 
 ;;; Calculate the logical structure, return needs to improve understanding of the structure.
-(defun action-structure-needs (actx) ; -> needstore
+(defun action-structure-needs (actx change-surface) ; -> needstore
   (assert (action-p actx))
 
   (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
         (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (non-adj-pairs2 (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
-        (logical-structure (regionstore-new nil))   ; Best guess for logical structure.
+        (logical-structure change-surface)          ; Best guess for logical structure.
         needs                                       ; Needstore to return.
-        max-region                                  ; Region with all bit positions set to X.
-        (max-regionstore (regionstore-new nil))     ; Regionstore with one region, with all bit positions set to X.
+        (max-regionstore change-surface)            ; Regionstore with one region, with all bit positions set to X.
         )
+
+    (if (regionstore-is-empty max-regionstore)
+      (return-from action-structure-needs (needstore-new nil)))
 
     ;; Make a list of all squares.
     (let (sqrs sqr-y)
@@ -626,9 +629,6 @@
       (if (regionstore-is-empty pairs)
         (return-from action-structure-needs (needstore-new nil)))
 
-      ;; Init max-region.
-      (setf max-region (region-new (list (state-new-high (square-state (car sqrs)))
-                                         (state-new-low  (square-state (car sqrs))))))
     )
 
     ;; Seperate adjacent from non-adjacent pairs.
@@ -639,10 +639,6 @@
     )
 
     ;; Calc logical structure.
-
-    ;; Init working variables.
-    (regionstore-push logical-structure max-region)
-    (regionstore-push max-regionstore   max-region)
 
     ;; First pass at calculating structure.
     (loop for prx in (regionstore-regions adj-pairs) do
@@ -667,7 +663,7 @@
     )
 
     ;; Store structure.
-    (setf action-logical-structure logical-structure)
+    (setf (action-logical-structure actx) logical-structure)
 
     (format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
 
@@ -1292,4 +1288,23 @@
 ;   (format t " ~A" (rulestore-str rulsx))
 ; )
 )
+
+;; Return regions of groups that make a predictable change.
+(defun action-change-surface (actx) ; -> regionstore.
+  (assert (action-p actx))
+
+  (let ((ret (regionstore-new nil)))
+
+    (loop for grpx in (groupstore-groups (action-groups actx)) do
+      (if (group-makes-predictable-change grpx)
+        (loop for rulx in (rulestore-rules (group-rules grpx)) do
+          (if (rule-makes-change rulx)
+            (regionstore-push-nosubs ret (rule-change-surface rulx)))
+        )
+      )
+    )
+    ret
+  )
+)
+
 

@@ -117,7 +117,7 @@
 )
 
 ;;; Return needs for all actions.
-(defun actionstore-get-needs (actsx cur-state) ; ->  needstore.
+(defun actionstore-get-needs (actsx cur-state change-surface) ; ->  needstore.
   ;(format t "~&actionstore-get-needs: ~A ~A" (type-of actsx) (type-of cur-state))
   (assert (actionstore-p actsx))
   (assert (state-p cur-state))
@@ -125,7 +125,7 @@
   (let ((needs (needstore-new nil)))
     (loop for actx in (actionstore-actions actsx) do
       (if (not (zerop (action-id actx)))
-        (setf needs (needstore-append needs (action-get-needs actx cur-state))))
+        (setf needs (needstore-append needs (action-get-needs actx cur-state change-surface))))
     )
     ;(format t "~&actionstore-get-needs: returning ~A" (needstore-str needs))
     needs
@@ -151,3 +151,20 @@
     (action-print actx)
   )
 )
+
+;;; Return change surface.
+(defun actionstore-change-surface (storex) ; -> regionstore.
+  (assert (actionstore-p storex))
+
+  (let ((ret (regionstore-new nil)) tmp-store)
+    (loop for actx in (actionstore-actions storex) do
+      (setf tmp-store (action-change-surface actx))
+      (loop for regx in (regionstore-regions tmp-store) do
+        (regionstore-push-nosubs ret regx)
+      )
+    )
+    ;(format t "~&actionstore-change-surface: ~A" (regionstore-str ret))
+    ret
+  )
+)
+
