@@ -1,0 +1,2952 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<title>Unorthodox Expert System</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="description" content="A radically different approach to an Expert System">
+  <meta name="keywords" content="Karnaugh Map,Automated Learning,Combinatorial Explosion,Grey Code,Expert System">
+  <meta name="author" content="Earl Dukerschein">
+<style>
+  body {
+  font-family: Verdana, Geneva, Arial, sans-serif;
+  font-family: times;
+  line-height: 1.5em;
+      font-size: 17px;
+  }
+h1 {
+  line-height: 1.5em;
+}
+    h1, h2, h3, h4 {
+  font-weight: normal;
+}
+h1 {
+   font-size: 170%;
+}
+h2 {
+  font-size: 150%;
+}
+h3 {
+  font-size: 130%;
+}
+h4 {
+  font-size: 110%;
+}
+th {
+  border: 0px;
+  font-weight: normal;
+  padding: 5px;
+}
+td {
+  border: 1px solid black;
+  padding: 6px;
+}
+table {
+  border-collapse: collapse;
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+caption {
+  padding-top: 8px;
+}
+p {
+  margin: 10px 15px 10px 15px;
+}
+.bgo {
+  background-color: #FF9933
+}
+
+.bgy {
+  background-color: #FFFF33
+}
+.bgy2 {
+  background-color: #FFFF77
+}
+.bgo2 {
+  background-color: #FFFF33
+}
+
+.bgr {
+  background-color: #CC0000
+}
+.bgr2 {
+  background-color: #D63333
+}
+ .bgg {
+  background-color: #33AA00
+}
+.bgg2 {
+  background-color: #90EE90
+}
+
+.bgl {
+  background-color: #33FF00
+}
+
+.bgb {
+  background-color: #0066CC
+}
+.not {
+    text-decoration: overline;
+}
+.tgy {
+  color: #FFFF33
+}
+#footer {
+  font-size: 75%;
+  text-align: center;
+  line-height: normal;
+  margin-top: 30px;
+}
+.indent1 {
+    margin-left:50px;
+}
+.indent2 {
+    margin-left:100px;
+}
+.indent3 {
+    margin-left:150px;
+}
+.fcr2 {
+  color: red
+    }   
+</style>
+</head>
+<body>
+  <h1><a id="KM"></a>Some thoughts on Karnaugh Maps, <a href="#SKM">Sparse Karnaugh Maps</a>, <a href="#AL">Automated Learning and Experimentation</a>, <a href="#SCR">State-Change Rules</a> and the <a href="#CE">Combinatorial Explosion</a></h1>
+  <h2>Background</h2>
+  <div id="intro">
+  <p>
+ Around 1979, I took a class in college about computer "organization", i.e. gates, ALU, microcode
+        and so on.
+ Part of the class covered Karnaugh Maps.
+ I was somewhat familiar with 2-bit by 2-bit K-Maps, but my professor liked to draw K-Maps with three bits on each axis.
+ Then he showed us problems that were solved with the K-Map.
+ Outside of class, I tried some problems on my own.
+ I was able to get a few problems to work, but most did not.
+        I was sure I had applied all the principles we discussed in class, so I felt there was a problem
+        with the K-Map, I just did not know what it was. 
+</p>
+  </div>
+  <div id="kmaps">
+  <h2>Some years later ...</h2>
+  <p>
+ I started thinking about K-Maps again.
+ I eventually saw the solution to the problem I encountered in college.
+  </p>
+  <p>
+ Consider a 2-bit axis on a K-Map: 00, 01, 11, 10.
+ It is arranged so that each adjacent pair of bit patterns are different by one bit.
+ This includes horizontal wrap-around, so 00 and 10 are considered to be adjacent.
+ Given any bit pattern on the axis, you know there are "number of bits", or in this case two,
+ bit patterns that are different by one bit.
+ For example, the bit pattern 00 is different, by one bit, from 01 and 10.
+ On the 2-bit axis 00 is adjacent to both 01 and 10.
+  </p>
+ <p>
+    I find it helpful to identify each K-Map square using the base 16 equivalent of its bit pattern.
+ </p>
+
+ <table class="indent1">
+ <caption>A 2-bit by 2-bit Karnaugh Map</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td>1</td>
+  <td class="bgo">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgo">5</td>
+  <td class="bgy">7</td>
+  <td class="bgo">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td class="bgo">F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td>9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table> 
+
+  <p>
+ Now consider a 3-bit axis, similar to the one used by my professor in college:
+ 000, 001, 011, 010, 110, 111, 101, 100.
+ This is sometimes called <a href="https://secure.wikimedia.org/wikipedia/en/wiki/Gray_code">Grey Code</a>.
+ For the bit pattern 000 there should be "number of bits", in this case three, bit patterns that are different by one bit.
+ They are 100, 010 and 001.
+ On a K-Map axis, any bit pattern can only be adjacent to two other bit patterns.
+ In this case, the bit pattern 111 is adjacent to 110 and 101, but not 011. So square 3 is not adjacent to 7.
+ A similar situation exists for all the bit patterns on the axis, the 3-bit axis has lost 1/3 of the possible adjacent pairs.  
+  </p>
+
+ <table class="indent1">
+ <caption>A 1-bit by 3-bit Karnaugh Map</caption>
+  <tr>
+   <th></th>
+   <th>000</th>
+   <th>001</th>
+   <th>011</th>
+   <th>010</th>
+   <th>110</th>
+   <th>111</th>
+   <th>101</th>
+   <th>100</th>
+  </tr>
+  <tr style="text-align:center;">
+   <th>0</th>
+   <td>0</td>
+   <td>1</td>
+   <td class="bgo">3</td>
+   <td>2</td>
+   <td class="bgo">6</td>
+   <td class="bgy">7</td>
+   <td class="bgo">5</td>
+   <td>4</td>
+  </tr>
+  <tr style="text-align:center;">
+   <th>1</th>
+   <td>8</td>
+   <td>9</td>
+   <td>B</td>
+   <td>A</td>
+   <td>E</td>
+   <td class="bgo">F</td>
+   <td>D</td>
+   <td>C</td>
+  </tr>
+ </table>
+
+<p>The 3-bit axis can be rearranged, 6 ways (see last addendum), and produce different results, another reason to be suspicious of a 3-bit axis. Below, square 3 is adjacent to 7, but 6 is not.</p>
+
+ <table class="indent1">
+ <caption>Another 1-bit by 3-bit Karnaugh Map</caption>
+  <tr>
+   <th></th>
+   <th>000</th>
+   <th>001</th>
+   <th>101</th>
+   <th>111</th>
+   <th>011</th>
+   <th>010</th>
+   <th>110</th>
+   <th>100</th>
+  </tr>
+  <tr style="text-align:center;">
+   <th>0</th>
+   <td>0</td>
+   <td>1</td>
+   <td class="bgo">5</td>
+   <td class="bgy">7</td>
+   <td class="bgo">3</td>
+   <td>2</td>
+   <td class="bgo">6</td>
+   <td>4</td>
+  </tr>
+  <tr style="text-align:center;">
+   <th>1</th>
+   <td>8</td>
+   <td>9</td>
+   <td>D</td>
+   <td class="bgo">F</td>
+   <td>B</td>
+   <td>A</td>
+   <td>E</td>
+   <td>C</td>
+  </tr>
+ </table>
+  <p>
+ A 2-bit by 2-bit K-Map contains 4 bits on its axes.
+ A 1-bit by 3-bit K-Map contains 4 bits on its axes.
+ Having the same number of bits, they should be equivalent.
+ You can see in the 2x2 K-Map, above, that the squares F, 6, 5 and 3 are adjacent to square 7.
+ In the 1x3 K-Maps, above, square square 7 is only adjacent to three squares, with one left out.
+ Neither horizontal nor vertical wrap-around will bring them together.
+ So you can draw the union of 7 and the left out square on the 2x2 K-Map, but not on the 1x3 K-Map.
+ A similar situation can be shown for each of the 16 squares.
+ <i>The two K-Maps are not equivalent</i>.
+ The 2x2 K-Map is superior to the 1x3 K-Map because it allows you to
+ draw all possible logical combinations of squares, while the 1x3 K-Map does not.
+  </p>
+  <p>
+ So you can use a drawn K-Map with two bits on each axis, but any higher number of bits
+ on one axis means you lose some optimal solutions.
+ With four bits on an axis, you lose 1/2 of the possible adjacent pairs.
+ It gets worse with each bit you add.
+  </p>
+  <p>
+   <a href="https://secure.wikimedia.org/wikipedia/en/wiki/Gray_code">Grey Code</a>, used to generate a greater than 2-bit axis for a K-Map, is misleading.
+  </p>
+  <h2>Improving the definition of the Karnaugh Map</h2>
+  <p>
+ The requirement that <i>All adjacent bit patterns should be different by one bit</i> is
+ always taught to students learning about K-Maps.
+ The 2-bit and 3-bit axes, discussed above, satisfy that requirement,
+ but the 2-bit axis works and the 3-bit axis only partially works.
+  </p>
+  <p>
+  In addition, how do you tell which squares are adjacent in the 1x3 K-Maps, without looking at them or knowing the arrangement of the axis?
+  </p>
+  <p>
+ It is more accurate to say <i>All bit patterns different by one bit must be adjacent</i>,
+ to allow drawing their union.
+ The 2-bit axis satisfies this requirement and works, the 3-bit axis does not satisfy this requirement
+ and only partially works.
+  </p> 
+  <p>
+  In a pair of bit patterns that differ by two bits, one of the bit patterns need change only one of those different bits to become adjacent to the other.  
+  So the two bit patterns can be said to be two bits apart, or distant.
+  </p> 
+  <h2>So K-maps seem trivial if the maximum bits on an axis is two!</h2>
+  <p>
+ The improved definition of the K-Map gives a computer program an easy test for determining if two squares
+ are adjacent, or measuring the degree of separation, by counting the number of different bits.  The number of bits can be arbitrarily large.
+  </p> 
+   <p>
+ The
+  <a href="http://www-graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan">Count Bits Algorithm</a>
+ can be used to efficiently count the number of one bits in an integer.
+ The Count Bits Algorithm goes through one cycle for each bit that is set to one, no cycles for
+        bits that are set to zero.
+    </p>
+<p>
+I will use the term <i>square</i>, or <i>state</i>, to indicate a single bit pattern on a K-Map.
+ On a K-Map, groups of squares can be formed that have 2<sup>n</sup> squares, where n is one or greater.
+ It seems natural to refer to a group of squares as a rectangle or square,
+ but because of the dual use of the word square, and the implied two dimensions, I will instead use the word <i>region</i>. 
+</p>
+  <p>
+ A K-Map region can be represented to any number of bits, using the characters 0, 1, and X, where X indicates a bit position that can be zero or one.
+    </p>
+ <p>
+ Using a 2x2 K-Map for learning concepts, you can find algorithms for union, intersection, subtraction and complement for any number of bits.
+ Union, intersection, subtraction and complement algorithms can also be found for operating on lists of regions.
+ 
+   </p>
+ <p>
+ I will use the symbol "+" for the OR operation, "&amp;" for the AND operation,
+ "^" for the XOR operation, and "~" for the NOT or Complement operation.
+ The XOR operation is bitwise, the other operations may be bitwise operations or set operations, depending on the context.
+   </p>
+   <p>
+   <h3>Representing a region</h3>
+   <p>
+   Here are three ways to represent a region.
+   <p>
+  1) A region can be represented by using any two bit patterns.
+  A region can also be formed by one bit pattern, used twice.
+   </p> 
+   <p class="indent1">
+   So region 0x1X = (0011, 0110), region 0101 = (0101, 0101), referred to as (state1, state2).
+    </p>
+        <p class="indent1">Interpretation of region bits:</p>
+      <table class="indent2">
+           <tr>
+                <th></th>
+                <th>State1</th>
+                <th>State2</th>
+                <th>Region Bit</th>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>0</td>
+                <td>1</td>
+                <td>x</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>1</td>
+                <td>0</td>
+                <td>X</td>
+           </tr>
+        </table>
+   <p class="indent1">
+   This choice allows you to know the states that were used to form a region, instead of storing them separately.
+   </p>
+   <p class="indent1">
+   The highest state in the above region is state1 + state2 = 0011 + 0110 = 0111.
+   </p>
+   <p class="indent1">
+   The lowest state in the above region is state1 &amp; state2 = 0011 &amp; 0110 = 0010.
+   </p>
+    <p class="indent1">
+   Two regions are equal if  r1 high state = r2 high state and r1 low state = r2 low state
+   </p>
+    <p>
+    2) Another possible representation of a region is maximum 1-bits (high state) and maximum 0-bits (low state).
+    </p>
+    <p class="indent1">
+    Given two states, or the first type of region, like 1010 and 0110, high is 1010 + 0110 = 1110.  Low is 1010 &amp; 0110 = 0010.
+    </p>
+        <p class="indent1">Interpretation of region bits:</p>
+      <table class="indent2">
+           <tr>
+                <th></th>
+                <th>High</th>
+                <th>Low</th>
+                <th>Region Bit</th>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>0</td>
+                <td>1</td>
+                <td>Invalid</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>1</td>
+                <td>0</td>
+                <td>X</td>
+           </tr>
+        </table>
+    <p class="indent1">
+   Two regions are equal if the two bit patterns forming them are equal.
+   </p>
+   <p class="indent1">
+   I will use this representation.
+   </p>
+   <p>
+    3) Another possible representation of a region is a list of one, or more, states.
+   </p>
+   <p class="indent1">
+   There is no duplication of a state for a one-state region, as in the above two regions.
+   </p>
+   <p class="indent1">
+   Regions containing more than one state will usually be defined by two states.
+   </p>
+   <p class="indent1">
+   It may sometimes be useful to use more than two states, where no state is between any other two states.  So (0001, 0111, 1101) is XXX1.
+   </p>
+
+    <h4>An analogy to a crystal:</h4>
+    <p class="indent1">
+    Every non-X bit position of a region is one side of an "edge".  Each edge has a zero side and a one side.
+    </p>
+    <p class="indent1">
+    Every bit-value/square/state in a region is on every edge of the region.
+    </p>
+     <p class="indent1">
+     Each edge is the same length, 2 to the power of the number of X-bit positions of the region.
+     </p>
+     <p class="indent1">
+     More than one edge indicates an intersection of edges, producing a vertex and (number edges - 1) faces.
+     </p>
+   <h3>Calculating various characteristics of a Region, or Regions</h3>
+ <p>
+ The X-mask for a region is: state1 ^ state2.
+ </p>
+ <p class="indent1">
+ The X-mask of 0x1X, (0011, 0110) = 0011 ^ 0110 = 0101.
+ </p>
+ <p>
+ The non-X-mask is: the complement of the X-mask.
+ </p>
+ <p class="indent1">
+ The non-X-mask of 0x1X, (0011, 0110) = ~(0011 ^ 0110) = ~0101 = 1010.
+ </p>
+ <p>
+ To calculate a mask of corresponding bits that are different, 1/0 or 0/1, between two regions, r1 and r2,
+ use: mask = (r1.high-mask ^ r2.high-mask) &amp; (r1.low-mask ^ r2.low-mask).
+ </p>
+ <p class="indent1">
+ </p>
+   <h3>Intersecting Regions</h3>
+ <p>
+ Two regions intersect if their different bits mask = all zeros.
+        </p>
+ <table class="indent1">
+ <caption>0xX1 &amp; X11X = 0111 (7)</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgg">1</td>
+  <td class="bgg">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgg">5</td>
+  <td class="bgy">7</td>
+  <td class="bgr">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td class="bgr">F</td>
+  <td class="bgr">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td>9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ <p>
+ The intersection region is given by (r1.high-mask &amp; r2.high-mask, r1.low-mask + r2.low-mask).
+        </p>
+      <p class="indent1">
+        Given 0xX1 = (0111, 0001) and X11X = (1111, 0110).
+        </p>
+        <p class="indent1">
+ The intersection of 0xX1 and X11X = (0111 &amp; 1111, 0001 + 0110) = (0111, 0111) = 7.
+        </p>
+   <h3>Adjacent Regions</h3>
+  <p>
+ If the different bits mask of two regions has exactly one bit set to 1, they are adjacent.
+  </p>
+ <table class="indent1">
+ <caption>1100, 0XX1, 1X1X</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgg">1</td>
+  <td class="bgg">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgg">5</td>
+  <td class="bgg">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgy">C</td>
+  <td>D</td>
+  <td class="bgr">F</td>
+  <td class="bgr">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td>9</td>
+  <td class="bgr">B</td>
+  <td class="bgr">A</td>
+    </tr>
+ </table>
+ <p class="indent1">
+ The regions 0XX1 and 1X1X are different by one bit, the left-most, and are adjacent.
+        </p>
+ <p class="indent1">
+ The regions C (1100) and 0XX1 are different by more than one bit, the left-most and the right-most, and are not adjacent.
+        </p>
+   <p class="indent1">
+ Given a mask that is an array of integers, if only one integer is greater than zero, the mask has one bit set to one if: int &amp; (int - 1) = 0, this is more efficient than counting all the bits set to one and then testing for 0. (adapted from the  <a href="http://www-graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan">Count Bits Algorithm</a>).
+   </p>
+
+  <h3>The Union of two Regions</h3>
+  <p>
+ If you have two regions, 0xX1 and 1Xx1,
+ the regions are adjacent and have corresponding X bits, they can be combined.
+ The one different bit becomes an X in the result.
+ Other equal, corresponding, bits will be the same value in the result.
+ In this case the result would be XXX1.
+  </p>
+ <table class="indent1">
+ <caption>0xX1 + 1Xx1 = XXX1</caption>
+    <tr>
+    <th>
+ <table>
+ <caption>0xX1, 1Xx1</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgg">1</td>
+  <td class="bgg">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgg">5</td>
+  <td class="bgg">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgr">D</td>
+  <td class="bgr">F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgr">9</td>
+  <td class="bgr">B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>XXX1</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgy">1</td>
+  <td class="bgy">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgy">5</td>
+  <td class="bgy">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgy">D</td>
+  <td class="bgy">F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgy">9</td>
+  <td class="bgy">B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ </th>
+ </tr>
+    </table> 
+
+  <p>
+        To implement this:
+   </p>
+   <p class="indent1">
+    Check that the regions are adjacent.
+   </p>
+   <p class="indent1">
+    Check that the regions have equal X-masks.
+   </p>
+   <p class="indent1">
+ The union of two regions (r1, r2)
+        is given by ("or" all states, "and" all states).
+  </p>
+   <p class="indent2">
+ Given 0xX1 = (0011, 0101) and 1Xx1 = (1101, 1011).
+  </p>
+   <p class="indent2">
+ The Union = (0011 + 0101 + 1101 + 1011, 0011 &amp; 0101 &amp; 1101 &amp; 1011) = (1111, 0001) = XXX1.
+   </p>
+   <h3>Testing if a region is subset to another region</h3>
+  <p>
+        A region is a subset of another region they intersect and the first region X-bit mask is a subset of the second region X-bit mask.
+   </p>
+   <h3>Testing if a region is superset to another region</h3>
+  <p>
+        A region is a superset of another region they intersect and the first region X-bit mask is a superset of the second region X-bit mask.
+   </p>
+        <h3>Shared Symmetric regions</h3>
+        <p>
+        Adjacent, similar, regions, without X bits equal, or subset, have a symmetric (overlapping) part that can be calculated.
+        </p>
+        <table class="indent1">
+        <caption>1X0x, X110</caption>
+           <tr>
+                <th></th>
+                <th>00</th>
+                <th>01</th>
+                <th>11</th>
+                <th>10</th>
+           </tr>
+           <tr>
+                <th>00</th>
+                <td>0</td>
+                <td>1</td>
+                <td>3</td>
+                <td>2</td>
+           </tr>
+           <tr>
+                <th>01</th>
+                <td>4</td>
+                <td>5</td>
+                <td>7</td>
+                <td class="bgg2">6</td>
+           </tr>
+           <tr>
+                <th>11</th>
+                <td class="bgr">C</td>
+                <td class="bgr2">D</td>
+                <td>F</td>
+                <td class="bgg">E</td>
+           </tr>
+           <tr>
+                <th>10</th>
+                <td class="bgr2">8</td>
+                <td class="bgr2">9</td>
+                <td>B</td>
+                <td>A</td>
+           </tr>
+        </table>
+            <p>
+        To calculate the overlapping part of 1X0x and X110, use the intersection logic, even though they do not intersect.
+        </p>
+	<p>1X0x = (1101, 1000)</p>
+	<p>X110 = (1110, 0110)</p>
+	<p></p>
+	<p>
+	AND the high states: 1101 &amp; 1110 = 1100
+	</p>
+	<p>
+	OR the low states:   1000 + 0110 = 1110
+	</p>
+	<p>
+	Now make a region from the results, (1110, 1100) = 11X0 (E, C).
+	</p>
+	<a id="SKM"></a><h2>Sparse Karnaugh Maps <span style="font-size: 60%">(<a href="#KM">Top</a>, You are here, <a href="#AL">Automated Learning and Experimentation</a>, <a href="#SCR">State-Change Rules</a>, <a href="#CE">Combinatorial Explosion</a>, <a href="#CL">Conclusion</a>, <a href="#ADD">Addendums</a>)</span></h2>
+    <p>
+     In class we learn how to use K-Maps starting with all the squares filled in.
+ It occurred to me that a K-Map without all squares filled in might be interesting.
+   </p>
+ <p>
+ How would you make a best guess at the logic of a Sparse K-Map?
+ </p>
+ <p>
+ If you could choose to get information about an additional square, which square would be the best choice?
+ I assume that there is at least one method that is better than a random choice.
+    </p>
+    <p>
+ I will use the term <i>sample</i> to indicate an activity that results in some value for a square
+ to allow comparing it to other squares to determine similarity or dissimilarity.
+   </p>
+  <h3>The Optimistic Union</h3>
+  <p>
+ I would like to define a second kind of union that can be thought of as
+ "Barring evidence to the contrary, the union could be true".
+ This type of union is between two, or more, squares, it uses the same calculation of a union,
+ given above, except that the squares do not need to be adjacent.
+ Corresponding bits that are 1/0, or 0/1 will be X in the result. 
+ Other equal, corresponding, bits will be the same value in the result.
+  </p>
+ <p class="indent1">
+3+5+F = XXX1 
+   </p>
+    <p class="indent1">
+ <table>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgg2">1</td>
+  <td class="bgg">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgg">5</td>
+  <td class="bgg2">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgg2">D</td>
+  <td class="bgg">F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgg2">9</td>
+  <td class="bgg2">B</td>
+  <td>A</td>
+    </tr>
+ </table>
+   <p>
+ Current personal computers handle data 64 bits at a time.
+ With a K-Map of 64 bits, with 2<sup>64</sup> possible squares, it is impractical to sample every square.
+   </p>
+ <p>
+ The Optimistic Union is a necessary shortcut for understanding a large, sparse, Bitscape.
+ </p>
+ <p>
+ You can target some samples to improve the Optimistic Unions.
+ </p>
+ <p>
+ The concept of a scientific theory being assumed to be true, until it is falsified, seems to imply an Optimistic Union.
+ </p>
+<p>
+ Check that there are no squares in the region that are dissimilar to the original squares used to form the region.
+ <p>
+ Any new sample for a square that is in the region, including the squares used to form the region, can invalidate the region.
+ </p>
+ <h4>Adjacent, dissimilar, squares</h4>
+        <p>
+        If square E, above, is dissimilar to square F, no Optimistic Union can contain both squares.
+        </p>
+        <p>
+        So no Optimistic Union can be a superset of F + E = 111X.
+        </p>
+  <h3>Contradictory intersections indicate the need for a sample</h3>
+  <p>
+ If a region is formed by the squares (and samples) 5 and 3, and another is formed by the squares (and samples) F and 6,
+  </p>
+  <p>
+ the two regions may suggest a different sample result for square 7, which has not yet been sampled.
+  </p>
+ <table class="indent1">
+ <caption>0Xx1 vs. X11X</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgy2">1</td>
+  <td class="bgy">3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgy">5</td>
+  <td class="bgo">7</td>
+  <td class="bgr">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td class="bgr">F</td>
+  <td class="bgr2">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td>9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+   <h3>Limiting an Optimistic Union</h3>
+    <p>
+ In a solved K-Map, it is common practice to remove regions that are completely overlapped by other regions.
+  </p>
+  <p>
+    Those regions that cannot be discarded, that therefore <i>define</i> the solution, have at least one square that is not overlapped by any other region (before discarding regions), therefore at least one square that is only in one region.
+    </p>
+    <p>
+    I call such a square an <i>anchor</i> square.
+    </p>
+    <p>
+ What causes a square to be only in one region?
+            </p>
+        <p class="indent1">
+ Consider a square, s1, that is only in one region of a completed solution.
+            </p>
+        <p class="indent1">
+ For each non-X bit position of the region, there will be a square, s2, outside the region
+ that is adjacent to s1.
+            </p>
+        <p class="indent2">
+          s2 can be calculated by: an isolated single bit of the region non-X bit position mask ^ s1.
+    </p>
+        <p class="indent1">
+ If s1 is similar to s2, then the two squares form a region and s1 is in two regions, and the region was not discerned as previously thought.
+  </p>
+  <p class="indent1">
+    <i>For a square that is only in one region, it must be dissimilar to all adjacent squares outside of the region</i>.
+    </p>
+    <p class="indent1">
+      <i>This allows us to say that a square is in no larger region.</i>
+    </p>
+    <p class="indent1">
+        If a new sample shows the prediction to be wrong, s1 will be in one (an additional adjacent dissimilar square), or more, smaller regions.
+    </p>
+    <p class="indent1">
+    A large, sparse, K-Map, is never really "solved".
+    </p>
+    <p class="indent1">
+    If there are squares in both of two overlapping regions, discarding one region will make it appear that those squares are only in one region. 
+    </p>
+    <p class="indent1">
+ So keep all valid regions, unless they are a subset of another valid region.
+    </p>
+    <p class="indent1">
+ In the K-Map, below, assuming square 5 is in only one region, 0X0X:
+    </p>
+    <p class="indent2">
+    Square 5 has dissimilar adjacent squares D and 7, external to 0X0X.
+    </p>
+    <p class="indent2">
+    Square 5 has a similar square, 0, the farthest square from 5 in 0X0X. 
+    </p>
+    <p class="indent1">
+    <i>The adjacent dissimilar pairs also limit the entire K-Map, as no conceivable region can contain 5 and D, or 5 and 7.</i> 
+    </p>
+    <p class="indent2">
+        (~5 + ~7) &amp; (~5 + ~D) = ~5 + (~7 &amp; ~D) = (1XXX, XX1X, X0XX, XXX0, 0X0X).
+    </p>
+    <p class="indent1">
+    Dissimilar pairs that are not adjacent may be useful, but are less effective.  For example (~5 + ~7) &amp; (~1 + ~F) = (~5 + ~7).
+    </p>
+    <p class="indent2">
+    XXX1 (1, F) is a superset of 01X1 (5, 7).
+    </p>
+ <table class="indent1">
+ <caption>0X0X Limited</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgg">5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgr">D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td>9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table> 
+   <p class="indent1">
+        If the region contains no dissimilar squares, it is valid &quot;to the best of our knowledge&quot;.
+    </p>
+    <p class="indent1">
+ With multiple limited regions, there is the opportunity/problem of minimizing the number of squares needed to limit the regions.
+    </p>
+    <p class="indent1">
+ For example, the squares D and 7, above, might be used to limit the regions they are in.
+    </p>
+   <p>
+   In the K-Map below, square 5 is in two regions (0X0X, X10x) with one adjacent dissimilar square.
+</p>
+   <p>
+  The implied largest region for square 5 is XX0X, which is invalid due to dissimilar square 9.
+</p>
+ <table class="indent1">
+ <caption>Square 5 in two regions</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgg">5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgg">C</td>
+  <td class="bgg2">D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgr">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table> 
+   <h3>Possible Regions for a square</h3>
+   <table class="indent1">
+ <caption>Square 0 and two dissimilar squares, 7 and D</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td>1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td>5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgr">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ <p>
+ The largest region is XXXX.
+ </p>
+ <p>
+ Subtracting 7 from XXXX, produces (1XXX, X0XX, XX0X, XXX0). See the addendums Region Subtraction, Subtracting a region from a set of regions.
+ </p>
+ <p>
+ The square 0 is not in 1XXX, so that can be discarded. 
+ </p>
+ <p>
+ A more efficient process is to subtract using only the bits that are different between 0 and 7, 0111.
+ </p>
+ <p>
+ Squares 7 and 9 are not in XXX0, so that goes into the result region list.
+ </p>
+ <p>
+ Square 9 is in X0XX, subtracting using the bits different between 0 and 9, 1001, gives (00XX, X0X0).
+ </p>
+ <p>
+ Square 9 is in XX0X, subtracting using the bits different between 0 and 9, 1001, gives (0X0X, XX00).
+ </p>
+ <p>
+ X0X0 and XX00 are subsets of XXX0, so they can be discarded.
+ </p>
+ <p>
+ The result is (XXX0, 00XX, 0X0X).
+ </p>
+ <table class="indent1">
+    <tr>
+    <th>
+ <table>
+ <caption>XXX0</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td>1</td>
+  <td>3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td>5</td>
+  <td class="bgr">7</td>
+  <td class="bgg2">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgg2">C</td>
+  <td>D</td>
+  <td>F</td>
+  <td class="bgg2">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgr">9</td>
+  <td>B</td>
+  <td class="bgg2">A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>00XX</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td class="bgg2">3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td>5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgr">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>0X0X</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgg2">5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgr">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ </th>
+ </tr>
+    </table> 
+   <h3>Calculating a path to avoid a region.</h3>
+   <p class="indent1">
+   Assume you want to find a path from square 1 to square E, avoiding region X1X1.
+   </p>
+   <table class="indent1">
+ <caption>Squares 1 and E, and region X1X1</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td>0</td>
+  <td class="bgg">1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgr">5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgr">D</td>
+  <td class="bgr">F</td>
+  <td class="bgg">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td>9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+   <p class="indent1">
+   The complement of region X1X1, containing square 1, is X0XX.
+   </p>
+   <p class="indent1">
+   The complement of region X1X1, containing square E, is XXX0.
+   </p>
+   <p class="indent1">
+   X0XX intersects XXX0 at X0X0.
+   </p>
+ <table class="indent1">
+    <tr>
+    <th>
+ <table>
+ <caption>X0XX</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg2">0</td>
+  <td class="bgg">1</td>
+  <td class="bgg2">3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgr">5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgr">D</td>
+  <td class="bgr">F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgg2">9</td>
+  <td class="bgg2">B</td>
+  <td class="bgg2">A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>XXX0</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg2">0</td>
+  <td>1</td>
+  <td>3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgr">5</td>
+  <td class="bgr">7</td>
+  <td class="bgg2">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgg2">C</td>
+  <td class="bgr">D</td>
+  <td class="bgr">F</td>
+  <td class="bgg">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td>9</td>
+  <td>B</td>
+  <td class="bgg2">A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>X0X0</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td>1</td>
+  <td>3</td>
+  <td class="bgg">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td class="bgr">5</td>
+  <td class="bgr">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td class="bgr">D</td>
+  <td class="bgr">F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg">8</td>
+  <td>9</td>
+  <td>B</td>
+  <td class="bgg">A</td>
+    </tr>
+ </table>
+ </th>
+ </tr>
+    </table> 
+   <p class="indent1">
+   So the path from 1 to E is 1 to X0X0, staying within X0XX.
+   </p>
+   <p class="indent1">
+   Then from X0X0, to E, staying within XXX0.
+   </p>
+   <p class="indent1">
+   To avoid multiple regions, intersect multiple complements for 1 and E.
+   </p>
+  </div>
+ <div id="learning">
+ <a id="AL"></a>
+    <h2>Automated Learning and Experimentation <span style="font-size: 60%">(<a href="#KM">Top</a>, <a href="#SKM">Sparse Karnaugh Maps</a>, You are here, <a href="#SCR">State-Change Rules</a>, <a href="#CE">Combinatorial Explosion</a>, <a href="#CL">Conclusion</a>, <a href="#ADD">Addendums</a>)</span></h2>
+    <p>
+ There have been a few times, even before I knew anything about computers, when it seemed like I could sense what was changing in my mind when
+ solving a problem.  This could be called "connecting the dots" or "changing the bits".  These
+ infrequent perceptions are the inspiration for much of this web page.
+    </p>
+    <p>
+ When you are trying to solve a problem, you usually do not have all possible samples.
+ You make a guess, and you try to get more samples to limit your guess.
+ When you try to get more samples, you usually choose them in some way, rather
+ than at random.
+    </p>
+    <p>
+ Consider the old game of Battleship.
+ You randomly hit some of your opponents squares until you hit something.
+ Then you explore around the successful hit to outline the shape of the ship.
+ Your last one or two hits are calculated and successful.
+ You win the game without hitting all the squares.
+    </p>
+   <p>
+ Calculating regions from a random set of samples can be considered to be experiential aggregation, allowing you to guess.
+   </p>
+ <p>
+ Learning, may be defined as:
+   </p>
+   <p class="indent1">
+   Seeking samples of squares that are not already within a region.
+   </p>
+   <p class="indent1">
+   Seeking samples of squares to limit a region.
+   </p>
+   <p class="indent1">
+    Seeking a sample of a square to resolve a contradictory intersection of two regions.
+ </p>
+   <p class="indent1">
+   Processing the results of a plan that did not work exactly as expected.
+ </p>
+    <h4>Implementation</h4>
+	<p>Bootstrapping.</p>
+        <p class="indent1">
+     If the result of the current state cannot be predicted, sample it.
+     </p>
+     <p class="indent1">
+        The first samples of this kind, that is only a single sample of each state, can be combined, to form regions.
+     </p>
+     <p class="indent1">
+        Some regions will be invalidated when they do not predict the result of sampling a state within them.
+     </p>
+         <p class="indent1">
+        Keep a list of superset, non-falsified, regions of states with compatible samples.
+        </p>
+     <p class="indent1">
+        The error rate of the regions formed will start high and trend downward.
+     </p>
+	<p>Resample states.</p>
+     <p class="indent1">
+     Resample states used to understand the logic, to determine if the are predictable.
+     </p>
+	<p>Discover the structure of the logic.</p>
+     <p class="indent1">
+     The possible region structure of the logic starts with a region encompassing all possible states.
+     </p>
+     <p class="indent1">
+     Notice two dissimilar states within a possible region.
+     </p>
+     <p class="indent2">
+     Successively test states between the dissimilar states, until two adjacent, dissimilar, states are found.
+     </p>
+     <p class="indent2">
+     Intersect the possible region structure of the logic with ~A + ~B, so that no region will contain both states.
+     </p>
+        <p>
+        Test the boundaries of regions.
+        </p>
+        <p class="indent1">
+        Use states that appear to be in only one region to limit that region.
+        </p>
+        <p class="indent1">
+	Sample states, adjacent to the limiting state, outside of the region.
+        </p>
+      <p class="indent1">
+        If an external adjacent state turns out to be similar instead of dissimilar, form a region from the two.
+        </p>
+      <p>
+        <p>
+        Extra testing of some regions.
+        </p>
+      <p class="indent1">
+        A region of states that causes predictable change will be tested by use.
+        </p>
+      <p class="indent1">
+        For regions that make no change, or are unpredicable, extra testing is needed.
+        </p>
+        <p class="indent1">
+	Sample states, adjacent to the limiting state, inside of the region.
+        </p>
+     <p>  
+        Contradictory intersections.
+        </p> 
+        <p class="indent1">
+        Some regions will intersect, predicting different results in the subregion.
+        </p> 
+        <p class="indent1">
+        Seek a sample in the subregion.
+        </p> 
+      Parallel processing.
+      </p>
+      <p class="indent1">
+	Parallel processing has always been thought to be crucial for Expert Systems.  This is hobbled when there is a need for different tasks to update a piece of shared data.  There are a number of opportunities to use unfettered parallel processing here.
+      </p>
+      <p class="indent1">
+      Generating needs can be done in parallel, per action.  Likely without any shared memory, just aggregate the results.
+     </p>
+      <p class="indent1">
+      Calculating plans for possible needs can be done in parallel, per need.  Likely without any shared memory, just aggregate the results.
+     </p>
+      <p class="indent1">
+      Getting rules/steps, that meet certain criteria, can be done in parallel, per action.  Likely without any shared memory, just aggregate the results.
+     </p>
+   </div>
+   <div id="rules">
+    <a id="SCR"></a>
+    <h2>State-Change Rules <span style="font-size: 60%">(<a href="#KM">Top</a>, <a href="#SKM">Sparse Karnaugh Maps</a>, <a href="#AL">Automated Learning and Experimentation</a>, You are here, <a href="#CE">Combinatorial Explosion</a>, <a href="#CL">Conclusion</a>, <a href="#ADD">Addendums</a>)</span></h2>
+      <p>
+       Note: I've tried to keep everything, above, general, without referencing this section, since there may be other ways to approach this.  Some things in this section will relate to/extend ideas in the previous sections.
+      </p>
+      <p>
+      States can be defined as an array of unsigned integers. Unsigned integers have a defined size, so it is 
+      convenient to also specify the number of bits, in case you want to use a little less than is possible.
+      </p>
+      <p class="indent1">
+      To keep unused bits set to zero, instead of using a logical not operation, use an xor operation with the maximum value.
+      </p>
+      <p class="indent1">
+      Bit/Boolean arrays can be used, but performance may suffer for any but small numbers of bits.
+      </p>
+    <p> 
+ State-Change Rules attempt to make sense of how a state or region changes when an activity or action can be executed that may result in a state change.
+ State-Change Rules are a working point-in-time understanding of logic based on a limited number of recent samples.
+    </p>
+    <p>
+ State-Change Rules can be vexing, but they simply depend on something being predictable.
+    </p>
+    <p> 
+    So everything is contingent, it works as expected, until it doesn't. Similar to Real Life.
+    </p>
+    <h3>Single bit State-Change Rules</h3>
+    <p> 
+ Assuming a state of one bit, and a time or activity after which the state is sampled a second time, a rule
+ describing the two samples can be generated.
+ The rule may be one of the following four possibilities:
+    </p>
+    <ul class="indent1">
+ <li>0 &#129042; 0</li>
+ <li>0 &#129042; 1</li>
+ <li>1 &#129042; 1</li>
+ <li>1 &#129042; 0</li>
+    </ul>
+    <p>
+ The left bit can be referred to as the initial state, the right bit can be referred to as the
+ result state.
+    </p>
+    <p>
+ On the third sample, a rule can be generated from the second and third samples.
+ Assuming the samples are 0 &#129042; 1 &#129042; 0, we have rule 0 &#129042; 1 and 
+ rule 1 &#129042; 0.
+    </p>
+    <p>
+ There are ten possible ways to combine two one-bit rules:
+    </p>
+    <ul class="indent1">
+ <li>0 &#129042; 0, 0 &#129042; 0 = 0 &#129042; 0</li>
+ <li>0 &#129042; 1, 0 &#129042; 1 = 0 &#129042; 1</li>
+ <li>1 &#129042; 1, 1 &#129042; 1 = 1 &#129042; 1</li>
+ <li>1 &#129042; 0, 1 &#129042; 0 = 1 &#129042; 0</li>
+ </ul>
+    <ul class="indent1">
+ <li>0 &#129042; 0, 1 &#129042; 1 = X &#129042; X</li>
+ <li>0 &#129042; 0, 1 &#129042; 0 = X &#129042; 0</li>
+ <li>0 &#129042; 1, 1 &#129042; 1 = X &#129042; 1</li>
+ <li>0 &#129042; 1, 1 &#129042; 0 = X &#129042; x</li>
+ </ul>
+    <ul class="indent1">
+ <li>0 &#129042; 0, 0 &#129042; 1 = 0 &#129042; X (disallowed)</li>
+ <li>1 &#129042; 1, 1 &#129042; 0 = 1 &#129042; X (disallowed)</li>
+    </ul>
+    <p>
+    Combinations of the same one-bit rules, the first set of four, produce the same.
+    </p>
+    <p>
+    Combinations where the initial bits are different, the second set of four, will always be valid.
+    </p>
+    <p>
+ Combinations that result in 0&#129042;X and 1&#129042;X, the third set, having dissimilar changes, dissimilar results, and no predictive value, are disallowed.
+    </p>
+    <p>
+ Combinations of more than two different 1-bit rules will always combine to one of 0&#129042;X and/or 1&#129042;X, and are disallowed.
+    </p>
+    <p>
+ The combined rules on the right side of the equals sign, above, can start and end with 0, 1 or X.
+      So <i>the initial and result states of the rules can describe K-Map squares and regions</i>.  
+    </p>
+    <h3>Multiple bit State-Change Rules</h3>
+    <p>
+ If you have a four-bit state and sample it, the result state can be used to construct a four-bit State-Change rule.
+    </p>
+    <p>
+ State 0010, with a result state of 0100 produces the State-Change rule: (0&#129042;0, 0&#129042;1, 1&#129042;0, 0&#129042;0).
+    </p>
+    <p>
+ State 0101, with a result state of 0001 produces the State-Change rule: (0&#129042;0, 1&#129042;0, 0&#129042;0, 1&#129042;1).
+    </p>
+    <p>
+ State 0010 and 0101 can form an Optimistic Union of 0XXX.
+    </p>
+    <p>
+ The State-Change rules of State 0010 and 0101 can also be combined:
+ </p>
+ <p class="indent1">
+ (0&#129042;0, 0&#129042;1, 1&#129042;0, 0&#129042;0)<br>
+ (0&#129042;0, 1&#129042;0, 0&#129042;0, 1&#129042;1)<br>
+ ------------------------------------<br>
+ (0&#129042;0, X&#129042;x, X&#129042;0, X&#129042;X)
+    </p>
+    <p>
+ The state 0110 is within the above union of 0XXX.
+    </p>
+    <p>
+ State 0110, with a result state of 0100 produces the State-Change rule: (0&#129042;0, 1&#129042;1, 1&#129042;0, 0&#129042;0).
+    </p>
+    <p>
+     In the State-Change rules for states 0010 and 0101, above, in the third position from the right, there are two bit changes, 0&#129042;1 and 1&#129042;0.
+    </p>
+    <p>
+ The State-Change rule for state 0110 adds a third kind of change in the second position, 1&#129042;1.
+ The bit rules 1&#129042;1 and 1&#129042;0 invalidate the Optimistic Union. 
+    </p>
+    <h3>Implementation</h3>
+   <p>
+        One way to represent a State-Change Rule, is to keep masks for each of the four possible bit changes.
+    </p>
+    <p>
+        Given a sample, i&#129042;r,
+        form the rule as follows:
+    </p>
+    <p class="indent1">
+        The 0&#129042;0 mask = ~i &amp; ~r
+    </p>
+    <p class="indent1">
+        The 0&#129042;1 mask = ~i &amp; r
+    </p>
+    <p class="indent1">
+        The 1&#129042;1 mask = i &amp; r
+    </p>
+    <p class="indent1">
+        The 1&#129042;0 mask = i &amp; ~r
+    </p>
+     <p>
+        Two rules are equal if their corresponding masks are equal.
+    </p>
+    <p>
+        A union of two rules can be formed by calculating the union of corresponding masks.
+    </p>
+    <p class="indent1">
+        A union combines bit-changes, so validate the result with:
+    </p>
+    <p class="indent2">
+        1&#129042;0 mask &amp; 1&#129042;1 mask = all zeros.
+    </p>
+    <p class="indent2">
+        0&#129042;0 mask &amp; 0&#129042;1 mask = all zeros.
+    </p>
+      <p class="indent2">
+        Where these masks are non-zero, they identify a dissimilarity and can be useful.
+    </p>
+      <p class="indent2">
+         If a rule union with an initial region of 1X0X includes a 1&#129042;X bit in the third position from the right,
+        that indicates that 110X is invalid, while 101X may be valid.
+    </p>
+      <p>
+        A rule is a subset of another rule if the corresponding masks are subsets.
+    </p>
+      <p>
+        The initial region can be calculated with:
+    </p>
+    <p class="indent1">
+      Region high-bits = <b>1</b>&#129042;1 mask + <b>1</b>&#129042;0 mask
+     </p>
+     <p class="indent1">
+       Region low-bits = ~(<b>0</b>&#129042;0 mask + <b>0</b>&#129042;1 mask)
+    </p>
+    <p>
+        An intersection of two rules can be formed by calculating the intersection of corresponding masks.
+    </p>
+   <p class="indent1">
+        An intersection may lose bit-changes, so validate the result with:
+    </p>
+    <p class="indent2">
+        0&#129042;0 mask + 0&#129042;1 mask + 1&#129042;1 mask + 1&#129042;0 mask = all ones.
+        If not, the entire intersection is dissimilar.
+    </p>
+     <p class="indent2">
+     The initial region of the result is equal to the intersection of the initial regions of the two rules.
+       If not, the initial region of the result is the similar part of the intersection.
+     </p>
+    <p>
+        The result region can be calculated with:
+    </p>
+    <p class="indent1">
+      Region high-bits = 1&#129042;<b>1</b> mask + 0&#129042;<b>1</b> mask
+     </p>
+     <p class="indent1">
+       Region low-bits = ~(0&#129042;<b>0</b> mask + 1&#129042;<b>0</b> mask)
+    </p>     
+    <p>
+        Forward-Chaining
+    </p>
+    <p class="indent1">
+       For a region (rg) that intersects the initial region of a rule, restrict the rule to that intersection by filtering similar initial bits:
+    </p>
+    <p class="indent2">
+      0&#129042;0 restricted = <b>0</b>&#129042;0 &amp; ~rg.<b>low-bits</b>
+    </p>
+    <p class="indent2">
+      0&#129042;1 restricted = <b>0</b>&#129042;1 &amp; ~rg.<b>low-bits</b>
+    </p>
+    <p class="indent2">
+      1&#129042;1 restricted = <b>1</b>&#129042;1 &amp; rg.<b>high-bits</b>
+    </p>
+    <p class="indent2">
+      1&#129042;0 restricted = <b>1</b>&#129042;0 &amp; rg.<b>high-bits</b>
+    </p>
+    <p class="indent1">
+        Then calculate the result region of the restricted rule.
+    </p>
+    <p>
+        Backward-Chaining
+    </p>
+    <p class="indent1">
+         For a region (rg) that intersects the result region of a rule, restrict the rule to that intersection by filtering similar result bits:
+    </p>
+    <p class="indent2">
+      0&#129042;0 restricted = 0&#129042;<b>0</b> &amp; ~rg.<b>low-bits</b>
+    </p>
+    <p class="indent2">
+      0&#129042;1 restricted = 0&#129042;<b>1</b> &amp; rg.<b>high-bits</b>
+    </p>
+    <p class="indent2">
+      1&#129042;1 restricted = 1&#129042;<b>1</b> &amp; rg.<b>high-bits</b>
+    </p>
+    <p class="indent2">
+      1&#129042;0 restricted = 1&#129042;<b>0</b> &amp; ~rg.<b>low-bits</b>
+    </p>
+    <p class="indent1">
+        Then calculate the initial region of the restricted rule.
+    </p>
+   <p>
+    Rule Order
+    </p>
+    <p class="indent1">
+    Two rules can imply an order of use, if the changes of one must be undone to run the other.
+    e.g. 0X00&#129042; 0X01, later 1X00&#129042;.... 
+    </p>
+    <p class="indent1">
+    Two rules can be mutually exclusive, that is neither order works.
+    </p>
+    <p class="indent2">
+    Assuming a current state of 0000, and the wish to change to the state 0011:
+    </p>
+    <p class="indent2">
+    With the rule XX10&#129042;XX11 available to switch the rightmost bit.
+    </p>
+    <p class="indent2">
+    With the rule XX01&#129042;XX11 available to switch the second rightmost bit.
+    </p>
+    <p class="indent2">
+    Neither order will work for the rules.
+    </p>
+    <p class="indent1">
+    To make this more calculable, the addendums "Rule sequence aggregation" and "Rule for region to region change" can be used
+    to form a single rule representing the use of two rules in a given order.
+    </p>
+    <p class="indent2">
+    The result can be checked for changes that are reversed and unwanted changes.  X bit positions in the goal region
+    are "don't care" positions.
+    </p>
+    <p class="indent1">
+    Another way to look at it is, a needed change of 1&#129042 0 in a rule, must be followed by 0&#129042 0.
+     A needed change of 0&#129042 1 in a rule, must be followed by 1&#129042 1.
+    </p>
+   <p>
+    <h3>Multiple State Samples</h3>
+    <p>
+    If a state is sampled once, I would say it has a Pattern Number (PN) of one.
+    </p>
+    <p>
+    If a state is sampled three times, with the same result, I start to think I can predict the result.
+    Its a low bar, but I have to place it somewhere.
+    I now say it is Pattern Number Confirmed (PNC).
+    </p>
+    <p>
+ I am tempted to say that a state that produces more than one result can simply be called unpredictable.
+  </p>
+  <p>
+  Due to my previously mentioned "infrequent perceptions", I feel that simple patterns like (0, 1, 0, 1, 0) should be accommodated.
+    </p>
+    <p>
+ A state that is sampled twice, with two results, is PN-2.
+    </p>
+    <p>
+ A state that is sampled four times, with two results, in proper order, is PNC.
+    </p>
+    <p>
+ A state that is sampled and produces three different results, or two results not in proper order (1, 0, 0) is considered Unpredictable.
+    </p>
+    <h3>Union of Multiple States Rules</h3>
+    <p>
+    Two, or more, unpredictable states can form a union, if:
+    </p>
+    <p class="indent1">
+    There are no predictable states between them.
+    </p>
+    <p>
+    Two, or more, PN-1 states can form a union if:
+    </p>
+    <p class="indent1">
+    Their rules form a valid union.
+    </p>
+    <p class="indent1">
+    There are no PN GT 1 states between them.
+    </p>
+    <p>
+    Two PN-2 states can be combined if:
+    </p>
+    <p class="indent1">
+    Exactly one of the two possible unions of rules is valid.
+    </p>
+    <p class="indent2">
+    That is [s1.rule1 union s2.rule1] and [s1.rule2 union s2.rule2] or [s1.rule1 union s2.rule2] and [s1.rule2 union s2.rule1].
+    </p>
+    <p class="indent2">
+    For exactly one union to be valid, the two states must both have at least one bit position where they are both 0&#129042;0, 0&#129042;1 or 1&#129042;1, 1&#129042;0.
+    </p>
+    <p class="indent2">
+    Two valid combinations leads to (XX, Xx) vs. (X0, X1), which has no predictive value.
+    </p>
+    <p class="indent1">
+    There are no PNC, non PN-2, states between them.
+    </p>
+    <p class="indent1">
+    Any PN-1, non-PNC, state between them must have a rule that is a subset of one of the two rules.
+    </p>
+    <h3>Contradictory Intersections</h3>
+    <p>
+    If two rules intersect, the intersection of the two rules can be calculated.
+    </p>
+    <p>
+   The intersection region can be used to restrict each of the two rules.
+    </p>
+    <p>
+    If the two resulting rules are not equal, the intersection is a target for sampling.
+    </p>
+    <p>
+    Take the intersection of the two restricted rules.
+    </p>
+    <p>
+    If the resulting rule is invalid:
+    </p>
+    <p class="indent1">
+    Seek any sample in the intersection.
+    </p>
+    <p>
+    If the resulting rule is valid:
+    </p>
+    <p class="indent1">
+    The initial region of the resulting rule is the part of the original intersection that is valid.  Seek a sample in the intersection that is not in the valid part.
+    </p>
+    <p>
+    Its unlikely, but sampling a contradictory region could invalidate both regions.
+    </p>
+    <h3>Limiting an Optimistic Union</h3>
+    <p class="indent1">
+    For any region, a square that is only in that region may be used to limit the region, its <i>anchor</i> square.
+    </p>
+    <p class="indent1">
+    When looking for samples of squares adjacent to a given anchor, outside of a region, there is the issue of what squares are reachable.
+    </p>
+    <p class="indent1">
+    Make a mask of all bit positions that can change in both ways.
+    </p>
+    <p class="indent2">
+    For all available rules, generate the bitwise OR of all 0&#129042;1 masks, and the bitwise OR of all 1&#129042;0 masks.
+    </p>
+    <p class="indent2">
+    Make the bitwise AND of the two masks.
+    </p>
+    <p class="indent1">
+    Square samples that are needed are adjacent to the anchor for each region edge position that matches a bit in the mask.
+    </p>
+    <p class="indent1">
+    If a new rule is found, with the ability to change a bit that could not be changed before, regions with an edge that matches the new change will need additional adjacent samples.
+    </p>
+    <h3>Confirming an unused region.</h3>
+    <p class="indent1">
+    A limited region is guaranteed not to be larger, but could in reality consist of smaller subregions.
+    </p>
+    <p class="indent1">
+    A region that is predictable, and causes change, will be tested by use.
+    </p>
+    <p class="indent1">
+    An unpredictable, or predictable but no-change, region is unlikely to be sampled, after the samples needed to establish an anchor and far square.
+    </p>
+ <p class="indent1">
+ If there is a 1-bit subdivision of a limited region, it will make a square within the region, adjacent to the anchor square, dissimilar.
+ </p>
+ <p class="indent1">
+ So all squares adjacent to the anchor square, within the region, need to be sampled.
+ </p>
+    <h3>Possible Regions for a square, part two</h3>
+    <p>
+    Here we have square 0, 7 and 9 again. However, squares 7 and 9, are combinable with square 0, but not with each other.
+    </p>
+    <p>
+    Square 0 changes its rightmost bit, 0, to 1.
+    </p>
+    <p>
+    Square 7 changes its rightmost bit, 1, to 0. 
+    </p>
+    <p>
+    Square 9 does not change its rightmost bit, 1. 
+    </p>
+    <p>
+    The rightmost bit changes of 7 and 9 combine to 1&#129042;X, which is disallowed.
+    </p>
+    <p>
+    The rightmost bit changes of 0 and 7 combine to X&#129042;x.
+    </p>
+    <p>
+    The rightmost bit changes of 0 and 9 combine to X&#129042;1.
+    </p>
+   <table class="indent1">
+ <caption>Square 0 and two similar squares, 7 and D</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td>1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td>5</td>
+  <td class="bgg">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgg">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ <p>
+ We will use the calculation from the addendum Calculating possible regions using dissimilar pairs of squares.
+ </p>
+ <p>
+ Starting with the list (XXXX) we see that the region formed by squares 9 and 7, XXX1, is within an item in the list.
+ </p>
+ <p>
+ We calculate the complement of 7, containing 0, (X0XX, XX0X, XXX0).
+ </p>
+ <p>
+ We calculate the complement of 9, containing 0, (0XXX, XXX0).
+ </p>
+ <p>
+ We form the union of the two complements, (X0XX, 0XXX, XX0X, XXX0).
+ </p>
+ <p>
+ We intersect the union with the list, (XXXX), which will be the same as the union.
+ </p>
+ <table class="indent1">
+    <tr>
+    <th>
+ <table>
+ <caption>X0XX</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td class="bgg2">3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td>4</td>
+  <td>5</td>
+  <td class="bgg">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgg">9</td>
+  <td class="bgg2">B</td>
+  <td class="bgg2">A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>0XXX</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td class="bgg2">3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgg2">5</td>
+  <td class="bgg">7</td>
+  <td class="bgg2">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td>8</td>
+  <td class="bgg">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>XX0X</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgg2">1</td>
+  <td>3</td>
+  <td>2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgg2">5</td>
+  <td class="bgg">7</td>
+  <td>6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgg2">C</td>
+  <td class="bgg2">D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgg">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ </th>
+    <th>
+ <table class="indent1">
+ <caption>XXX0</caption>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td>1</td>
+  <td>3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td>5</td>
+  <td class="bgg">7</td>
+  <td class="bgg2">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgg2">C</td>
+  <td>D</td>
+  <td>F</td>
+  <td class="bgg2">E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgg">9</td>
+  <td>B</td>
+  <td class="bgg2">A</td>
+    </tr>
+ </table>
+ </th>
+ </tr>
+    </table> 
+ <p>
+ Notice that X0XX intersects 0XXX at 00XX.
+ </p>
+   <table>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgr">1</td>
+  <td class="bgr">3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgg2">5</td>
+  <td class="bgg">7</td>
+  <td class="bgg2">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td>C</td>
+  <td>D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgg">9</td>
+  <td class="bgg2">B</td>
+  <td class="bgg2">A</td>
+    </tr>
+ </table>
+ <p>
+ The squares in 00XX (0, 1, 2, 3) that have a rightmost 1 bit are (1, 3). 
+ We do not know if 00X1 changes like 9 or 7.
+ So 00X1, is a contradictory intersection.
+ </p>
+ <p>
+ Notice that XX0X intersects 0XXX at 0X0X.
+ </p>
+   <table>
+    <tr>
+  <th></th>
+  <th>00</th>
+  <th>01</th>
+  <th>11</th>
+  <th>10</th>
+    </tr>
+    <tr>
+  <th>00</th>
+  <td class="bgg">0</td>
+  <td class="bgr">1</td>
+  <td class="bgg2">3</td>
+  <td class="bgg2">2</td>
+    </tr>
+    <tr>
+  <th>01</th>
+  <td class="bgg2">4</td>
+  <td class="bgr">5</td>
+  <td class="bgg">7</td>
+  <td class="bgg2">6</td>
+    </tr>
+    <tr>
+  <th>11</th>
+  <td class="bgg2">C</td>
+  <td class="bgg2">D</td>
+  <td>F</td>
+  <td>E</td>
+    </tr>
+    <tr>
+  <th>10</th>
+  <td class="bgg2">8</td>
+  <td class="bgg">9</td>
+  <td>B</td>
+  <td>A</td>
+    </tr>
+ </table>
+ <p>
+ The squares in 0X0X (0, 1, 4, 5) that have a rightmost 1 bit are (1, 5). 
+ We do not know if 0X01 changes like 9 or 7.
+ So 0X01, is a contradictory intersection.
+ </p>
+ <p>
+ Contradictory intersections are very nice targets, that allow improving the ability to predict responses to sampling.
+ </p>
+ <p>
+ If there was another dissimilar pair, like (C, 8), we would look at the result list, note that they are both in at least one item in the list, that is (XX0X, XXX0), and use the above logic, (union (complement C, superset 0) (complement 8, superset 0)) intersection (X0XX, XX0X, XXX0, 0XXX).
+ </p>
+    <h3>Generating a rule-path, to translate a from-region to a goal-region.</h3>
+    <p class="indent1">
+    This has some similarities to the Traveling Salesperson Problem, going to the initial region of a rule, to change a bit value, then to the initial region of another rule.
+    </p>
+    <p class="indent2">
+    A rule, r1, may be needed to change a bit, b1, in order to use another rule, r2, to change a different bit, b2.
+    </p>
+    <p class="indent2">
+    Then rule r1 may be used to change bit b1 back to its original value.  So a rule may be used more than once.
+    </p>
+    <p class="indent1">
+    Calculate the needed bit changes between the from-region (starts as the current-state) and the goal-region.
+    </p>
+    <p class="indent1">
+    Make one pass though the rules and select any rule that elicits at least one bit change that matches the needed changes.
+    </p> 
+    <p class="indent1">
+    Check if a single rule solves the problem.  This is the ultimate successful end-point of any search.
+    </p> 
+    <p class="indent1">
+    The aggregate changes of the rules found should be a superset of the changes needed, or no path can be found.
+    </p> 
+    <p class="indent1">
+    Create a sorted list of each single bit-change needed, and the rules available to make that change.
+    </p> 
+    <p class="indent2">
+    If all the rules for any two needed bit-changes are mutually exclusive, no path can be made.
+    </p> 
+    <p class="indent2">
+    All the rules for any two needed bit-changes may have initial and result regions that indicate that one set of rules should be used before the other.  The indicated second set can be dropped.
+    </p> 
+    <p class="indent2">
+    A rule that changes more than one bit will be in more than one bit-change rule set, so those set pairs will not be affected by the above two considerations.
+    </p> 
+    <p class="indent2">
+    If all rules in a bit change set have an initial-region that does not intersect the from-region, and a result-region that does not intersect the goal-region,
+    it has the effect of splitting up the search into two, possibly easier/shorter, parts.
+    </p>
+    <p class="indent1">
+    A depth-first search, using random choices, seems to be the best method of generating a rule-path.
+    It should be run some number of times before giving up.
+    </p>
+    <p class="indent1">
+    Asymmetrical Chaining
+    </p>
+    <p class="indent2">
+    Of the bit-change sets that contain only rules that do not have an initial region that intersects the from-region, and 
+    no result region that intersects the goal-region, aggregate the rules and randomly choose one.
+    </p>
+    <p class="indent2">
+    Use recursion to go from the from-region to the rule initial-region. Restrict the rule initial-region.
+    Use recursion to find a path from the restricted rule result-region to the goal-region.
+    </p>
+    <p class="indent1">
+    Otherwise, randomly pick a rule.
+    </p>
+    <p class="indent2">
+    If the initial-region of the selected rule is a superset of the from-region, restrict the initial-region of the rule. Use recursion
+    to find a path from the restricted rule result-region to the goal-region.
+    </p>
+    <p class="indent2">
+    If the result-region of the selected rule intersects the goal-region, restrict the result-region of the rule. Use recursion
+    to find a path from the from-region to the restricted rule initial-region.
+    </p>
+    <p class="indent2">
+    Otherwise, process as an asymmetric step.
+    </p>
+    <p class="indent1">
+    Keep a count of the recursion depth, and fail the process at some point.  
+    Asymmetrical Chaining has the effect of splitting the depth count risk.
+    </p>
+  </div>
+  <div id="combex">
+    <a id="CE"></a>
+    <h2>The Combinatorial Explosion, defeated! <span style="font-size: 60%">(<a href="#KM">Top</a>, <a href="#SKM">Sparse Karnaugh Maps</a>, <a href="#AL">Automated Learning and Experimentation</a>, <a href="#SCR">State-Change Rules</a>, You are here, <a href="#CL">Conclusion</a>, <a href="#ADD">Addendums</a>)</span></h2>
+    <p>
+ Expert systems sometimes churn through millions of possible rule combinations
+ to predict what rules can be used, and in what order, to reach a goal.
+ Because of this, even supercomputers can get bogged down.
+ There are always tricks to cut out some combinations, but they tend to be specific to the problem being solved.
+ Regardless of the tricks used to make a given search faster,
+ if the next search requires a few more steps, the computer will get bogged down again.
+ It is hard to overstate the difficulty of this problem.
+    </p>
+    <p>
+ The cause of the problem is that <i>the computer has no sense that using a rule will get it closer to its
+ goal. Predicting the goal as the result of the last rule, in the most recent sequence of rules tried, is an unlikely surprise!</i>
+ Discovering a rule combination that ends in the desired goal state is costly due to the huge number of useless combinations that have to be considered.
+ Failure to discover a rule combination that ends in the desired goal state is even more costly, because it is not obvious when to stop the
+ search.
+    </p>
+    <p>
+ If you represent the current state and goal state as bit patterns (like squares on a K-Map),
+ you can count the number of bits that are different between the two states and say they are that number of bits apart.
+ </p>
+ <p>
+ <i>A rule that changes the current state in a way that reduces the
+ number of bits different from the goal state can be understood to bring the current state closer to the goal state.</i>
+ Decreasing the number of bits different from the goal state increases the probability that one rule is available that can change the current state to the goal state.
+    </p>
+     <p>
+       A goal can be a range of states, represented by a region, where X bit positions are not important.
+    </p>
+        <p>
+ This approach greatly decreases the effort required to find a combination of rules (rule-path) to attain a desired goal.
+ A less obvious benefit is a timely failure, so that effort is not wasted to find a rule-path to an unreachable goal.
+ </p>
+    <p>
+ Finding a rule-path can be challenging, or fail, if:
+    </p>
+ <ul class="indent1">
+ <li>
+     <p>
+ There is an incomplete understanding of the logic (similar to real life).  The only possible predicted rule-path to a goal may
+ traverse a gap that is not covered by an Optimistic Union.
+ </p>
+ </li>
+ <li>
+    <p>
+ There are rules that change more than one bit at a time.
+ At least one bit change may be desired, while others are not.
+ Combinations of rules might have the effect of reversing the undesired change(s), leaving just the desired change(s).
+ </p>
+ </li>
+ <li>
+    <p>
+ There are states or regions that you want to avoid to varying degrees.
+ When driving a car, you do not want to depress the brake pedal and gas pedal at the same time, you may decide to drive around an obstacle instead of through it.
+ The attraction of the goal, relative to the avoidance factor of the regions a rule-path traverses, may restrict the rule-path choice.
+ </p>
+ </li>
+ <li>
+     <p>
+ There are regions that produce unpredictable results.  A rule-path prediction cannot be extended through an unpredictable region.
+ </p>
+ </li>
+ <li>
+ <p>
+ There are regions that have more than one State-Change rule. You might need to run an action more than once to get the desired change for a state.
+ </p>
+ <p class="indent1">
+ If the alternate rule changes other bits you, may need to make, and run, a return-to-previous-state plan to rerun the action.  Or plan a new path to goal.
+ </p>
+ <p class="indent1">
+    You could look at existing sampled states, and choose one that will have the desired change next, as a sub-target of the rule-path.
+ </p>
+ </li>
+ </ul>
+    <p>
+ Using a rule-path can fail, if:
+ </p>
+ <ul class="indent1">
+ <li>
+    <p>
+ There is an erroneous understanding of the logic (similar to real life).  An Optimistic Union might be too broad, so
+ an unexpected result is encountered.
+ </p>
+ <p>
+ An unexpected result would delete an Optimistic Union and form other Optimistic Unions,
+ possibly with gaps and contradictory intersections.
+ </p>
+ </li>
+ <li>
+    <p>
+ Something changes during the execution of a rule-path that requires recalculating the rule-path (similar to real life).
+ </p>
+ </li>
+ </ul>
+ </div>
+  <div id="conclude">
+    	<a id="CL"></a>
+	<h2>Conclusion
+<span style="font-size: 60%">
+    (<a href="#KM">Top</a>, <a href="#SKM">Sparse Karnaugh Maps</a>, <a href="#AL">Automated Learning and Experimentation</a>, <a href="#SCR">State-Change Rules</a>, <a href="#CE">Combinatorial Explosion</a>, You are here, <a href="#ADD">Addendums</a>)
+</span></h2>
+ <p>
+ It should be possible to write a program that creates rules through experience, improves rules by experimentation, uses rules to attain goals, and avoids the Combinatorial Explosion.
+ </p>
+ <p> 
+   <i>The program is an expert of its own state.</i>
+   To the extent that some state bits predictably affect the outside world, and the outside world predictably affects
+        some bits, the program can understand and affect the outside world.
+  </p>
+  <p>
+  The program should be portable to different physical systems, probably changing the goal regions, avoidance regions and the number of bits in the state.
+  </p>
+  <p>
+  The State-Change rules learned in a physical system should be portable to a copy of the system.
+  </p>
+ <p>
+ If the physical system the program runs in sustains damage, the program should be able to delete rules that no longer work and learn new rules.
+ Goals can still be pursued, albeit in a less capable condition.
+ </p>
+ <p>
+ The Largest Possible Region has been treated, above, as having all bit positions set to X.
+ Due to poor planning, a poorly chosen initial state, or damage to a system, some bits in the system state will
+ not change, or will stop changing.
+ </p>
+<p class="indent1">
+   It is inefficient to constantly generate a need for a bit change that will never happen.
+ </p>
+<p class="indent1">
+   A program can seek changes that are within the scope of the currently existing rules.
+</p>
+ <p>
+ The program would have actions it can take, and each action would change the state bits.
+ Without feedback, there can be no State-Change rules.
+ If the program takes no action, something in the program state should still be updated, like a cycle counter, a time counter or a null action indicator.
+ </p>
+ <p>
+ To avoid completely predictable behavior, whenever there is more than one possible choice of sample need or action, it should be chosen randomly.
+ </p>
+ </div>
+ <div id="footer">
+     <p>Contact/Feedback:&nbsp;<a href="mailto:earl.dukerschein@wisc.edu">Bitflogger</a></p>
+     <p>B.S. Computer Science, 1980, NIU</p>
+   <p>Web page Started: 10/20/2010, last changed: 03/06/2025</p>
+  </div>
+<div id="addendum">
+	<a id="ADD"></a>
+	<h2>Addendums
+<span style="font-size: 60%">
+    (<a href="#KM">Top</a>, <a href="#SKM">Sparse Karnaugh Maps</a>, <a href="#AL">Automated Learning and Experimentation</a>, <a href="#SCR">State-Change Rules</a>, <a href="#CE">Combinatorial Explosion</a>, <a href="#CL">Conclusion</a>, You are here)
+ 
+</span></h2>
+
+	<h3>False Geometry</h3>
+
+  <p>When drawing a region on a K-Map, we are strongly tempted to refer to it as a (larger) square or a rectangle.  This is not accurate, it is false geometry.</p>
+
+  <p>When you draw a square or rectangle on a piece of paper, there are parts of the figure that are interior, or &quot;in the middle&quot;.  In a region drawn on a K-Map, every square is on the edge, there are no interior squares.</p>
+
+
+  <p>The region XXXX has no edges, so all squares might be thought of as being in the middle, but then none are on the edge.</p>
+	<h3>The largest possible physical, unitary, K-Map.</h3>
+<p>It was shown in the first section that you cannot add a bit to a 2-bit axis to draw a larger K-Map.<p>
+
+  <p>A 6-bit K-Map can be imagined as a cube, 2-bits per side, made up of four 4-bit K-maps. Each K-map has a 2-bit number, arranged in adjacent 1-bit difference order, like 00-01-11-10.
+</p>
+<p> A Rubik's cube, with 4 squares on each edge, is like a 2x2x2 K-Map.  Eight of the 64 squares are not visible, in the region X1_X1X1.
+</p>
+<p>
+Numbering a Rubik's cube:
+</p>
+<p class="indent1">
+One side must be chosen as the "front side", and numbered as usual.
+</p>
+<p class="indent1">
+The "right side", being congruent with the front-right edge, will consist of four rows of all 2, then all 6, then all E, then all A.
+</p>
+<p class="indent1">
+The "left side", being congruent with the front-left edge, will consist of four rows of all 0, then all 4, then all C, then all 8.
+</p>
+<p class="indent1">
+The "top side", being congruent with the front-top edge, will consist of four rows of all 0, then all 1, then all 3, then all 2.
+</p>
+<p class="indent1">
+The "bottom side", being congruent with the front-bottom edge, will consist of four rows of all 8, then all 9, then all B, then all A.
+</p>
+<p class="indent1">
+The "back side" of the cube will be as a K-Map viewed from behind, so the number left to right order will be reversed.
+</p>
+<p class="indent1">
+Each square will have the same number on all visible faces.
+</p>
+
+<h3>Possible regions</h3>
+
+<p>
+The possible regions of a K-Map can be calculated using the number of bit positions, and the number of possible values (0, 1 and X).
+</p>
+<p>
+For a 4-bit K-map:
+</p>
+<p class="indent1">
+The number of possible regions is 3<sup>4</sup> = 81.
+</p>
+<p class="indent1">
+Each kind of region, based on the number of X-bit positions, can be calculated using the number of non-X-bit positions.
+</p>
+<p class="indent2">
+For zero non-X positions, there is 1, 4-X region.
+</p>
+<p class="indent2">
+One non-X position, (2<sup>1</sup> values) 2 * 4 (any one of 4) = 8, 3-X regions.
+</p>
+<p class="indent2">
+Two non-X positions, (2<sup>2</sup> values) 4 * 6 (any two of 4) = 24, 2-X regions.
+</p>
+<p class="indent2">
+Three non-X positions, (2<sup>3</sup> values) 8 * 4 (any three of 4) = 32, 1-X regions.
+</p>
+<p class="indent2">
+Four non-X positions, 2<sup>4</sup> values = 16, 0-X regions.
+</p>
+<p class="indent2">
+1 + 8 + 24 +32 +16 = 81.
+</p>
+<h3>Splitting up bits</h3>
+  <p>
+     A <i>Split-Bits</i> algorithm, to isolate each bit in a bit mask, e.g. producing (0100, 0010) from 0110 (adapted from the  <a href="http://www-graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan">Count Bits Algorithm</a>):
+  </p>
+  <p class="indent1">
+      // Initialize a list of bit objects.<br>
+      while (val > 0)<br>
+      {
+  </p>
+  <p class="indent2">
+          minus1 = val - 1; <br>              
+          valLess1 = val &amp; minus1 &nbsp;&nbsp;&nbsp; // remove one bit from val, put into valLess1 <br>
+          oneBit = val ^ valLess1; &nbsp;&nbsp;&nbsp; // isolate the removed bit <br>
+   // Store oneBit into a new Bits object, add the Bits object to the list.<br>
+          val = valLess1;
+  </p>
+  <p class="indent1">
+       }
+  </p>
+<h3>Region Subtraction</h3>
+  <p>
+  In a K-Map with lots of bits, the results of subtraction can get numerous.
+  <p>
+ If the two regions do not intersect, the answer is the minuend.
+  </p>
+  <p>
+ Otherwise, look at each corresponding bit of the minuend and subtrahend.  Wherever you see an X in the
+ minuend and 1 or 0 in the subtrahend, copy the minuend, but the corresponding
+ X bit becomes <i>the opposite</i> of the bit in the subtrahend.
+  </p>
+  <p>
+ So 1XX0 minus X01X = (11X0, 1X00).
+  </p>
+  <p>
+ To implement this:
+   </p>
+   <p class="indent1">
+   The bits to work on = r1.X-mask &amp; r2.Non-X-mask = 0110 &amp; 0110 = 0110.
+  </p>
+   <p class="indent1">
+   Isolate each bit from the X/Non-X bit mask, using the Split-Bits algorithm, then:
+  </p>
+ <p class="indent2">
+  The subtrahend high and low bit for the bit position will be both one or both zero.<br>
+  The minuend high-bit value for the bit position will be one and the low bit value will be zero.<br>
+ </p>
+ <p class="indent2">
+  Calculate the isolated-bit &amp; the subtrahend.high-bits (or you can use subtrahend.low-bits).
+ </p>
+ <p class="indent2">
+  If the result is non-zero, the bit value of the subtrahend is one, calculate a new
+        region (r2) using the minuend, with that bit set to zero:<br>
+  r2.high-bits = minuend.high-bits ^ isolated-bit, r2.low-bits = minuend.low-bits.
+ </p>
+ <p class="indent2">
+ If the result is zero, the bit value of the subtrahend is zero, calculate a new
+        region (r2) using the minuend, with that bit set to one:<br>
+ r2.high-bits = minuend.high-bits, r2.low-bits = minuend.low-bits ^ isolated-bit.
+ </p>
+
+<h3>Subtracting a region from a set of regions</h3>
+  <p>
+  For each region in the set, if it does not intersect the region being subtracted, copy it to the new set, deleting subsets.
+  </p>
+  <p>
+  If a region does intersect the region being subtracted, subtract from the region, add the result regions, if any, to
+  the result set, deleting subsets.
+  </p>
+<h3>Region Complement</h3>
+   <p>
+ Subtract the region from the Largest Possible Region.
+   </p>
+   <p>
+ So ~101X = XXXX - 101X = (0XXX, X1XX, XX0X).
+
+    <h3>Calculating the union of two region lists</h3>
+ <p>
+ Add the regions of both lists to a new list, discarding duplicate and subset regions.
+ </p>
+ <p>
+ Simplification, like 1XXX + 0XXX = XXXX, is not done.
+ </p>
+    <h3>Calculating the intersection of two region lists</h3>
+ <p>
+ Intersect each possible pair of regions from the two lists, then form a list with the union of the results.
+ </p>
+
+   <h3>Calculating possible regions using dissimilar pairs of squares</h3>
+   <p>
+   Like the subtraction of regions, the results can be numerous, except when there is a single cluster of multiple adjacent, dissimilar, squares.
+   </p>
+        <p>
+        With a pair of dissimilar squares, you know that there can be no region of similar squares that contains both squares.
+  </p>
+   <p>
+        So each square will be in at least one of the regions that the other square is not in.     
+        </p>
+        <p>
+        <i>Given two dissimilar squares (s1, s2), Possible Regions &#8838; ~s1 + ~s2</i>
+        </p>
+        <p class="indent1">
+        For 4 and E within XXXX, ~4 = (1XXX, X0XX, XX1X, XXX1),  ~E = (0XXX, X0XX, XX0X, XXX1).<br>
+        ~4 + ~E = (0XXX, XX0X, 1XXX, XX1X, XXX1, X0XX), 6 regions, no squares are only in one region.
+        </p>
+        <p>
+        Finding adjacent, dissimilar, squares decreases the number of possible regions produced by the calculation, and increases the number of squares that are only in one region.
+        </p>
+        <p class="indent1">
+        For C and E within XXXX, ~C = (0XXX, X0XX, XX1X, XXX1),  ~E = (0XXX, X0XX, XX0X, XXX1).<br>
+        ~C + ~E = (XX1X, XXX1, 0XXX, X0XX, XX0X), 5 regions, E only in XX1X, C only in XX0X.
+        </p>
+        <p>
+          If you have two pairs of dissimilar squares, (s1, s2) and (s3, s4), it seems that PR &#8838; ~s1 + ~s2 <i>and</i> PR &#8838; ~s3 + ~s4.
+        </p>
+        <p>
+        So you can infer that PR &#8838; (~s1 + ~s2) &amp; (~s3 + ~s4).
+        </p>
+        <p class="indent1">
+        (~5 + ~1) &amp; (~F + ~E) = (X0XX, XXX0, X10X, 1X0X, 0X1X, 01XX, XX11, 1XX1, X1X1), 9 regions, 1 only in X0XX, E only in XXX0.
+        </p>
+        <p>
+        A square with two adjacent, dissimilar, squares, is better than two pairs of adjacent, dissimilar, squares that do not have a square in common. Not only are the results better, the number of squares that need to be sampled is fewer.
+        </p>
+        <p class="indent1">
+        (~5 + ~7) &amp; (~5 + ~D) = ~5 + (~7 &amp; ~D) = (1XXX, XX1X, X0XX, XXX0, 0X0X), 5 regions, 7 only in XX1X, D only in 1XXX, 5 only in 0X0X.
+        </p>
+      <p>
+       Intersecting the implied regions from many disparate dissimilar pair calculations can produce an unwieldy number of possible regions.
+     </p>
+         <p class="indent1">
+        If the dissimilar pairs of squares are near each other, the number of regions can be manageable.
+        </p>
+         <p>If you are only interested in the region that contains square 5, given dissimilar squares (D, 7), efficiency can be gained by using only that part of the complements of squares D and 7 that contain square 5.
+        </p>
+        <p class="indent1">
+        Where square D or 7 have a bit that is different from square 5, there will be a complement region that contains square 5.
+        </p>
+        <p class="indent1">
+        Square D is different from square 5 in the first bit position, with a value of 1, giving complement region 0XXX.
+        </p>
+        <p class="indent1">
+        Square 7 is different from square 5 in the third bit position, with a value of 1, giving complement region XX0X.
+        </p>
+        <p class="indent1">
+        0XXX &amp; XX0X = 0X0X.
+        </p>
+   <h3>Rule sequence aggregation</h3>
+        <p class="indent1">
+        The effect of running rules in a sequence, can be aggregated into one rule.
+        </p>
+        <p class="indent1">
+        If the result region of the first rule intersects the initial region of the second rule, the aggregate can be calculated as follows:
+        </p>
+    <p class="indent1">
+        0&#129042;0 mask = (0&#129042;0 &amp; 0&#129042;0) + (0&#129042;1 &amp; 1&#129042;0), (note: rule 1 change reversed)
+    </p>
+    <p class="indent1">
+        0&#129042;1 mask = (0&#129042;0 &amp; 0&#129042;1) + (0&#129042;1 &amp; 1&#129042;1)
+    </p>
+    <p class="indent1">
+        1&#129042;1 mask = (1&#129042;1 &amp; 1&#129042;1) + (1&#129042;0 &amp; 0&#129042;1), (note: rule 1 change reversed)
+    </p>
+    <p class="indent1">
+        1&#129042;0 mask = (1&#129042;1 &amp; 1&#129042;0) + (1&#129042;0 &amp; 0&#129042;0)
+    </p>
+        <p class="indent1">
+        The form of a calculation in parentheses is (rule 1 change mask &amp; rule 2 change mask).
+        </p>
+        <p class="indent1">
+        The initial region of the aggregate rule will be equal to, or a subset of, the initial region of the first rule.
+        </p>
+        <p class="indent1">
+        The result region of the aggregate rule will be equal to, or a subset of, the result region of the second rule.
+        </p>
+        <p class="indent1">
+        If the result region of the first rule does not intersect the initial region of the second rule, a third rule
+        can be calculated to make that change, then sequence all three rules.
+        </p>
+        <p class="indent1">
+	From initial state to goal region:
+        </p>
+        <p class="indent2">
+	0&#129042;1, or 1&#129042;0: One change is required, or otherwise, an odd number of changes.
+        </p>
+        <p class="indent2">
+	0&#129042;0, or 1&#129042;1: No change is required, or otherwise, an even number of changes.
+        </p>
+        <p class="indent2">
+	0&#129042;X, or 1&#129042;X: No change is required, or otherwise, any number of changes.
+        </p>
+   <h3>Rule for region to region change</h3>
+       <p class="indent1">
+       Calculate a rule to change r000_111_XXX to r01X_01X_01X.
+       </p>
+       <p class="indent1">
+       From a rule that does not change r000_111_XXX at all, all changes are 0&#129042;0 and 1&#129042;1, four modifications are needed:
+       </p>
+       <p class="indent2">
+       For 0&#129042;1, a 0&#129042;0 change is replaced by 0&#129042;1.
+       </p>
+       <p class="indent2">
+       For 1&#129042;0, a 1&#129042;1 change is replaced by 1&#129042;0.
+       </p>
+       <p class="indent2">
+       For X&#129042;1, a 0&#129042;0 change is replaced by 0&#129042;1.
+       </p>
+       <p class="indent2">
+       For X&#129042;0, a 1&#129042;1 change is replaced by 1&#129042;0.
+       </p>
+       <p class="indent1">
+       For 0&#129042;X or 1&#129042;X, no modifications are needed.  This indicates that the result region will be a proper subset of the target region.
+       </p>
+   <h3>Another possible representation for a region</h3>
+        <p>
+        Use a mask for ones and a mask for zeros.
+        </p>
+    <p class="indent1">
+    Given two states, like 1010 and 0110, the ones mask is 1010 + 0110 = 1110.  The zeros mask is ~(1010 &amp; 0110) = 1101.
+    </p>
+        <p class="indent1">Interpretation of region bits:</p>
+      <table class="indent2">
+           <tr>
+                <th></th>
+                <th>Mask-1</th>
+                <th>Mask-0</th>
+                <th>Region Bit</th>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>0</td>
+                <td>0</td>
+                <td>No bit</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>0</td>
+                <td>1</td>
+                <td>0</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>1</td>
+                <td>1</td>
+                <td>X</td>
+           </tr>
+           <tr style="text-align:center;">
+                <th></th>
+                <td>1</td>
+                <td>0</td>
+                <td>1</td>
+           </tr>
+        </table>
+    <p>
+    <p class="indent1">
+   Two regions are equal if the two bit patterns forming them are equal.
+   </p>
+    <p class="indent1">
+   Region x-mask = mask-1 &amp; mask-0.
+   </p>
+    <p class="indent1">
+   Intersection of two regions: mask-1 = r1.mask-1 &amp; r2.mask-1. mask-0 = r1.mask-0 &amp; r2.mask-0.
+   </p>
+    <p class="indent1">
+   Union of two regions: mask-1 = r1.mask-1 + r2.mask-1. mask-0 = r1.mask-0 + r2.mask-0.
+   </p>
+   <h3>Finding intersections of intersections</h3>
+    <p class="indent1">
+    Given a set of overlapping regions, an interesting problem is to split the regions so every fragment
+    is a subset, or non-intersection, of any original region.
+   </p>
+    <p class="indent1">
+    Create an working set from the original set, avoiding duplicates, but allowing subsets.
+   </p>
+    <p class="indent1">
+    Gather the intersections, no subsets, of every possible pair of regions in the working set.
+   </p>
+    <p class="indent1">
+    Calculate the remainders of subtracting the intersections from the working set.  The intersections may be none.
+   </p>
+    <p class="indent1">
+    Accumulate the remainders of each cycle.
+   </p>
+    <p class="indent1">
+    Calculate the next cycle working set.
+   </p>
+    <p class="indent2">
+    Extract regions from the original set by using the intersections, cookie cutter like.
+   </p>
+    <p class="indent2">
+    Avoid duplicates, but allow subsets.
+   </p>
+    <p class="indent1">
+    After one, or more, cycles, the working set becomes empty, the result is the accumulated remainders.
+   </p>
+   <h3>Finding the number of squares used</h3>
+    <p class="indent1">
+    Given a set of overlapping regions, an interesting problem is to find the number of squares used, counting each
+    square once, in spite of overlapping.
+   </p>
+    <p class="indent1">
+    Subtract out one region and count its squares, then do the same to the results, until no regions are left.
+   </p>
+    <p class="indent1">
+    Or run the intersections of intersections logic, successively, on its own results, until there are no overlaps,
+    then add the number of squares in each region.
+   </p>
+
+   <h3>Why does backward-chaining sometimes work, when forward-chaining does not?</h3>
+    <p class="indent1">
+    Given the rules 00/XX/01/XX, and 01/XX/11/XX, trace a path from 0 to F, and 0 from F.
+   </p>
+    <p class="indent2">
+    0&#129042;2&#129042;A (missing A&#129042;F).
+   </p>
+    <p class="indent2">
+    (missing 0&#129040;5) 5&#129040;7&#129040;F.
+   </p>
+    <p class="indent2">
+    If the rules for the change 0&#129040;5 are avalilable, and the rules for the change A&#129042;F are not available, backward-chaining will work, while forward-chaining will not.
+   </p>
+    <p class="indent2">
+    Figuring a path often means splitting the problem into multiple, shorter paths.
+    So a combination of forward-chaining and backward-chaining may be required.
+   </p>
+   <h3>The six possible arrangements of a 3-bit Karnaugh Map axis</h3>
+        <p class="indent1">
+	Below are the six ways. They are really circles, not lines.
+        </p>
+        <p class="indent1">
+	As a circle, they can start at any number, and can be read clockwise or counter-clockwise.
+	I decided to position zero as the second number.
+        </p>
+        <p class="indent1">
+	The key is to start with 1-bit-number=> 0 &lt;=1-bit-number, and 2-bit-number=> 7 &lt;=2-bit-number.  Thats 6 numbers, a 1-bit and a 2-bit number are remaining.
+        </p>
+        <p class="indent1">
+	1-0-2 / 3-7-6 / 4 5
+        </p>
+        <p class="indent1">
+	1-0-2 / 6 4 / 5-7-3
+        </p>
+        <p class="indent1">
+	2-0-4 / 5 1 / 3-7-6
+        </p>
+        <p class="indent1">
+	1-0-4 / 5-7-6 / 2 3
+        </p>
+        <p class="indent1">
+	1-0-4 / 6 2 / 3-7-5
+        </p>
+        <p class="indent1">
+	2-0-4 / 6-7-5 / 1 3
+        </p>
+</div>
+</body>
+</html>
