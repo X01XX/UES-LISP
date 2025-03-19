@@ -121,7 +121,7 @@
 
 ;;; Return a plan to change a current region to a goal region.
 (defun domain-get-plan (domx from-reg to-reg with-reg depth) ; -> plan, or nil.
-  ;(format t "~&domain-get-plan: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) from-reg to-reg with-reg depth)
+  ;(format t "~&domain-get-plan: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg) (region-str to-reg) (region-str with-reg) depth)
   (assert (domain-p domx))
   (assert (region-p from-reg))
   (assert (region-p to-reg))
@@ -132,6 +132,9 @@
   (assert (region-superset-of :sup with-reg :sub from-reg))
   (assert (region-superset-of :sup with-reg :sub to-reg))
 
+  (if (region-superset-of :sup to-reg :sub from-reg)
+    (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rulestore-new (list (rule-new-region-to-region from-reg from-reg))))))))
+
   (when (zerop depth)
     (return-from domain-get-plan nil))
 
@@ -141,7 +144,7 @@
     (let (span-steps)
       (loop for stepx in (stepstore-step-list steps) do
         (when (and (region-superset-of :sup (rule-initial-region (step-rule stepx)) :sub from-reg)
-                   (region-superset-of :sup (rule-result-region (step-rule stepx)) :sub to-reg))
+                   (region-intersects (rule-result-region (step-rule stepx)) to-reg))
           (push stepx span-steps)) 
       )
       (when span-steps

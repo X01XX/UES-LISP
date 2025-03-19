@@ -433,7 +433,7 @@
 )
 
 ;;; Check for non-adjacent incompatible square pnc needs.
-(defun action-non-adjacent-incompatible-square-between-needs (actx pairs) ; -> needstore.
+(defun action-non-adjacent-incompatible-square-needs (actx pairs) ; -> needstore.
   (assert (action-p actx))
   (assert (regionstore-p pairs))
 
@@ -514,7 +514,6 @@
                     )
                     (if (= (square-results-length sqrx) max-results)
                       (push sqrx sqrs-max-results))
-                  )
 
                   ;; Make need for each square.
                   (if (square-pnc sqrx)
@@ -527,6 +526,7 @@
                                      :reason *between-ip*
                                      :target (square-state sqrx)
                                      :extra-info (format nil "between squares ~A and ~A" (state-str sta-x) (state-str sta-y)))))
+                  )
                 ) ; next sqrx
               )
             )
@@ -546,7 +546,6 @@
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (non-adj-pairs2 (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
         (logical-structure change-surface)          ; Best guess for logical structure.
-        needs                                       ; Needstore to return.
         (max-regionstore change-surface)            ; Regionstore with one region, with all bit positions set to X.
         )
 
@@ -622,7 +621,7 @@
     ;; Get needs.
 
     ;; Check for non-adjacent incompatible square between needs.
-    (action-non-adjacent-incompatible-square-between-needs actx non-adj-pairs2)
+    (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2)
   )
 )
 
