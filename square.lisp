@@ -73,17 +73,17 @@
         ;; Try to disprove pn-two
         (when (> (square-count square) 2)
 
-	    (if (state-ne result0 (aref (square-results square) 2))
-                (return-from square-calc-pn *pn-none*))
+	      (if (state-ne result0 (aref (square-results square) 2))
+            (return-from square-calc-pn *pn-none*))
 
-            (when (> (square-count square) 3)
+          (when (> (square-count square) 3)
 
 	        (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
                     (return-from square-calc-pn *pn-none*))
-	    )
-	)
+	      )
+	   )
 
-        *pn-two*
+       *pn-two*
     ) ; end-let
 ) ; end square-calc-pn
 
@@ -136,7 +136,7 @@
 	                                      (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 1)))))))
 
 	          ((eq pnnew *pn-none*)
-	           (setf (square-rules square) nil))
+	           (setf (square-rules square) (rulestore-new nil)))
 
 		  (t (error "unrecognized pn value"))
             )

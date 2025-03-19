@@ -90,6 +90,9 @@
         (setf str (concatenate 'string str (format nil "id ~D" (action-id actx))))
         (setf str (concatenate 'string str (format nil " groups ~A" (groupstore-str (action-groups actx)))))
         (setf str (concatenate 'string str ")"))
+        (if (not (null (action-logical-structure actx)))
+          (setf str (concatenate 'string str (format nil " calced structure: ~A"
+             (regionstore-str (action-logical-structure actx))))))
         str
     )
 )
@@ -289,22 +292,23 @@
         (when (not (null (action-logical-structure actx)))
 
           (loop for grpx in (groupstore-groups (action-groups actx)) do
-             (setf regs (regionstore-regions-superset (action-logical-structure actx) (group-region grpx)))  
+             (when (group-pnc grpx)
+               (setf regs (regionstore-regions-superset (action-logical-structure actx) (group-region grpx)))  
 
-             (loop for regx in regs do
+               (loop for regx in regs do
 
-                (when (not (region-eq regx (group-region grpx)))
-                  (setf far-reg (region-far-region regx (group-region grpx)))
+                 (when (not (region-eq regx (group-region grpx)))
+                   (setf far-reg (region-far-region regx (group-region grpx)))
 
-                  (needstore-push needs (need-new :act-id (action-id actx)
-                                        :kind *sample-in-region*
-                                        :reason *expand-group*
-                                        :target far-reg
-                                        :group-region (group-region grpx)
-                             ))
+                   (needstore-push needs (need-new :act-id (action-id actx)
+                                         :kind *sample-in-region*
+                                         :reason *expand-group*
+                                         :target far-reg
+                                         :group-region (group-region grpx)))
 
-                )
-             ) ; next regx
+                  )
+               ) ; next regx
+            )
           ) ; next grpx
         )
       )
@@ -426,86 +430,6 @@
       needs
     )
   )
-)
-
-;;; Check for adjacent incompatible square needs.
-(defun action-adjacent-incompatible-square-needs (actx pairs) ; -> needstore
-  (assert (action-p actx))
-  (assert (regionstore-p pairs))
-
-  (let ((needs (needstore-new nil)) sta-x sta-y sqr-x sqr-y)
-    (loop for prx in (regionstore-regions pairs) do
-
-      (setf sta-x (region-first-state prx))
-      (setf sta-y (region-second-state prx))
-
-      (when (state-is-adjacent sta-x sta-y)
-
-        (setf sqr-x (action-find-square actx sta-x))
-        (if (null sqr-x) (error "sqr-x not found?"))
-
-        (setf sqr-y (action-find-square actx sta-y))
-        (if (null sqr-y) (error "sqr-y not found?"))
-
-        (if (not (square-pnc sqr-x))
-          (needstore-push needs (need-new 
-                                   :act-id (action-id actx)
-                                   :kind   *resample-state*
-                                   :reason *confirm-ip*
-                                   :target sta-x
-                                   :extra-info (format nil "with square ~A" (state-str sta-y)))))
-
-        (if (not (square-pnc sqr-y))
-          (needstore-push needs (need-new 
-                                   :act-id (action-id actx)
-                                   :kind   *resample-state*
-                                   :reason *confirm-ip*
-                                   :target sta-y
-                                   :extra-info (format nil "with square ~A" (state-str sta-x)))))
-       )
-    ) ; next prx
-    needs
-  )
-)
-
-;;; Check for non-adjacent incompatible square pnc needs.
-(defun action-non-adjacent-incompatible-square-needs (actx pairs) ; -> needstore.
-  (assert (action-p actx))
-  (assert (regionstore-p pairs))
-
-    (let ((needs (needstore-new nil)) sta-x sta-y sqr-x sqr-y)
-      (loop for prx in (regionstore-regions pairs) do
-
-        (setf sta-x (region-first-state prx))
-        (setf sta-y (region-second-state prx))
-
-        (when (not (state-is-adjacent sta-x sta-y))
- 
-          (setf sqr-x (action-find-square actx sta-x))
-          (if (null sqr-x) (error "sqr-x not found?"))
-
-          (setf sqr-y (action-find-square actx sta-y))
-          (if (null sqr-y) (error "sqr-y not found?"))
-
-          (if (not (square-pnc sqr-x))
-            (needstore-push needs (need-new 
-                                     :act-id (action-id actx)
-                                     :kind   *resample-state*
-                                     :reason *confirm-ip*
-                                     :target sta-x
-                                     :extra-info (format nil "with square ~A" (state-str sta-y)))))
-
-          (if (not (square-pnc sqr-y))
-            (needstore-push needs (need-new 
-                                     :act-id (action-id actx)
-                                     :kind   *resample-state*
-                                     :reason *confirm-ip*
-                                     :target sta-y
-                                     :extra-info (format nil "with square ~A" (state-str sta-x)))))
-        )
-      ) ; next prx
-      needs
-    )
 )
 
 ;;; Check for non-adjacent incompatible square pnc needs.
@@ -632,7 +556,8 @@
     ;; Make a list of all squares.
     (let (sqrs sqr-y)
       (loop for sqrx being the hash-values of (squarestore-squares (action-squares actx)) do
-        (push sqrx sqrs)
+        (if (square-pnc sqrx)
+          (push sqrx sqrs))
       )
 
       ;; Check each pair of squares.
@@ -641,18 +566,21 @@
             for inx from 0 below (1- (length sqrs)) do
 
         (loop for iny from (1+ inx) below (length sqrs) do
+
           (setf sqr-y (nth iny sqrs))
 
-          (if (not (square-compatible sqr-x sqr-y))
-            (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y))))
-          )
+          (when (not (square-compatible sqr-x sqr-y))
+              ;(format t "~&Act ~D sqr-x ~A not compatible sqr-y ~A" (action-id actx)
+              ;   (square-str sqr-x) (square-str sqr-y))
+             (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y)))))
         ) ; next iny.
       ) ; next inx.
 
       ;; Check if at least one disimilar pair was found.
-      (if (regionstore-is-empty pairs)
-        (return-from action-structure-needs (needstore-new nil)))
-
+      (when (regionstore-is-empty pairs)
+         (setf (action-logical-structure actx) change-surface)
+         (return-from action-structure-needs (needstore-new nil))
+       )
     )
 
     ;; Seperate adjacent from non-adjacent pairs.
@@ -689,21 +617,9 @@
     ;; Store structure.
     (setf (action-logical-structure actx) logical-structure)
 
-    (format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
+    ;(format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
 
     ;; Get needs.
-
-    ;; Check for adjacent incompatible square needs.
-    (setf needs (action-adjacent-incompatible-square-needs actx adj-pairs))
-
-    (if (needstore-is-not-empty needs)
-      (return-from action-structure-needs needs))
-
-    ;; Check for non-adjacent incompatible square pnc needs.
-    (setf needs (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2))
-
-    (if (needstore-is-not-empty needs)
-      (return-from action-structure-needs needs))
 
     ;; Check for non-adjacent incompatible square between needs.
     (action-non-adjacent-incompatible-square-between-needs actx non-adj-pairs2)
@@ -748,7 +664,6 @@
                   )
             )
         )
-
         actx
     )
 )
@@ -988,6 +903,7 @@
     (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
 
   ;; Check for invalidated groups.
+  (setf invalidated-groups (groupstore-union invalidated-groups (action-groups-invalidated-by-structure actx)))
   (if (groupstore-is-not-empty invalidated-groups)
     (action-process-invalidated-groups actx invalidated-groups))
 
@@ -1018,6 +934,7 @@
   ;; Check for invalidated groups.
   (let (invalidated-groups)
      (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
+     (setf invalidated-groups (groupstore-union invalidated-groups (action-groups-invalidated-by-structure actx)))
      (if (groupstore-is-not-empty invalidated-groups)
        (action-process-invalidated-groups actx invalidated-groups))
   )
@@ -1095,6 +1012,26 @@
       )
     )
     smpl
+  )
+)
+
+;;; Return groups invalidated by structure.
+(defun action-groups-invalidated-by-structure (actx) ; -> groupstore
+  (assert (action-p actx))
+
+  (let ((ret (groupstore-new nil)))
+    (when (and (not (null (action-logical-structure actx))) (not (regionstore-is-empty (action-logical-structure actx))))
+      (loop for grpx in (groupstore-groups (action-groups actx)) do
+        (when (not (regionstore-any-superset-of (action-logical-structure actx) (group-region grpx)))
+          (format t "~&Act ~D Group region too big ~A structure ~A"
+            (action-id actx)
+            (region-str (group-region grpx))
+            (regionstore-str (action-logical-structure actx)))
+          (groupstore-push-nosubs ret grpx)
+        )
+      )
+   )
+   ret
   )
 )
 
@@ -1307,8 +1244,11 @@
   (if (groupstore-is-empty (action-groups actx))
       (format t "(no groups)") 
       (groupstore-print (action-groups actx)))
+  (if (not (null (action-logical-structure actx)))
+    (format t " calced structure: ~A" (regionstore-str (action-logical-structure actx))))
+
 ; (format t "~&   base rules: " (action-base-rules actx))
-; (loop for rulsx in (action-base-rules actx) do
+; ( for rulsx in (action-base-rules actx) do
 ;   (format t " ~A" (rulestore-str rulsx))
 ; )
 )

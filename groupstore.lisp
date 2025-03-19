@@ -315,3 +315,19 @@
   (nth inx (groupstore-groups storex))
 )
 
+;;; Return the union of two groupstores.
+(defun groupstore-union (storex storey) ; -> groupstore
+  (assert (groupstore-p storex))
+  (assert (groupstore-p storey))
+
+  (let ((ret (groupstore-new nil)))
+    (loop for grpx in (groupstore-groups storex) do
+      (groupstore-push-nosubs ret grpx)
+    )
+    (loop for grpy in (groupstore-groups storey) do
+      (groupstore-push-nosubs ret grpy)
+    )
+    ret
+  )
+)
+

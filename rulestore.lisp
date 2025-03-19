@@ -42,7 +42,9 @@
 )
 
 (defun rulestore-str (storex) ; -> string
-  ;(format t "~&rulestore-str")
+  (if (not (rulestore-p storex))
+    (format t "~&rulestore-str ? ~A" storex))
+
   (assert (rulestore-p storex))
 
   (let ((ret "(") (start t))
