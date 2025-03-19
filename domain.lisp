@@ -133,7 +133,7 @@
   (assert (region-superset-of :sup with-reg :sub to-reg))
 
   (if (region-superset-of :sup to-reg :sub from-reg)
-    (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rulestore-new (list (rule-new-region-to-region from-reg from-reg))))))))
+    (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rule-new-region-to-region from-reg from-reg))))))
 
   (when (zerop depth)
     (return-from domain-get-plan nil))
