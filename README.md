@@ -2,7 +2,8 @@
 
 A rewrite of the Unorthodox-Expert-System (UES) project in Rust, to LISP (gcl).
 
-See README and theory.html in the Rust project.
+See README and theory.html in the Rust project.  There are a lot of good things in theory.html. Even if you don't like the project, see the addendum 
+Why does backward-chaining sometimes work, when forward-chaining does not?
 
 To try new ideas.
 
