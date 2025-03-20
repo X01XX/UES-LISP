@@ -70,7 +70,7 @@
   (assert (squarestore-p storex))
   (assert (region-p regx))
 
-  (loop for stax being the hash-keys of storex do
+  (loop for stax being the hash-keys of (squarestore-squares storex) do
     (if (region-superset-of-state regx stax)
       (return-from squarestore-any-in true))
   )
@@ -103,6 +103,18 @@
     )
     ret
   )
+)
+
+;;; Return true if there in a pnc square in a region.
+(defun squarestore-pnc-square-in-region (storex regx) ; -> bool.
+  (assert (squarestore-p storex))
+  (assert (region-p regx))
+
+  (loop for sqrx being the hash-values of (squarestore-squares storex) do
+    (if (and (region-superset-of-state regx (square-state sqrx)) (square-pnc sqrx))
+        (return-from squarestore-pnc-square-in-region true))
+  )
+  false
 )
 
 ;;; Return a statestore of square keys.

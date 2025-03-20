@@ -137,10 +137,11 @@
 
 ;;; Return needs for sample in a region, an initial sample, or resample of existing non-pnc square.
 ;;; There should be no pnc square in the region.
-(defun action-needs-for-region (actx regx ex-in) ; -> needstore.
+(defun action-needs-for-region (actx regx reason &optional ex-in) ; -> needstore.
   (assert (action-p actx))
   (assert (region-p regx))
-  (assert (stringp ex-in))
+  (assert (and (integerp reason) (not (null (member reason *reasons*)))))
+  (assert (or (null ex-in) (stringp ex-in)))
 
   (let ((ret (needstore-new nil)) ; The return struct.
         (sqrs-in (squarestore-squares-in-region (action-squares actx) regx)) ; The squares in the given region.
@@ -150,16 +151,11 @@
 
     ;; Check for no squares in region.
     (when (null sqrs-in)
-        (needstore-push ret (need-new :act-id (action-id actx)
-                                      :kind *sample-in-region*
-                                      :reason *contradictory-intersection*
-                                      :target regx
-                                      :extra-info ex-in
-                            ))
+        (needstore-push ret (action-get-needs-sample-region actx regx reason ex-in ))
         (return-from action-needs-for-region ret)
     )
 
-    ;; Get list of squares with the higest number of results.
+    ;; Get list of squares with the highest number of results.
     (loop for sqrx in sqrs-in do
       (when (square-pnc sqrx) 
         (format t "~&Problem: Act ~D pnc square ~A in contradictory region ~A" (action-id actx) (state-str (square-state sqrx)) (region-str regx))
@@ -175,12 +171,7 @@
 
     ;; Load needs for squares with the higest number of results.
     (loop for sqrx in sqrs-high-num-results do
-        (needstore-push ret (need-new :act-id (action-id actx)
-                                      :kind *sample-in-region*
-                                      :reason *contradictory-intersection*
-                                      :target (square-state sqrx) 
-                                      :extra-info ex-in
-                            ))
+        (needstore-push ret (action-get-need-resample-state actx (square-state sqrx) reason ex-in))
     )
     ret
   )
@@ -259,7 +250,7 @@
 
               (when reg-int
                 (cond ((pn-ne (group-pn grpx) (group-pn grpy))
-                        (setf needs (needstore-append needs (action-needs-for-region actx reg-int
+                        (setf needs (needstore-append needs (action-needs-for-region actx reg-int *contradictory-intersection*
                                     (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                       )
                       ((pn-eq (group-pn grpx) *pn-none*) nil)
@@ -267,13 +258,13 @@
                         ;; both pn-one or pn-two.
                         (setf rules-int (rulestore-intersection (group-rules grpx) (group-rules grpy)))
                         (cond ((null rules-int)
-                                (setf needs (needstore-append needs (action-needs-for-region actx reg-int
+                                (setf needs (needstore-append needs (action-needs-for-region actx reg-int *contradictory-intersection*
                                     (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                               )
                               ((region-eq reg-int (rulestore-initial-region rules-int)) nil)
                               (t
                                 (setf reg-far (region-far-region reg-int (rulestore-initial-region rules-int)))
-                                (setf needs (needstore-append needs (action-needs-for-region actx reg-far 
+                                (setf needs (needstore-append needs (action-needs-for-region actx reg-far *contradictory-intersection*
                                     (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                               )
                         )
@@ -293,20 +284,18 @@
 
           (loop for grpx in (groupstore-groups (action-groups actx)) do
              (when (group-pnc grpx)
+
                (setf regs (regionstore-regions-superset (action-logical-structure actx) (group-region grpx)))  
 
                (loop for regx in regs do
 
                  (when (not (region-eq regx (group-region grpx)))
+
                    (setf far-reg (region-far-region regx (group-region grpx)))
 
-                   (needstore-push needs (need-new :act-id (action-id actx)
-                                         :kind *sample-in-region*
-                                         :reason *expand-group*
-                                         :target far-reg
-                                         :group-region (group-region grpx)))
-
-                  )
+                   (if (not (squarestore-pnc-square-in-region (action-squares actx) far-reg))
+                     (setf needs (needstore-append needs (action-needs-for-region actx far-reg *expand-group* (format nil "~A" (region-str (group-region grpx)))))))
+                 )
                ) ; next regx
             )
           ) ; next grpx
@@ -351,7 +340,7 @@
         ;; Check if more samples needed.
         (if (not (square-pnc sqr-first))
           (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
-               "" grp-reg)))
+               (format nil "~A" (region-str grp-reg)))))
 
           ;(format t "~&action-confirm-group-needs: return 1 Act: ~D Group: ~A needs: ~A"
           ;(action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -371,7 +360,7 @@
         ;; Check if more samples needed.
         (if (not (square-pnc sqr-first))
           (needstore-push needs (action-get-need-resample-state actx (square-state sqr-first) *confirm-group*
-                "" grp-reg)))
+                (format nil "~A" (region-str grp-reg)))))
 
         (setf sqr-far (squarestore-find (action-squares actx) (region-second-state grp-reg)))
         (if (null sqr-far)
@@ -380,7 +369,7 @@
         ;; Check if more samples needed.
         (if (not (square-pnc sqr-far))
           (needstore-push needs (action-get-need-resample-state actx (square-state sqr-far) *confirm-group*
-                 "" grp-reg)))
+                 (format nil "~A" (region-str grp-reg)))))
 
         ;(format t "~&action-confirm-group-needs: return 2 Act: ~D Group: ~A needs: ~A"
         ;    (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -401,7 +390,7 @@
       ;; Check if more samples needed.
       (if (not (square-pnc sqr-first))
         (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
-                  "" grp-reg)))
+                  (format nil "~A" (region-str grp-reg)))))
 
       ;; Calc far state.
       (setf sta-far (region-far-state (group-region grpx) sta-first))
@@ -413,7 +402,7 @@
       (when sqr-far
         (if (not (square-pnc sqr-far))
           (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group*
-             "" grp-reg)))
+             (format nil "~A" (region-str grp-reg)))))
 
             ;(format t "~&action-confirm-group-needs: return 3 Act: ~D Group: ~A needs: ~A"
             ;  (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -423,7 +412,7 @@
 
       ;; sqr-far not found.
       (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group*
-          "" grp-reg))
+          (format nil "~A" (region-str grp-reg))))
 
       ;(format t "~&action-confirm-group-needs: return 4 Act: ~D Group: ~A needs: ~A"
       ;      (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
@@ -469,12 +458,8 @@
 
                   ;; Generate a need for each region between the two dissimilar states.
                   (loop for regx in (regionstore-regions seek-regs) do
-                    (needstore-push needs (need-new 
-                                     :act-id (action-id actx)
-                                     :kind   *sample-in-region*
-                                     :reason *between-ip*
-                                     :target regx
-                                     :extra-info (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
+                    (needstore-push needs
+                          (action-get-needs-sample-region actx regx *between-ip* (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
                   )
                 )
                 (when (> dist 3)
@@ -484,12 +469,11 @@
                   (setf mask-lists (any-x-of-n (ash dist -1) (mask-split (mask-new (state-xor sta-x sta-y)))))
 
                   (loop for msklx in mask-lists do
-                    (needstore-push needs (need-new 
-                                     :act-id (action-id actx)
-                                     :kind   *first-sample-of-state*
-                                     :reason *between-ip*
-                                     :target (state-new (state-xor sta-x (mask-list-or msklx)))
-                                     :extra-info (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
+                    (needstore-push needs
+                          (action-get-need-sample-state actx
+                                (state-new (state-xor sta-x (mask-list-or msklx)))
+                                *between-ip*
+                                (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
                   )
                 )
               )
@@ -520,12 +504,11 @@
                     (format t "~&Problem: pnc square ~A between ~A and ~A ?"
                         (state-str (square-state sqrx)) (state-str sta-x) (state-str sta-y))
 
-                    (needstore-push needs (need-new 
-                                     :act-id (action-id actx)
-                                     :kind   *resample-state*
-                                     :reason *between-ip*
-                                     :target (square-state sqrx)
-                                     :extra-info (format nil "between squares ~A and ~A" (state-str sta-x) (state-str sta-y)))))
+                    (needstore-push needs
+                          (action-get-need-sample-state actx
+                                (square-state sqrx)
+                                *between-ip*
+                                (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y)))))
                   )
                 ) ; next sqrx
               )
@@ -668,12 +651,11 @@
 )
 
 ;;; Get a need to sample a state, after some checks.
-(defun action-get-need-sample-state (actx stax reason &optional extra-info group-region) ; -> need instance.
+(defun action-get-need-sample-state (actx stax reason &optional extra-info) ; -> need instance.
   (assert (action-p actx))
   (assert (state-p stax))
-  (assert (integerp reason))
+  (assert (and (integerp reason) (not (null (member reason *reasons*)))))
   (assert (or (null extra-info) (stringp extra-info)))
-  (assert (or (null group-region) (region-p group-region)))
 
   (if (null extra-info)
     (setf extra-info ""))
@@ -687,18 +669,16 @@
               :kind *first-sample-of-state*
               :reason reason
               :target stax
-              :extra-info extra-info
-              :group-region group-region)
+              :extra-info extra-info)
   )
 )
 
 ;;; Get a need to resample a state, after some checks.
-(defun action-get-need-resample-state (actx stax reason &optional extra-info group-region) ; -> need instance.
+(defun action-get-need-resample-state (actx stax reason &optional extra-info) ; -> need instance.
   (assert (action-p actx))
   (assert (state-p stax))
-  (assert (integerp reason))
+  (assert (and (integerp reason) (not (null (member reason *reasons*)))))
   (assert (or (null extra-info) (stringp extra-info)))
-  (assert (or (null group-region) (region-p group-region)))
 
   (if (null extra-info)
     (setf extra-info ""))
@@ -716,16 +696,15 @@
               :kind *resample-state*
               :reason reason
               :target stax
-              :extra-info extra-info
-              :group-region group-region)
+              :extra-info extra-info)
   )
 )
 
 ;;; Get a need to sample a region, after some checks.
-(defun action-get-need-sample-region (actx regx reason &optional extra-info group-region) ; -> need instance.
+(defun action-get-needs-sample-region (actx regx reason &optional extra-info group-region) ; -> need instance.
   (assert (action-p actx))
   (assert (region-p regx))
-  (assert (integerp reason))
+  (assert (and (integerp reason) (not (null (member reason *reasons*)))))
   (assert (or (null extra-info) (stringp extra-info)))
   (assert (or (null group-region) (region-p group-region)))
 
@@ -733,15 +712,14 @@
     (setf extra-info ""))
 
   ; There must be no square with a state in the region.
-  (if (squarestore-any-in (action-squares actx) regx)
-      (error "action-get-need-sample-region: squares in region?"))
+  (if (squarestore-pnc-square-in-region (action-squares actx) regx)
+      (error "action-get-needs-sample-region: pnc squares in region"))
 
   (need-new :act-id (action-id actx)
             :kind *sample-in-region*
             :reason reason
             :target regx
-            :extra-info extra-info
-            :group-region group-region)
+            :extra-info extra-info)
 )
 
 ;;; Get sample for a given state.
@@ -1077,6 +1055,11 @@
 
 ;;; Process new, or orphaned square into groups.
 (defun action-make-groups-from-square (actx sqrx) ; side-effect, action changed.
+  (assert (action-p actx))
+  (assert (square-p sqrx))
+
+  (if (not (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx)))
+    (return-from action-make-groups-from-square))
 
   ;; Check sample initial state square combination with other squares.
   (let ((keys (squarestore-keys (action-squares actx))) reg-t (regstr-t (regionstore-new nil)) sqr-k grpx
@@ -1090,12 +1073,14 @@
          (setf sqr-k (action-find-square actx stay))
          ;(format t "~&checking sqr ~A and ~A compatible ~A" (state-str (square-state sqrx)) (state-str (square-state sqr-k)) (square-compatible sqrx sqr-k))
            
-         (when (square-compatible sqrx sqr-k)
+         (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
+           (when (square-compatible sqrx sqr-k)
 
-           (setf reg-t (region-new (list stax (square-state sqr-k))))
+             (setf reg-t (region-new (list stax (square-state sqr-k))))
 
-           (if (squarestore-region-is-valid (action-squares actx) reg-t)
-              (regionstore-push-nosubs regstr-t reg-t))
+             (if (squarestore-region-is-valid (action-squares actx) reg-t)
+                (regionstore-push-nosubs regstr-t reg-t))
+           )
          )
        )
     ) ; next stay
