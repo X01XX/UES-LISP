@@ -280,3 +280,11 @@
     ret
   )
 )
+
+;;; Return the number of bits used by a square.
+(defun square-num-bits (sqrx) ; -> number
+  (assert (square-p sqrx))
+
+  (state-num-bits (square-state sqrx))
+)
+

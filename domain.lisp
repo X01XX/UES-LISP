@@ -26,7 +26,7 @@
 ;;; Return a new domain.
 (defun domain-new (&key id initial-state)
   (assert (state-p initial-state))
-  (assert (>= id 0))
+  (assert (and (integerp id) (>= id 0)))
 
   (let (act0 high-state low-state sample1 sample2)
     ;; Create a no-op action as action 0.
@@ -50,7 +50,7 @@
 ;;; Set a domain id.
 (defun domain-set-id (domx id) ; -> nothing.  Side effect, domain id is changed.
   (assert (domain-p domx))
-  (assert (>= id 0))
+  (assert (and (integerp id) (>= id 0)))
 
   (setf (domain-id domx) id)
 )
@@ -107,11 +107,6 @@
       (return-from domain-list-p false))
   )
   true
-)
-
-;;; Return true if two domains are equal.
-(defun domain-eq (dom1 dom2) ; -> bool
-  (= (domain-id dom1) (domain-id dom2))
 )
 
 ;;; Return the maximum region for a domain.
@@ -235,6 +230,7 @@
 (defun domain-add-action (domx actx)
   (assert (domain-p domx))
   (assert (action-p actx))
+  (assert (= (domain-num-bits domx) (action-num-bits actx)))
 
   (action-set-id actx (actionstore-length (domain-actions domx)))
   (actionstore-push (domain-actions domx) actx)    
@@ -271,6 +267,7 @@
 (defun domain-run-plan (domx planx) ; -> side effect, domain may be changed.
   (assert (domain-p domx))
   (assert (plan-p planx))
+  (assert (= (domain-num-bits domx) (plan-num-bits planx)))
 
   (let (smpl)
     (format t "~&Domain: ~D, running plan: ~A" (domain-id domx) (plan-str planx))
@@ -294,6 +291,7 @@
    ;(format t "~&domain-process-need: ~A ~A" (type-of domx) (type-of needx)) 
    (assert (domain-p domx))
    (assert (need-p needx))
+   (assert (= (domain-id domx) (need-dom-id needx)))
 
    (let ((act-id (need-act-id needx)) smpl)
       (if (plan-is-not-empty (need-plan needx))

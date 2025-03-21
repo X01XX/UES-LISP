@@ -331,3 +331,19 @@
   )
 )
 
+;;; Return the number of bits used by groups in a non-empty groupstore.
+(defun groupstore-num-bits (storex) ; -> number                                                          
+  (assert (groupstore-p storex))
+  (assert (groupstore-is-not-empty storex))
+
+  (group-num-bits (groupstore-first-group storex))
+)
+
+;;; Return the first group of a non-empty groupstore.
+(defun groupstore-first-group (storex) ; -> group
+  (assert (groupstore-p storex))
+  (assert (groupstore-is-not-empty storex))
+
+  (car (groupstore-groups storex))
+)
+

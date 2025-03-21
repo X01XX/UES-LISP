@@ -26,8 +26,7 @@
 
   (let ((ret (make-actionstore :actions nil)))
     (loop for actx in actions do 
-      (if (not (actionstore-member ret actx))
-        (actionstore-push ret actx))
+        (actionstore-push ret actx)
     )
     ret
   )
@@ -35,19 +34,14 @@
 
 ; Push a new action into a actionstore, suppress dups, subsets.
 ; Return true if the action has been added.
-(defun actionstore-push (storex actx) ; -> bool, true if added.
+(defun actionstore-push (storex actx) ; -> sied effect, actionstore changed.
   (assert (actionstore-p storex))
   (assert (action-p actx))
 
-  ; Check for equal actions.
-  (loop for acty in (actionstore-actions storex) do
-    (if (= (action-id acty) (action-id actx))
-      (return-from actionstore-push false))
-  )
+  (setf (action-id actx) (length (actionstore-actions storex)))
 
   ; Add the new action.
   (setf (actionstore-actions storex) (append (actionstore-actions storex) (list actx)))
-  true
 )
 
 ; Return the number of actions in a actionstore.
@@ -59,11 +53,15 @@
 
 ; Return true if a actionstore is empty.
 (defun actionstore-is-empty (storex) ; -> bool
+  (assert (actionstore-p storex))
+
   (zerop (actionstore-length storex))
 )
 
 ; Return true if a actionstore is not empty.
 (defun actionstore-is-not-empty (storex) ; -> bool
+  (assert (actionstore-p storex))
+
   (plusp (actionstore-length storex))
 )
 
@@ -81,14 +79,6 @@
 
     ret
   )
-)
-
-; Return true if a actionstore contains a given action.
-(defun actionstore-member (storex actx) ; -> bool
-  (assert (actionstore-p storex))
-  (assert (action-p actx))
-
-  (if (member actx (actionstore-actions storex) :test #'action-eq) true false)
 )
 
 (defun actionstore-first-action (storex) ; -> action
@@ -166,5 +156,13 @@
     ;(format t "~&actionstore-change-surface: ~A" (regionstore-str ret))
     ret
   )
+)
+
+;;; Return the number of bits used by actionstores in a non-empty actionstorestore.
+(defun actionstorestore-num-bits (storex) ; -> number                                                          
+  (assert (actionstorestore-p storex))
+  (assert (actionstorestore-is-not-empty storex))
+
+  (actionstore-num-bits (actionstorestore-first-action storex))
 )
 

@@ -230,3 +230,11 @@
   (statestore-states storex)
 )
 
+;;; Add state to the end of a statestore.
+(defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.
+  (assert (statestore-p storex))
+  (assert (state-p stax))
+
+  (setf (statestore-states storex) (append (statestore-states storex) (list stax)))
+)
+

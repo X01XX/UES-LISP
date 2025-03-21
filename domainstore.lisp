@@ -33,7 +33,7 @@
 
 ;;; Push a new domain into a domainstore.
 ;;; Enforce domain-id = index in domain list.
-(defun domainstore-add-domain (storex domx) ; -> bool, true if added.
+(defun domainstore-add-domain (storex domx) ; -> side effect, domainstore changed.
   ;(format t "~&domainstore add domain ~d" (domainstore-length storex))
   (assert (domainstore-p storex))
   (assert (domain-p domx))
@@ -42,8 +42,6 @@
 
   (setf (domainstore-domains storex) 
      (append (domainstore-domains storex) (list domx)))
-
-  true
 )
 
 ;;; Return the number of domains in a domainstore.
@@ -55,11 +53,15 @@
 
 ;;; Return true if a domainstore is empty.
 (defun domainstore-is-empty (storex) ; -> bool
+  (assert (domainstore-p storex))
+
   (zerop (domainstore-length storex))
 )
 
 ;;; Return true if a domainstore is not empty.
 (defun domainstore-is-not-empty (storex) ; -> bool
+  (assert (domainstore-p storex))
+
   (plusp (domainstore-length storex))
 )
 
@@ -82,19 +84,12 @@
 
 ;;; Print a domainstore.
 (defun domainstore-print (doms) 
-    (loop for domx in (domainstore-domains doms) do
-      (format t "~& ")
-      (domain-print domx)
-    )
-)
+  (assert (domainstore-p doms))
 
-;;; Return true if a domainstore contains a given domain.
-(defun domainstore-member (storex domx) ; -> bool
-  ;(format t "domainstore-member storex ~A domx ~A" storex domx)
-  (assert (domainstore-p storex))
-  (assert (domain-p domx))
-
-  (if (member domx (domainstore-domains storex) :test #'domain-eq) true false)
+  (loop for domx in (domainstore-domains doms) do
+    (format t "~& ")
+    (domain-print domx)
+  )
 )
 
 ;;; Return a regionscorrstore of the maximum regions of each domain, in order.
@@ -204,6 +199,7 @@
 (defun domainstore-get-needs (dmxs) ; -> (values needs can-do cant-do)
   ;(format t "~&domainstore-get-needs ~A" (type-of dmxs))
   (assert (domainstore-p dmxs))
+
   (let ((needs (needstore-new nil)) (can-do (needstore-new nil)) (cant-do (needstore-new nil)))
     (loop for domx in (domainstore-domains dmxs) do
       (setf needs (needstore-append needs (domain-get-needs domx)))
@@ -250,6 +246,7 @@
   ;(format t "~&domainstore-process-need: ~A ~A" (type-of dmxs) (type-of nedx)) 
   (assert (domainstore-p dmxs))
   (assert (need-p nedx))
+  (assert (< (need-dom-id nedx) (domainstore-length dmxs)))
 
   (let ((dom-id (need-dom-id nedx)))
       (domain-process-need (domainstore-nth dmxs dom-id) nedx)
@@ -260,11 +257,19 @@
 (defun domainstore-nth (storex inx) ; -> domain instance, or nil.
   ;(format t "~&domainstore-nth: ~A ~A" (type-of storex) (type-of inx)) 
   (assert (domainstore-p storex))
-  (assert (integerp inx))
-
-  (if (>= inx (domainstore-length storex))
-    (return-from domainstore-nth nil))
+  (assert (and (integerp inx) (< inx (domainstore-length storex))))
 
   (nth inx (domainstore-domains storex))
 )
 
+;;; Return all domain current states.
+(defun domainstore-all-current-states (storex) ; -> StatesCorr
+  (assert (domainstore-p storex))
+
+  (let ((ret (statescorr-new (statestore-new nil))))
+    (loop for domx in (domainstore-domains storex) do
+      (statescorr-add-end ret (domain-current-state domx))
+    )
+    ret
+  )
+)

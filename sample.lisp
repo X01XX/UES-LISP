@@ -30,3 +30,10 @@
   (format nil "#S(SAMPLE ~A->~A)" (state-str (sample-initial smpl)) (state-str (sample-result smpl)))
 )
 
+;;; Return the number of bits used by a sample.
+(defun sample-num-bits (smpl) ; -> number
+  (assert (sample-p smpl))
+
+  (state-num-bits (sample-initial smpl))
+)
+

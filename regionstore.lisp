@@ -429,3 +429,11 @@
   )
 )
 
+;;; Return the number of bits used by regions in a non-empty regionstore.
+(defun regionstore-num-bits (storex) ; -> number
+  (assert (regionstore-p storex))
+  (assert (regionstore-is-not-empty storex))
+
+  (region-num-bits (regionstore-first-region storex))
+)
+

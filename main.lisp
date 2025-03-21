@@ -175,18 +175,23 @@
   (format t "~& ~&    ss <domain-number> <action-number> state - Sample State for a domain and action.")
   (format t "~& ~&    act-sqrs <domain-number> <action-number> - Show squares of a domain and action.")
   (format t "~& ~&    grp-sqrs <domain-number> <action-number> <region> - Show squares of a domain and action.")
+  (format t "~& ~&    run - Run steps until no more needs can be done.")
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0) inx dom-id act-id statex regx grpx actx sqrx)
+  (let (inp tokens token (step 0) inx dom-id act-id statex regx grpx actx sqrx (run 0))
     (loop 
       (incf step)
       (format t "~& ~&Step: ~D --------------------------------------------" step)
       (sessiondata-print sessx)
       (generate-and-display-needs sessx)
 
-        (format t "~& ~&Press Enter or type a command: ")
-        (setf inp (read-line *STANDARD-INPUT*))
+        (setf inp "")
+        (when (or (= run 0) (needstore-is-empty (sessiondata-can-do sessx)))
+          (setf run 0)
+          (format t "~& ~&Press Enter or type a command: ")
+          (setf inp (read-line *STANDARD-INPUT*))
+        )
 
         ; Parse tokens from the input string
         (setf tokens nil token nil)
@@ -214,6 +219,12 @@
         (if (string-equal (car tokens) #\q)
           (return-from command-loop))
 
+        ;; Check for run command.
+        (if (string-equal (car tokens) "run")
+          (setf run 1)
+        )
+
+
         ;; Check for do need.
         (if (string-equal (car tokens) "dn")
           (if (= (length tokens) 2)
@@ -225,10 +236,10 @@
                     (format t "~&Need chosen: ~A~& " (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
                     (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
                   )
-                  (format t "~&Invalid need number in Do Need command"))
-                (format t "~&Invalid need number in Do Need command"))
+                  (format t "~&Invalid need number in dn command"))
+                (format t "~&Invalid need number in on command"))
             )
-            (format t "~&Did not understand Do Need command"))
+            (format t "~&Did not understand dn command"))
         )
 
         (if (string-equal (car tokens) "ss")
@@ -267,13 +278,13 @@
                                                    (actionstore-nth
                                                      (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
                                                    act-id))))
-                    (format t "~&Did not understand action id in sqrs command")
+                    (format t "~&Did not understand action id in act-sqrs command")
                   )
                 )
-                (format t "~&Did not understand domain id in sqrs command")
+                (format t "~&Did not understand domain id in act-sqrs command")
               )
             )
-            (format t "~&Did not understand sqrs command")
+            (format t "~&Did not understand act-sqrs command")
           )
         )
 
@@ -316,7 +327,7 @@
         )
 
         ;; Force specific domain action state sample, print square and square-count.
-        (if (null tokens) ; An unrecgnized token will cause this to be skipped. so the effect is to just rerun get-needs.
+        (if (null tokens) ; An unrecognized token will cause this to be skipped. so the effect is to just rerun get-needs.
 	      ;; Process needs.
 	      (if (needstore-is-not-empty (sessiondata-can-do sessx))
 	        (do-any-need sessx)

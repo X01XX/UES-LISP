@@ -31,19 +31,13 @@
   ;   (format t " ~A" (rulestore-str rulsx))
   ;)
   (assert (rulestore-list-p rules))
-  (assert (>= id 0))
+  (assert (and (integerp id) (>= id 0)))
 
   (let (rulsx rulsy actx)
 
-    ;; Check each rulestore is not empty.
-    (loop for rulsx in rules do
-        (assert (rulestore-is-not-empty rulsx))
-    )
-
     ;; Check each rule, within each rulestore, has the same initial region.
     (loop for rulsx in rules do
-        (when (> (rulestore-length rulsx) 1)
-        )
+        (assert (and (rulestore-p rulsx) (rulestore-is-not-empty rulsx)))
     )
 
     ;; Check rules for consistency.
@@ -68,11 +62,10 @@
 
 ;;; Set the id.
 (defun action-set-id (actx id)
-    (assert (action-p actx))
-    (assert (integerp id))
-    (assert (>= id 0))
+  (assert (action-p actx))
+  (assert (and (integerp id) (>= id 0)))
 
-    (setf (action-id actx) id)
+  (setf (action-id actx) id)
 )
 
 ;;; Return the number of bits used by an action.
@@ -97,7 +90,7 @@
     )
 )
 
-; Return true if the argument is a list of actions.
+; Return true if the argument is a null list, or a list of actions.
 (defun action-list-p (actions) ; -> bool
 
   (if (not (listp actions))
@@ -111,18 +104,13 @@
   true
 )
 
-(defun action-eq (act1 act2) ; -> bool
-  (assert (action-p act1))
-  (assert (action-p act2))
-
-  (= (action-id act1) (action-id act2))
-)
-
-; Return possible steps given a rule to satisfy.
+;;; Return possible steps given a rule to satisfy.
 (defun action-get-steps (actx rule-to-goal within) ; -> stepstore.
   (assert (action-p actx))
   (assert (rule-p rule-to-goal))
   (assert (region-p within))
+  (assert (= (action-num-bits actx) (rule-num-bits rule-to-goal)))
+  (assert (= (action-num-bits actx) (region-num-bits within)))
 
   ;(format t "~&action-get-steps")
   (let ((ret-steps (stepstore-new nil)) group-steps)
@@ -170,6 +158,9 @@
   (assert (action-p actx))
   (assert (state-p cur-state))
   (assert (regionstore-p change-surface))
+  (assert (= (action-num-bits actx) (state-num-bits cur-state)))
+  (assert (or (regionstore-is-empty change-surface)
+              (= (action-num-bits actx) (regionstore-num-bits change-surface))))
 
   (let ((needs (needstore-new nil)))
     ;; Generate need for a cur-state that is not in a group.
@@ -309,6 +300,7 @@
 (defun action-confirm-group-needs (actx grpx) ; -> needstore.
   (assert (action-p actx))
   (assert (group-p grpx))
+  (assert (= (action-num-bits actx) (group-num-bits grpx)))
   ;(format t "~&action-confirm-group-needs: Act: ~D Group: ~A" (action-id actx) (region-str (group-region grpx)))
 
   (let ((needs (needstore-new nil)) (grp-reg (group-region grpx)))
@@ -413,6 +405,7 @@
 (defun action-non-adjacent-incompatible-square-needs (actx pairs) ; -> needstore.
   (assert (action-p actx))
   (assert (regionstore-p pairs))
+  (assert (or (regionstore-is-empty pairs) (= (action-num-bits actx) (regionstore-num-bits pairs))))
 
     (let ((needs (needstore-new nil)) sta-x sta-y sqr-x sqr-y dist sqrs sqrs-max-results max-results seek-regs mask-lists)
       (loop for prx in (regionstore-regions pairs) do
@@ -502,8 +495,12 @@
 )
 
 ;;; Calculate the logical structure, return needs to improve understanding of the structure.
+;;; Set logical-structure field in action instance.
 (defun action-structure-needs (actx change-surface) ; -> needstore
   (assert (action-p actx))
+  (assert (regionstore-p change-surface))
+  (assert (or (regionstore-is-empty change-surface)
+              (= (action-num-bits actx) (regionstore-num-bits change-surface))))
 
   (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
         (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
@@ -582,8 +579,6 @@
 
     ;(format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
 
-    ;; Get needs.
-
     ;; Check for non-adjacent incompatible square between needs.
     (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2)
   )
@@ -635,6 +630,7 @@
 (defun action-get-need-sample-state (actx stax reason &optional extra-info) ; -> need instance.
   (assert (action-p actx))
   (assert (state-p stax))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
   (assert (and (integerp reason) (not (null (member reason *reasons*)))))
   (assert (or (null extra-info) (stringp extra-info)))
 
@@ -658,6 +654,7 @@
 (defun action-get-need-resample-state (actx stax reason &optional extra-info) ; -> need instance.
   (assert (action-p actx))
   (assert (state-p stax))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
   (assert (and (integerp reason) (not (null (member reason *reasons*)))))
   (assert (or (null extra-info) (stringp extra-info)))
 
@@ -682,12 +679,12 @@
 )
 
 ;;; Get a need to sample a region, after some checks.
-(defun action-get-needs-sample-region (actx regx reason &optional extra-info group-region) ; -> need instance.
+(defun action-get-needs-sample-region (actx regx reason &optional extra-info) ; -> need instance.
   (assert (action-p actx))
   (assert (region-p regx))
+  (assert (= (action-num-bits actx) (region-num-bits regx)))
   (assert (and (integerp reason) (not (null (member reason *reasons*)))))
   (assert (or (null extra-info) (stringp extra-info)))
-  (assert (or (null group-region) (region-p group-region)))
 
   (if (null extra-info)
     (setf extra-info ""))
@@ -708,6 +705,7 @@
   ;(format t "~&action-get-sample: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (let ((rslt stax) ; If no rule found, default to no change.
         smpl sqrx rslt0 rslt1 rslt2)
@@ -776,7 +774,9 @@
 (defun action-check-group-pnc (actx grpx sqrx) ; side-effect, group pnc may be changed.
   (assert (action-p actx))
   (assert (group-p grpx))
+  (assert (= (action-num-bits actx) (group-num-bits grpx)))
   (assert (square-p sqrx))
+  (assert (= (action-num-bits actx) (square-num-bits sqrx)))
 
   (if (group-pnc grpx)
     (return-from action-check-group-pnc))
@@ -845,7 +845,8 @@
   (format t "~&action-new-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
   (assert (action-p actx))
   (assert (square-p sqrx))
-  (assert (or (null invalidated-groups) (groupstore-p invalidated-groups)))
+  (assert (= (action-num-bits actx) (square-num-bits sqrx)))
+  (assert (or (null invalidated-groups) (and (groupstore-p invalidated-groups) (groupstore-num-bits invalidated-groups))))
 
   ;; Check for overwrite.
   (if (squarestore-find (action-squares actx) (square-state sqrx))
@@ -880,6 +881,7 @@
 (defun action-process-changed-square (actx sqrx) ; -> side effect, action instance is changed.
   (assert (action-p actx))
   (assert (square-p sqrx))
+  (assert (= (action-num-bits actx) (square-num-bits sqrx)))
 
   ;; Check for group changes.
   (loop for grpx in (groupstore-groups (action-groups actx)) do
@@ -905,11 +907,12 @@
 ;;; Take an action, for a given state, required for a need.
 ;;; An existitg square will be updated.
 ;;; For a need, it is assumed that a new square will be created if needed.
-(defun action-take-sample-for-need (actx stax need) ; -> sample,  side effect, action instance is changed.
+(defun action-take-sample-for-need (actx stax nedx) ; -> sample,  side effect, action instance is changed.
   ;(format t "~&action-take-sample-for-need: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
-  (assert (need-p need))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
+  (assert (and (need-p nedx) (= (action-id actx) (need-act-id nedx))))
   ;(format t "~&action-take-sample-for-need: need: ~A" (need-str need))
 
   (let (smpl)
@@ -928,6 +931,7 @@
   ;(format t "~&action-take-sample-arbitrarily: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (let (smpl sqrx)
     (setf smpl (action-get-sample actx stax))
@@ -951,6 +955,7 @@
   ;(format t "~&action-take-sample-for-step: ~A ~A" (type-of actx) (type-of stax)) 
   (assert (action-p actx))
   (assert (state-p stax))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (let (smpl sqrx invalidated-groups)
     (setf smpl (action-get-sample actx stax))
@@ -997,7 +1002,7 @@
 (defun action-process-invalidated-groups (actx invalidated-groups) ; side-effect, action changed.
   (format t "~&action-process-invalidated-groups: Act ~D groups ~A" (action-id actx) (groupstore-str invalidated-groups))
   (assert (action-p actx))
-  (assert (groupstore-p invalidated-groups))
+  (assert (and (groupstore-p invalidated-groups) (= (action-num-bits actx) (groupstore-num-bits invalidated-groups))))
 
   ;; Remove the groups.
   (loop for grpx in (groupstore-groups invalidated-groups) do
@@ -1020,7 +1025,7 @@
   )
 )
 
-;;; Process orphaned squares into groups.
+;;; Process new, or orphaned, squares into groups.
 (defun action-make-groups-from-squares (actx sqrs) ; side-effect, action changed.
   ;(format t "~&action-make-groups-from-squares: Act ~D ~A" (action-id actx) (mapcar #'(lambda (x) (state-str (square-state x))) sqrs))
   (assert (action-p actx))
@@ -1034,10 +1039,11 @@
   )
 )
 
-;;; Process new, or orphaned square into groups.
+;;; Process new, or orphaned, square into groups.
 (defun action-make-groups-from-square (actx sqrx) ; side-effect, action changed.
   (assert (action-p actx))
   (assert (square-p sqrx))
+  (assert (= (action-num-bits actx) (square-num-bits sqrx)))
 
   (if (not (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx)))
     (return-from action-make-groups-from-square))
@@ -1094,6 +1100,7 @@
 (defun action-find-square (actx stax) ; -> square, or nil.
   (assert (action-p actx))
   (assert (state-p stax))
+  (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (squarestore-find (action-squares actx) stax)
 )
@@ -1105,7 +1112,9 @@
   ;(format t "~&action-add-square-sample: Act ~D square ~A sample ~A" (action-id actx) (square-str sqrx) (sample-str smpl))
   (assert (action-p actx))
   (assert (square-p sqrx))
+  (assert (= (action-num-bits actx) (square-num-bits sqrx)))
   (assert (sample-p smpl))
+  (assert (= (action-num-bits actx) (sample-num-bits smpl)))
 
   (let (cng invalidated-groups)
     ;; Add sample to square.
@@ -1127,7 +1136,7 @@
 (defun action-combine-regions (actx regsx) ; -> RegionStore instance.
   ;(format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
   (assert (action-p actx))
-  (assert (regionstore-p regsx))
+  (assert (and (regionstore-p regsx) (regionstore-num-bits regsx)))
 
   (let ((cur-regs (regionstore-new nil)) ; The current regionstore.
         (nxt-regs regsx)                 ; The next regionstore, with combined regions from the current regionstore.
@@ -1171,7 +1180,7 @@
 (defun action-make-group (actx regx) ; -> group instance.
   ;(format t "~&action-make-group: Act ~D region ~A" (action-id actx) (region-str regx))
   (assert (action-p actx))
-  (assert (region-p regx))
+  (assert (and (region-p regx) (= (action-num-bits actx) (region-num-bits regx))))
 
   (let (pn (pnc (< (region-number-states regx) 3)) sqrx (rules (rulestore-new nil)))
     ;(format t "~&action-make-group: pnc ~A num states ~D" pnc (region-number-states regx))
@@ -1218,7 +1227,7 @@
 ; )
 )
 
-;; Return regions of groups that make a predictable change.
+;;; Return regions of groups that make a predictable change.
 (defun action-change-surface (actx) ; -> regionstore.
   (assert (action-p actx))
 
@@ -1235,5 +1244,4 @@
     ret
   )
 )
-
 
