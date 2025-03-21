@@ -243,7 +243,12 @@
     nil
 )
 
-;;; Return true if the argument is a list of squares, or nil.
+;; Return true if two squares are adjacent.
+(defun square-is-adjacent (sqr1 sqr2) ; -> bool
+  (states-is-adjacent (square-state sqr1) (square-state sqr2))
+)
+
+;;; Return true if the argument is a list of squares.
 (defun square-list-p (squares) ; -> bool
   ;(format t "~&square-list-p: ~A ~A" (type-of squares) squares)
   (if (not (listp squares))
@@ -257,9 +262,21 @@
   true
 )
 
-;; Return true if two squares are adjacent.
-(defun square-is-adjacent (sqr1 sqr2) ; -> bool
-  (states-is-adjacent (square-state sqr1) (square-state sqr2))
+;;; Return a list of squares with the highest number of results.
+(defun square-list-sample-next (sqrs) ; -> list of squares. 
+  (assert (square-list-p sqrs))
+
+  (let ((ret nil) (max-results 1))
+
+    ;; Generate list of squares with the highest number of previous samples.
+    (loop for sqrx in sqrs do
+      (when (> (square-results-length sqrx) max-results)
+        (setf ret nil) 
+        (setf max-results (square-results-length sqrx))
+      )    
+      (if (= (square-results-length sqrx) max-results)
+        (push sqrx ret))
+    ) ; next sqrx
+    ret
+  )
 )
-
-

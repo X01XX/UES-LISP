@@ -145,32 +145,19 @@
 
   (let ((ret (needstore-new nil)) ; The return struct.
         (sqrs-in (squarestore-squares-in-region (action-squares actx) regx)) ; The squares in the given region.
-        sqrs-high-num-results ; Squares in the given region with the highest number of samples.
-        (sqrs-highest-num-results 0) ; Maximum number samples found for a square.
        )
 
     ;; Check for no squares in region.
     (when (null sqrs-in)
-        (needstore-push ret (action-get-needs-sample-region actx regx reason ex-in ))
+        (needstore-push ret (action-get-needs-sample-region actx regx reason ex-in))
         (return-from action-needs-for-region ret)
     )
 
-    ;; Get list of squares with the highest number of results.
-    (loop for sqrx in sqrs-in do
-      (when (square-pnc sqrx) 
-        (format t "~&Problem: Act ~D pnc square ~A in contradictory region ~A" (action-id actx) (state-str (square-state sqrx)) (region-str regx))
-        (return-from action-needs-for-region ret)
-      )
-      (when (> (square-results-length sqrx) sqrs-highest-num-results)
-        (setf sqrs-highest-num-results (square-results-length sqrx))
-        (setf sqrs-high-num-results nil)
-      )
-      (if (= (square-results-length sqrx) sqrs-highest-num-results)
-        (push sqrx sqrs-high-num-results))
-    )
+    ;; Get squares with the highest number of samples.
+    (setf sqrs-in (square-list-sample-next sqrs-in))
 
     ;; Load needs for squares with the higest number of results.
-    (loop for sqrx in sqrs-high-num-results do
+    (loop for sqrx in sqrs-in do
         (needstore-push ret (action-get-need-resample-state actx (square-state sqrx) reason ex-in))
     )
     ret
@@ -279,6 +266,7 @@
       ;; Get structure needs.
       (setf needs (needstore-append needs (action-structure-needs actx change-surface)))
 
+      ;; Check groups against structure boundaries.
       (let (regs far-reg)
         (when (not (null (action-logical-structure actx)))
 
@@ -487,30 +475,23 @@
                 (setf sqrs-max-results nil)
                 (setf max-results 1)
 
-                ;; Check each square.
+                (setf sqrs (remove sqr-x sqrs :test #'square-eq))
+                (setf sqrs (remove sqr-y sqrs :test #'square-eq))
+
+                (setf sqrs (square-list-sample-next sqrs))
+
+                ;; Make need for each square.
                 (loop for sqrx in sqrs do
-                  (when (and (state-ne (square-state sqrx) sta-x)
-                             (state-ne (square-state sqrx) sta-y))
-
-                    (when (> (square-results-length sqrx) max-results)
-                      (setf sqrs-max-results nil)
-                      (setf max-results (square-results-length sqrx))
-                    )
-                    (if (= (square-results-length sqrx) max-results)
-                      (push sqrx sqrs-max-results))
-
-                  ;; Make need for each square.
                   (if (square-pnc sqrx)
                     (format t "~&Problem: pnc square ~A between ~A and ~A ?"
-                        (state-str (square-state sqrx)) (state-str sta-x) (state-str sta-y))
+                       (state-str (square-state sqrx)) (state-str sta-x) (state-str sta-y))
 
-                    (needstore-push needs
-                          (action-get-need-sample-state actx
-                                (square-state sqrx)
-                                *between-ip*
-                                (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y)))))
-                  )
-                ) ; next sqrx
+                  (needstore-push needs
+                        (action-get-need-sample-state actx
+                              (square-state sqrx)
+                              *between-ip*
+                             (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y)))))
+                )
               )
             )
           )
