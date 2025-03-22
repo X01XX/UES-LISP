@@ -1,6 +1,6 @@
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of rules.
 (defstruct rulestore

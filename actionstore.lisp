@@ -1,7 +1,7 @@
 ; Implement a store of actions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of actions.
 (defstruct actionstore
@@ -98,7 +98,7 @@
   (let ((ret-steps (stepstore-new nil)) act-steps)
     (loop for actx in (actionstore-actions storex) do
       (setf act-steps (action-get-steps actx rule-to-goal within))
-      (loop for stpx in (stepstore-step-list act-steps) do
+      (loop for stpx in (stepstore-steps act-steps) do
         (stepstore-push ret-steps stpx) 
       )
     )

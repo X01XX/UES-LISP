@@ -1,11 +1,11 @@
 ; Implement a store of plans.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of plans.
 (defstruct planstore
-  plan-list  ; A list of zero, or more, plans.
+  plans  ; A list of zero, or more, plans.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&plans ~A" plans)
   (assert (plan-list-p plans))
 
-  (make-planstore :plan-list plans)
+  (make-planstore :plans plans)
 )
 
 ;;; Add plan to the end of a planstore.
@@ -34,14 +34,14 @@
   (assert (planstore-p storex))
   (assert (plan-p plnx))
 
-  (setf (planstore-plan-list storex) (append (planstore-plan-list storex) (list plnx)))
+  (setf (planstore-plans storex) (append (planstore-plans storex) (list plnx)))
 )
 
 ;;; Return the number of plans in a planstore.
 (defun planstore-length (storex) ; -> number.
   (assert (planstore-p storex))
 
-  (length (planstore-plan-list storex))
+  (length (planstore-plans storex))
 )
 
 ;;; Return true if a planstore is empty.
@@ -64,7 +64,7 @@
 
   (let ((ret "#S(PLANSTORE ") (start t))
 
-    (loop for plnx in (planstore-plan-list storex) do
+    (loop for plnx in (planstore-plans storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (plan-str plnx)))

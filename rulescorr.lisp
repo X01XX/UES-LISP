@@ -1,7 +1,7 @@
 ;;;; Implement a series of rules, with bit-number values corresponding to a list of domains.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of corresponding rules.
 (defstruct rulescorr

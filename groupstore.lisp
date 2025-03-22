@@ -1,7 +1,7 @@
 ; Implement a store of groups.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of groups.
 (defstruct groupstore
@@ -125,7 +125,7 @@
   (let ((ret-steps (stepstore-new nil)) steps)
     (loop for grpx in (groupstore-groups storex) do
         (setf steps (group-get-steps grpx rule-to-goal within))
-	(loop for stpx in (stepstore-step-list steps) do
+	(loop for stpx in (stepstore-steps steps) do
 	  (if (not (stepstore-member ret-steps stpx))
 	    (stepstore-push ret-steps stpx)
 	  )	

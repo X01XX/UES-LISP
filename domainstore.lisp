@@ -1,7 +1,7 @@
 ;;;; Implement a store of domains.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of domains.
 (defstruct domainstore
@@ -119,13 +119,15 @@
 )
 
 ;;; Return plans to go from one region to another.
-(defun domainstore-get-plans (storex from-regs to-regs)
+(defun domainstore-get-plans (storex from-regs to-regs within)
   (assert (domainstore-p storex))
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
+  (assert (selectregionscorrstore-p within))
   (assert (domainstore-congruent storex from-regs))
   (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
+  (format t "~&domainstore-get-plans from ~A to ~A" (regionscorr-str from-regs) (regionscorr-str to-regs))
 
   (let (last-regs pathx last-int cur-int) 
 
@@ -136,7 +138,7 @@
     (setf last-int (car (pathscorr-regionscorr-list pathx)))
     (loop for regsx in (cdr (pathscorr-regionscorr-list pathx)) do
       ;(format t "~&last regs ~A regs ~A" last-regs regsx)
-      (when (not (regionscorr-superset-of :sup-regscorr regsx :sub-regscorr last-regs))
+      (when (not (regionscorr-superset-of :sup regsx :sub last-regs))
 	(setf cur-int (regionscorr-intersection last-regs regsx))
 	(format t "~&from ~A to ~A within ~A" last-int cur-int last-regs)
 	(setf last-int (regionscorr-translate-to last-int cur-int)) ; todo change from regionscorr-translate-to to get-plan.
@@ -159,15 +161,15 @@
   (assert (domainstore-congruent storex within))
   (assert (not (regionscorr-intersects from-regs to-regs)))
   
-  (if (not (regionscorr-superset-of :sup-regscorr within :sub-regscorr from-regs))
+  (if (not (regionscorr-superset-of :sup within :sub from-regs))
     (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" within from-regs)
     )
-  (assert (regionscorr-superset-of :sup-regscorr within :sub-regscorr from-regs))
+  (assert (regionscorr-superset-of :sup within :sub from-regs))
 
-  (if (not (regionscorr-superset-of :sup-regscorr within :sub-regscorr to-regs))
+  (if (not (regionscorr-superset-of :sup within :sub to-regs))
     (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" within to-regs)
     )
-  (assert (regionscorr-superset-of :sup-regscorr within :sub-regscorr to-regs))
+  (assert (regionscorr-superset-of :sup within :sub to-regs))
 
   (let ((ret-store (planstore-new nil)) domx-plan from-next)
 
@@ -273,3 +275,29 @@
     ret
   )
 )
+
+;;; Return all domain current states as regions.
+(defun domainstore-all-current-regions (storex) ; -> RegionsCorr
+  (assert (domainstore-p storex))
+
+  (let ((ret (regionscorr-new nil)))
+    (loop for domx in (domainstore-domains storex) do
+      (regionscorr-add-end ret (region-new (domain-current-state domx)))
+    )
+    ret
+  )
+)
+
+;;; Seh the domain states.
+(defun domainstore-set-states (storex stacrx) ; side-effect, domains changed.
+  (assert (domainstore-p storex))
+  (assert (statescorr-p stacrx))
+  (assert (statescorr-congruent stacrx (domainstore-all-current-states storex)))
+
+  (loop for domx in (domainstore-domains storex) 
+        for stax in (statescorr-state-list stacrx) do
+   
+    (domain-set-state domx stax)
+  )
+)
+

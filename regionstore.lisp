@@ -1,7 +1,7 @@
 ;;;; Implement a store of regions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of regions.
 (defstruct regionstore
@@ -327,11 +327,8 @@
   )
 )
 
-;;; Return self fragmented by intersections.
-;;; Each fragment returned will be a subset of any item
-;;; it intersects in the original.
-;;; All fragments returned will account for all parts of all items
-;;; in the original.
+;;; Return self split by intersections.
+;;; Each fragment returned will be a subset of any original item it intersects.
 (defun regionstore-split-by-intersections (strx) ; -> regionstore
   (assert (regionstore-p strx))
   ;(format t "~&regionstore-split-by-intersections ~A" strx)

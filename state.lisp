@@ -1,8 +1,8 @@
 ;;;; Implement the state struct and functions.
 ;;;; It reresents a square on a K-Map.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The state struct.
 (defstruct state

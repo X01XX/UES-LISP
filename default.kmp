@@ -17,8 +17,8 @@
             (ACT ("[Xx/XX/XX]" "[XX/XX/Xx]" "[XX/Xx/XX]"))) ;; Three different rules, for same the region, in one rulestore, interpretted as unpredictable.
         )
       )
-      (SR (RC (r110X r110)) -1)
-      (SR (RC (r11X1 r110))  2)
+      (SR (RC (r110X r110)) (RT 0 -1))
+      (SR (RC (r11X1 r110)) (RT 2 0))
       (SC (s0101 s111))
   )
 )

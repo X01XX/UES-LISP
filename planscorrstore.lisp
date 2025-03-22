@@ -4,13 +4,13 @@
 ;;;; From first to last, each planscorr result regions should equal the next
 ;;;; planscorr initial regions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of plans.
 (defstruct planscorrstore
-  planscorr-list 	; A list of zero, or more, planscorr.
-  value		; A value representing select regions the plans pass through.
+  planscorrs 	; A list of zero, or more, planscorr.
+  value	     	; A value representing select regions the plans pass through.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -33,7 +33,7 @@
   (assert (planscorr-list-p planscorr-list))
 
   (let (ret)
-    (setf ret (make-planscorrstore :planscorr-list planscorr-list :value 0))
+    (setf ret (make-planscorrstore :planscorrs planscorr-list :value 0))
     (assert (planscorrstore-is-valid ret))
     ret
   )	
@@ -49,7 +49,7 @@
   (assert (planscorrstore-p storex))
   (assert (plan-p plnx))
 
-  (setf (planscorrstore-planscorr-list storex) (append (planscorrstore-planscorr-list storex) (list plnx)))
+  (setf (planscorrstore-planscorrs storex) (append (planscorrstore-planscorrs storex) (list plnx)))
   (assert (planscorrstore-is-valid storex))
 )
 
@@ -57,7 +57,7 @@
 (defun planscorrstore-length (storex) ; -> number.
   (assert (planscorrstore-p storex))
 
-  (length (planscorrstore-planscorr-list storex))
+  (length (planscorrstore-planscorrs storex))
 )
 
 ;;; Return true if a planscorrstore is empty.
@@ -80,7 +80,7 @@
 
   (let ((ret "#S(PLANSCORRSTORE ") (start t))
 
-    (loop for plnx in (planscorrstore-planscorr-list storex) do
+    (loop for plnx in (planscorrstore-planscorrs storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (planscorr-str plnx)))
@@ -95,8 +95,8 @@
 
 ;;; Check that planscorr items are linked.
 (defun planscorrstore-is-valid (storex) ; -> bool
-  (loop for plnx in (planscorrstore-planscorr-list storex)
-        for plny in (cdr (planscorrstore-planscorr-list storex)) do
+  (loop for plnx in (planscorrstore-planscorrs storex)
+        for plny in (cdr (planscorrstore-planscorrs storex)) do
     (if (not (planscorr_is_linked_to(plnx plny)))
       (return-from planscorrstore-is-valid false))
   )

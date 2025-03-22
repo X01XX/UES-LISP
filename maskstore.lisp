@@ -1,7 +1,7 @@
 ;;;; Implement a store of masks.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; Implement a store of masks.
 (defstruct maskstore

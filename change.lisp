@@ -1,7 +1,7 @@
 ;;;; Implement a change struct and functions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The change struct.
 (defstruct change

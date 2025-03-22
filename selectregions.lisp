@@ -1,13 +1,12 @@
 ;;;; Implement the selectregions struct and functions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The selectregions struct.
 (defstruct selectregions
   regionscorr   ; A store of correspondung regions.
-  positive      ; A number, zero or positive.
-  negative      ; A number, zero or negative.
+  rate          ; A rate instance, indicating a value for matching Domain regions.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,31 +23,12 @@
 ;   (copy-selectregions <instance>) copies a selectregions instance.
 
 ;;; Return a new selectregions, made up of corresponding regions and a value.
-(defun selectregions-new (regions val) ; -> selectregions.
+(defun selectregions-new (regions ratex) ; -> selectregions.
   (assert (regionscorr-p regions))
   (assert (> (regionscorr-length regions) 0))
-  (assert (not (zerop val)))
+  (assert (rate-p ratex))
 
-  (let (pos neg)
-    (if (> val 0)
-      (setf pos val neg 0)
-      (setf pos 0 neg val))
-    (make-selectregions :regionscorr regions :positive pos :negative neg)
-  )
-)
-
-;;; Return a new selectregions, made up of corresponding regions and two values.
-(defun selectregions-new2 (regions pos neg) ; -> selectregions.
-  (assert (regionscorr-p regions))
-  (assert (> (regionscorr-length regions) 0))
-  (assert (and (not (zerop neg)) (not (zerop pos))))
-  ; TODO net = zero OK?
-
-  (make-selectregions :regionscorr regions :positive pos :negative neg)
-)
-
-(defun selectregions-net-value (srx) ; -> integer
-  (+ (selectregions-positive srx) (selectregions-negative srx))
+  (make-selectregions :regionscorr regions :rate ratex)
 )
 
 ;;; Return a list of regions.
@@ -60,23 +40,17 @@
 (defun selectregions-str (sregsx)  ; -> string.
   (assert (selectregions-p sregsx))
 
-  (let ((ret "(SR "))
-    (setf ret (concatenate 'string ret (format nil "~A" (regionscorr-str (selectregions-regionscorr sregsx)))))
-    (setf ret (concatenate 'string ret (format nil " ~D" (+ (selectregions-positive sregsx)(selectregions-negative sregsx) ))))
-    (setf ret (concatenate 'string ret ")"))
-    ret
-  )
+  (format nil "SR ~A ~A" (regionscorr-str (selectregions-regionscorr sregsx)) (rate-str (selectregions-rate sregsx)))
 )
 
-;;; Return true if two selectregionss are equal.
+;;; Return true if two selectregions are equal.
 (defun selectregions-eq (sregs1 sregs2) ; -> bool
   ;(format t "~&selectregions-eq: ~A ? ~A" sregs1 sregs2)
   (assert (selectregions-p sregs1))
   (assert (selectregions-p sregs2))
 
   (and (regionscorr-eq (selectregions-regionscorr sregs1) (selectregions-regionscorr sregs1))
-    (= (selectregions-positive sregs1) (selectregions-positive sregs2))
-    (= (selectregions-negative sregs1) (selectregions-negative sregs2)))))
+       (rate-eq (selectregions-rate sregs1) (selectregions-rate sregs2)))
 )
 
 ;;; Return true if two selectregionss are not equal.
@@ -85,6 +59,15 @@
   (assert (selectregions-p sregs2))
 
   (not (selectregions-eq sregs1 sregs2))
+)
+
+;;; Return true if two selectregions are equal in regions, not considering rates.
+(defun selectregions-eq-regions (sregs1 sregs2) ; -> bool
+  ;(format t "~&selectregions-eq: ~A ? ~A" sregs1 sregs2)
+  (assert (selectregions-p sregs1))
+  (assert (selectregions-p sregs2))
+
+  (regionscorr-eq (selectregions-regionscorr sregs1) (selectregions-regionscorr sregs1))
 )
 
 ;;; Return true if a list is a list of selectregionss.
@@ -117,9 +100,9 @@
 )
 
 ;;; Translate a list of symbols into a selectregions instance.
-;;; Like [], [1010], or [101, 1000].
+;;; Like (SR (RC (r1010)) (RT 0 2-1))
 (defun selectregions-from (symbols) ; -> selectregions
-  ;(format t "~&selectregions-from ~A" (type-of symbols))
+   ;(format t "~&selectregions-from ~A" (type-of symbols))
    (assert (listp symbols))
    (assert (not (null symbols)))
    (assert (symbolp (car symbols)))
@@ -137,11 +120,16 @@
         ;(format t "~&selectregions-from3 rc: ~A ~A" (type-of rc) rc)
         (setf rc (regionscorr-from rc))
             
-        (setf rate (second symbols))
+        (setf rate (rate-from (second symbols)))
 
-        ;(format t "~&selectregions-from4 rate: ~A ~A" (type-of rate) rate)
+        ;(format t "~&selectregions-from4 rate: ~A ~A" (type-of rate) (rate-str rate))
 
         (selectregions-new rc rate)
     )
+)
+
+;;; Return net value.
+(defun selectregions-net-value (sregsx) ; -> integer
+  (rate-net-value (selectregions-rate sregsx))
 )
 

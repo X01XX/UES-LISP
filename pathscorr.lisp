@@ -1,7 +1,7 @@
 ;;;; Implement a series of regionscorr that intersect.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; Implement a store of regions.
 (defstruct pathscorr
@@ -35,7 +35,7 @@
 
 ;;; Return a list of regionscorr.
 (defun pathscorr-regionscorr-list (pathscorrx) ; -> A list of regionscorr.
-  (regionscorrstore-regionscorr-list (pathscorr-regionscorrstore pathscorrx))
+  (regionscorrstore-regionscorrs (pathscorr-regionscorrstore pathscorrx))
 )
 
 ;;; Push region into a pathscorr.
@@ -92,8 +92,8 @@
 
     (loop for regx in (pathscorr-regionscorr-list pathscorrx) do
       (when last-reg
-	(if (or (regionscorr-superset-of :sup-regscorr regx :sub-regscorr last-reg)
-	        (regionscorr-superset-of :sub-regscorr regx :sup-regscorr last-reg))
+	(if (or (regionscorr-superset-of :sup regx :sub last-reg)
+	        (regionscorr-superset-of :sub regx :sup last-reg))
 	  (setf ret (concatenate 'string ret "-"))
 	  (setf ret (concatenate 'string ret (format nil "-~A-" (regionscorr-intersection last-reg regx))))
 	)

@@ -57,7 +57,7 @@
   (let (regcorr1 regcorr2 list1)
     (setf regcorr1 (regionscorr-new (list (region-from 'r0X) (region-from 'r1X))))
     (setf regcorr2 (regionscorr-new (list (region-from 'r00) (region-from 'rX0))))
-    (setf list1 (regionscorr-subtract :min-regscorr regcorr1 :sub-regscorr regcorr2))
+    (setf list1 (regionscorr-subtract :min regcorr1 :sub regcorr2))
 
     (assert (= 2 (regionscorrstore-length list1)))
 

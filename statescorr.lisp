@@ -1,7 +1,7 @@
 ;;;; Implement a series of states, with bit-number values corresponding to a list of domains.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of corresponding states.
 (defstruct statescorr
@@ -27,6 +27,11 @@
   (assert (statestore-p store))
 
   (make-statescorr :states store)
+)
+
+;;; Return a list of states for the StatesCorr.
+(defun statescorr-state-list (scx) ; -> list of states.
+  (statestore-states (statescorr-states scx))
 )
 
 ;;; Add state to the end of a statescorr.

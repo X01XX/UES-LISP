@@ -17,7 +17,7 @@
 
     ; Test string does not start with the v character.
     (setf errx (value-from-str "x1"))
-    (format t "~A" errx)
+    ;(format t "~A" errx)
     (assert (and (err-p errx) (string-equal (err-str errx) "value-from-str: Value X1 Should begin with a v character")))
 
     ; Test string for invalid binary digit.
@@ -26,8 +26,8 @@
 
     ; Test valid binary string.
     (setf valx (value-from 'v1101))
-    (format t "~&~A" valx)
-    (format t "~&~A" (value-num-bits valx))
+    ;(format t "~&~A" valx)
+    ;(format t "~&~A" (value-num-bits valx))
     (assert (and (value-p valx) (= (value-num-bits valx) 4)))
 
     ; Test valid binary string.

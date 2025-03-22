@@ -1,7 +1,7 @@
 ;;;; Implement a needstore structxa, a store of need struct instances.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; Implement a store of masks.
 (defstruct needstore

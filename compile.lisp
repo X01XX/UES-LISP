@@ -42,6 +42,7 @@
 (progn (format t "~& ") (compile-file "sessiondata.lisp"))
 (progn (format t "~& ") (compile-file "statescorr.lisp"))
 (progn (format t "~& ") (compile-file "squarestore.lisp"))
+(progn (format t "~& ") (compile-file "rate.lisp"))
 
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))

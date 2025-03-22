@@ -3,8 +3,8 @@
 ;;;; Arranged to implement a path within a selectplans fragment, the plans can
 ;;;; be run in parallel.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of corresponding plans.
 (defstruct planscorr
@@ -50,7 +50,7 @@
 (defun planscorr-plan-list (plnsc) ; -> plan list.
   (assert (planscorr-p plnsc))
 
-  (planstore-plan-list (planscorr-planstore plnsc))
+  (planstore-plans (planscorr-planstore plnsc))
 )
 
 ;;; Return true if two plans are congruent.

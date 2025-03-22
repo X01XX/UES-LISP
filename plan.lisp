@@ -1,7 +1,7 @@
 ;;;; Implement the plan struct and functions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The plan struct.
 (defstruct plan
@@ -36,7 +36,7 @@
 (defun plan-step-list (planx) ; -> a list of steps.
   (assert (plan-p planx))
 
-  (stepstore-step-list (plan-stepstore planx))
+  (stepstore-steps (plan-stepstore planx))
 )
 
 ;;; Return a string representing a plan.

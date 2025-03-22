@@ -1,11 +1,11 @@
 ; Implement a store of selectregionss.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of selectregionss.
 (defstruct selectregionsstore
-  selectregions-list  ; A list of zero, or more, non-duplicate, same number bits, selectregionss.
+  selectregions  ; A list of zero, or more, non-duplicate, same number bits, selectregionss.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&selectregionsstore-new ~A" selectregionss)
   (assert (selectregions-list-p selectregionss))
 
-  (make-selectregionsstore :selectregions-list selectregionss)
+  (make-selectregionsstore :selectregions selectregionss)
 )
 
 ; Push a new selectregions into a selectregionsstore.
@@ -34,14 +34,14 @@
   (assert (selectregionsstore-p storex))
   (assert (selectregions-p selectregionsx))
 
-  (push selectregionsx (selectregionsstore-selectregions-list storex))
+  (push selectregionsx (selectregionsstore-selectregions storex))
 )
 
 ; Return the number of selectregionss in a selectregionsstore.
 (defun selectregionsstore-length (storex) ; -> number.
   (assert (selectregionsstore-p storex))
 
-  (length (selectregionsstore-selectregions-list storex))
+  (length (selectregionsstore-selectregions storex))
 )
 
 ; Return true if a selectregionsstore is empty.
@@ -60,7 +60,7 @@
 
   (let ((ret "#S(SELECTREGIONSSTORE ") (start t))
 
-    (loop for sregsx in (selectregionsstore-selectregions-list storex) do
+    (loop for sregsx in (selectregionsstore-selectregions storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (selectregions-str sregsx)))
@@ -75,35 +75,55 @@
   (assert (selectregionsstore-p storex))
   (assert (selectregions-p sregsx))
 
-  (if (member sregsx (selectregionsstore-selectregions-list storex) :test #'selectregions-eq) true false)
+  (if (member sregsx (selectregionsstore-selectregions storex) :test #'selectregions-eq) true false)
 )
 
 (defun selectregionsstore-first-selectregions (storex) ; -> selectregions
   (assert (selectregionsstore-p storex))
   (assert (selectregionsstore-is-not-empty storex))
 
-  (car (selectregionsstore-selectregions-list storex))
+  (car (selectregionsstore-selectregions storex))
 )
 
-;;; Return the positive and negative values for a regionscorr,
-;;; relative to a selectregios in a given selectregionsstore.
-;;; The given regionscorr must be a subset of every selectregions that it intersects.
-(defun selectregionsstore-values (storex regionscorrx) ; -> list of positive value, negative value.
+;;; Return the rate af a given regionscorr, based on superset SelectRegions.
+(defun selectregionsstore-rate (storex regscr) ; -> rate
   (assert (selectregionsstore-p storex))
-  (assert (regionscorr-p regionscorrx))
+  (assert (regionscorr-p regscr))
 
-  (let ((pos 0) (neg 0))
+  (let ((ret (rate-new :positive 0 :negative 0)))
 
-    (loop for selectregionsx in (selectregionsstore-selectregions-list storex) do
-      (when (regionscorr-intersects regionscorrx (selectregions-regionscorr selectregionsx))
-	(if (regionscorr-superset-of :sup-regscorr (selectregions-regionscorr selectregionsx) :sub-regscorr regionscorrx)
-	  (setf pos (+ pos (selectregions-positive selectregionsx))
-	        neg (+ neg (selectregions-negative selectregionsx))
-	  )
-	  (error "selectregionsstore-values: intersecting, non-superset found"))
+    (loop for srx in (selectregionsstore-selectregions storex) do
+      (when (regionscorr-superset-of :sub regscr :sup (selectregions-regionscorr srx))
+        (setf ret (rate-union ret (selectregions-rate srx)))
       )
     )
-    ;; Return list of values.
-    (list pos neg)
+
+    ret
   )
 )
+
+;;; Return a regionscorrstore of all selectregions-regionscorr.
+(defun selectregionsstore-regionscorrstore (storex) ; -> regionscorrstore
+  (let ((ret (regionscorrstore-new nil)))
+
+    (loop for selx in (selectregionsstore-selectregions storex) do
+      (regionscorrstore-push ret (selectregions-regionscorr selx))
+    )
+    ret
+  )
+)
+
+;;; Return selectregions split by intersections.
+;;; Every fragment will be a subset of any original selectregions it intersects.
+(defun selectregionsstore-split-by-intersections (storex) ; -> selectregionsstore.
+  (let ((ret (selectregionsstore-new nil)) regcorrs)
+
+    (setf regcorrs (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrstore storex)))
+
+    (loop for rcx in (regionscorrstore-regionscorrs regcorrs) do
+      (selectregionsstore-push ret (selectregionsstore-new rcx (selectregionsstore-rate storex rcx)))
+    )
+    ret
+  )
+)
+

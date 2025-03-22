@@ -1,7 +1,7 @@
 ;;;; Implement the mask struct and functions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The mask struct.
 (defstruct mask

@@ -1,7 +1,7 @@
 ;;;; Implement the region struct and functions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The region struct.
 ;;; It represents a 2^x by 2^y region of squares on a K-Map.

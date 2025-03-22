@@ -1,6 +1,6 @@
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;;; Implement the Step type.
 ;;;;

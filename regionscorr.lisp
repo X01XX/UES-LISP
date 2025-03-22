@@ -1,7 +1,7 @@
 ;;;; Implement a series of regions, with bit-number values corresponding to a list of domains.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of corresponding regions.
 (defstruct regionscorr
@@ -158,14 +158,14 @@
 )
 
 ;;;; Return true if a regionscorr is a superset of another.
-(defun regionscorr-superset-of (&key sub-regscorr sup-regscorr) ; -> bool
-  ;(format t "~&regionscorr-superset-of: sup ~A sub ~A" sup-regscorr sub-regscorr) 
-  (assert (regionscorr-p sub-regscorr))
-  (assert (regionscorr-p sup-regscorr))
-  (assert (regionscorr-congruent sup-regscorr sub-regscorr))
+(defun regionscorr-superset-of (&key sub sup) ; -> bool
+  ;(format t "~&regionscorr-superset-of: sup ~A sub ~A" sup sub) 
+  (assert (regionscorr-p sub))
+  (assert (regionscorr-p sup))
+  (assert (regionscorr-congruent sup sub))
 
-  (loop for reg1 in (regionscorr-region-list sup-regscorr)
-        for reg2 in (regionscorr-region-list sub-regscorr) do
+  (loop for reg1 in (regionscorr-region-list sup)
+        for reg2 in (regionscorr-region-list sub) do
     (if (not (region-superset-of :sup reg1 :sub reg2))
       (return-from regionscorr-superset-of false))
   )
@@ -173,23 +173,23 @@
 )
 
 ;;; Return a list of regionscorr from subtracting two regionscorr.
-(defun regionscorr-subtract (&key min-regscorr sub-regscorr) ; -> regionscorrstore.
-  ;(format t "~&regionscorr-subtract: ~A ~A" min-regscorr sub-regscorr)
-  (assert (regionscorr-p min-regscorr))
-  (assert (regionscorr-p sub-regscorr))
-  (assert (regionscorr-congruent min-regscorr sub-regscorr))
+(defun regionscorr-subtract (&key min sub) ; -> regionscorrstore.
+  ;(format t "~&regionscorr-subtract: ~A ~A" min sub)
+  (assert (regionscorr-p min))
+  (assert (regionscorr-p sub))
+  (assert (regionscorr-congruent min sub))
 
-  (if (not (regionscorr-intersects min-regscorr sub-regscorr))
-    (return-from regionscorr-subtract (regionscorrstore-new (list min-regscorr))))
+  (if (not (regionscorr-intersects min sub))
+    (return-from regionscorr-subtract (regionscorrstore-new (list min))))
 
-  (if (regionscorr-superset-of :sub-regscorr min-regscorr :sup-regscorr sub-regscorr)
+  (if (regionscorr-superset-of :sub min :sup sub)
     (return-from regionscorr-subtract (regionscorrstore-new nil)))
 
   (let (ret tmp-regs new-regs)
 
-    (loop for regx in (regionscorr-region-list  min-regscorr)
-          for regy in (regionscorr-region-list  sub-regscorr)
-	  for inx from 0 below (regionscorr-length min-regscorr) do
+    (loop for regx in (regionscorr-region-list  min)
+          for regy in (regionscorr-region-list  sub)
+	  for inx from 0 below (regionscorr-length min) do
 	     
       ; Subtract two regions.
       (setf tmp-regs (region-subtract :min-reg regx :sub-reg regy))
@@ -199,8 +199,8 @@
 
 	(setf new-regs (regionscorr-new nil))
 
-        (loop for regw in (regionscorr-region-list min-regscorr)
-	      for iny from 0 below (regionscorr-length min-regscorr) do
+        (loop for regw in (regionscorr-region-list min)
+	      for iny from 0 below (regionscorr-length min) do
 
 	  (if (= inx iny)
 	    (regionscorr-add-end new-regs regz)
@@ -356,11 +356,12 @@
 ;;; Return a regionscorr instance, given a list of symbols.
 ;;; Like (RC (()), (RC (1010)), or (RC (101, 1000)).
 (defun regionscorr-from (symbols) ; -> regionscorr instance.
-   ;(format t "~&regionscorr-from: ~A" (type-of symbols))
+    ;(format t "~&regionscorr-from: ~A" (type-of symbols))
     (assert (listp symbols))
     (assert (not (null symbols)))
     (assert (symbolp (car symbols)))
     (assert (eq (car symbols) 'RC))
+    ;(format t "~&regionscorr-from: ~A" symbols)
 
     (make-regionscorr :regionstore (regionstore-from (second symbols)))
 )

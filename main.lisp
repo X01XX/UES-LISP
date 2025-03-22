@@ -64,6 +64,7 @@
 (load #p "domain_t.lisp")
 
 (load #p "anyxofn.lisp")
+(load #p "rate.lisp")
 
 (load #p "cngstps.lisp")
 (load #p "cngstps_t.lisp")
@@ -116,8 +117,8 @@
 (load #p "statescorr.lisp")
 (load #p "squarestore.lisp")
 
-(defvar true t)
-(defvar false nil)
+
+
 
 (defun main ()
   (run)
@@ -176,10 +177,11 @@
   (format t "~& ~&    act-sqrs <domain-number> <action-number> - Show squares of a domain and action.")
   (format t "~& ~&    grp-sqrs <domain-number> <action-number> <region> - Show squares of a domain and action.")
   (format t "~& ~&    run - Run steps until no more needs can be done.")
+  (format t "~& ~&    to <regionscorr> - Change position to. Like: to (rc (r1010 r111))")
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0) inx dom-id act-id statex regx grpx actx sqrx (run 0))
+  (let (inp tokens token (step 0) inx dom-id act-id statex regx grpx actx sqrx (run 0) plans)
     (loop 
       (incf step)
       (format t "~& ~&Step: ~D --------------------------------------------" step)
@@ -224,6 +226,36 @@
           (setf run 1)
         )
 
+        ;; Check for to regionscorr
+        ;; Like: to (rc (r1010 r111))
+        ;; Where domain 0 uses 4 bits and domain 1 uses 3 bits.
+        (if (string-equal (car tokens) "to")
+          (let (to-regs)
+            ;(format t "~&tokens: ~A" tokens)
+            (setf to-regs (read-from-string (subseq inp 3)))
+            ;(format t "~&to-regs: ~A" to-regs)
+            (setf to-regs (regionscorr-from to-regs))
+            (if to-regs
+              (progn
+                (if (regionscorr-congruent to-regs (sessiondata-domain-current-regions sessx))
+                  (progn
+                    (format t "~&to RegionsCorr ~A" (regionscorr-str to-regs))
+                    (if (regionscorr-superset-of :sup to-regs :sub (sessiondata-domain-current-regions sessx))
+                      (format t "~&Current states satisfy the request")
+                      (progn
+                        (format t "~&TODO get plans, run plans")
+                        ;(setf plans (sessionstore-get-plans sessx to-regs))
+                        ;(format t "~&plans: ~A" (planscorrstore-str plans))
+                      )
+                    )
+                  )
+                  (format t "~&The regionscorr definition in the to command is not congruent")
+                )
+              )
+              (format t "~&Could not convert the regionscorr definition in the to command")
+            )
+          )
+        )
 
         ;; Check for do need.
         (if (string-equal (car tokens) "dn")

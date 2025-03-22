@@ -1,7 +1,7 @@
 ;;;; Implement a statestore struct and functions.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The statestore struct.
 (defstruct statestore

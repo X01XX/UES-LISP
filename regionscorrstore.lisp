@@ -1,11 +1,11 @@
 ; Implement a store of regionscorr instances.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of regions.
 (defstruct regionscorrstore
-  regionscorr-list  ; A list of zero, or more, regionscorr.
+  regionscorrs  ; A list of zero, or more, regionscorr.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -26,7 +26,7 @@
   ;(format t "~&regions ~A" regions)
   (assert (regionscorr-list-p regions))
 
-  (make-regionscorrstore :regionscorr-list regions)
+  (make-regionscorrstore :regionscorrs regions)
 )
 
 ;;; Push region into a regionscorrstore.
@@ -34,7 +34,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
 
-  (push regx (regionscorrstore-regionscorr-list storex))
+  (push regx (regionscorrstore-regionscorrs storex))
 )
 
 ;;; Add region to the end of a regionscorrstore.
@@ -42,7 +42,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
 
-  (setf (regionscorrstore-regionscorr-list storex) (append (regionscorrstore-regionscorr-list storex) (list regx)))
+  (setf (regionscorrstore-regionscorrs storex) (append (regionscorrstore-regionscorrs storex) (list regx)))
 )
 
 ;;; Return a regionscorrstore, suppressing subsets.
@@ -53,22 +53,22 @@
   (assert (regionscorr-p regx))
 
   ;; Check for region in store that is a superset (or dup) of the new region.
-  (loop for regy in (regionscorrstore-regionscorr-list storex) do
-    (if (regionscorr-superset-of :sup-regscorr regy :sub-regscorr regx)
+  (loop for regy in (regionscorrstore-regionscorrs storex) do
+    (if (regionscorr-superset-of :sup regy :sub regx)
       (return-from regionscorrstore-push-nosubs false))
   )
 
   ;; Check for regions that are a subset of the new region.
   (let (del-regs)
     ;; Find regions that are a subset of the new region.
-    (loop for regy in (regionscorrstore-regionscorr-list storex) do
-      (if (regionscorr-superset-of :sup-regscorr regx :sub-regscorr regy)
+    (loop for regy in (regionscorrstore-regionscorrs storex) do
+      (if (regionscorr-superset-of :sup regx :sub regy)
         (push regy del-regs)
       )
     )
     ;; Remove the subset regions.
     (loop for regy in del-regs do
-      (setf (regionscorrstore-regionscorr-list storex) (remove regy (regionscorrstore-regionscorr-list storex) :test #'regionscorr-eq))
+      (setf (regionscorrstore-regionscorrs storex) (remove regy (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq))
     )
   )
 
@@ -81,7 +81,7 @@
 (defun regionscorrstore-length (storex) ; -> number.
   (assert (regionscorrstore-p storex))
 
-  (length (regionscorrstore-regionscorr-list storex))
+  (length (regionscorrstore-regionscorrs storex))
 )
 
 ;;; Return true if a regionscorrstore is empty.
@@ -104,7 +104,7 @@
 
   (let ((ret "#S(REGIONCORRSTORE ") (start t))
 
-    (loop for regx in (regionscorrstore-regionscorr-list storex) do
+    (loop for regx in (regionscorrstore-regionscorrs storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (regionscorr-str regx)))
@@ -123,7 +123,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
 
-  (if (member regx (regionscorrstore-regionscorr-list storex) :test #'regionscorr-eq) true false)
+  (if (member regx (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq) true false)
 )
 
 ;;; Return the first region in a non-empty regionscorrstore.
@@ -131,7 +131,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorrstore-is-not-empty storex))
 
-  (car (regionscorrstore-regionscorr-list storex))
+  (car (regionscorrstore-regionscorrs storex))
 )
 
 ;;; Return the last region in a non-empty regionscorrstore.
@@ -139,7 +139,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorrstore-is-not-empty storex))
 
-  (car (last (regionscorrstore-regionscorr-list storex)))
+  (car (last (regionscorrstore-regionscorrs storex)))
 )
 
 ;;; Return the cdr of a non-empty regionscorrstore.
@@ -147,7 +147,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorrstore-is-not-empty storex))
 
-  (make-regionscorrstore :regionscorr-list (cdr (regionscorrstore-regionscorr-list storex)))
+  (make-regionscorrstore :regionscorrs (cdr (regionscorrstore-regionscorrs storex)))
 )
 
 ;;; Return a regionscorrstore minus a region.
@@ -159,11 +159,11 @@
 	tmpstore
        )
 
-    (loop for regy in (regionscorrstore-regionscorr-list storex) do
-        (cond ((regionscorr-superset-of :sup-regscorr regx :sub-regscorr regy) nil)
+    (loop for regy in (regionscorrstore-regionscorrs storex) do
+        (cond ((regionscorr-superset-of :sup regx :sub regy) nil)
 	      ((regionscorr-intersects regy regx)
-	         (setf tmpstore (regionscorr-subtract :min-regscorr regy :sub-regscorr regx))
-		 (loop for regz in (regionscorrstore-regionscorr-list tmpstore) do
+	         (setf tmpstore (regionscorr-subtract :min regy :sub regx))
+		 (loop for regz in (regionscorrstore-regionscorrs tmpstore) do
 		   (regionscorrstore-push-nosubs ret regz)
 		 )
 	       )
@@ -179,7 +179,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
 
-  (loop for regy in (regionscorrstore-regionscorr-list storex) do
+  (loop for regy in (regionscorrstore-regionscorrs storex) do
     (if (regionscorr-intersects regy regx)
       (return-from regionscorrstore-any-intersection true))
   )
@@ -192,10 +192,10 @@
   (assert (regionscorrstore-p store1))
   (assert (regionscorrstore-p store2))
 
-  (let ((ret (make-regionscorrstore :regionscorr-list (regionscorrstore-regionscorr-list store1))))
+  (let ((ret (make-regionscorrstore :regionscorrs (regionscorrstore-regionscorrs store1))))
 
     ;; Add store2 regions.
-    (loop for regx in (regionscorrstore-regionscorr-list store2) do
+    (loop for regx in (regionscorrstore-regionscorrs store2) do
       (regionscorrstore-add-end ret regx)
     )
     ret
@@ -208,7 +208,7 @@
   (assert (regionscorr-p int-reg))
   (assert (regionscorr-p not-reg))
 
-  (loop for regx in (regionscorrstore-regionscorr-list store) do
+  (loop for regx in (regionscorrstore-regionscorrs store) do
     (if (and (regionscorr-intersects regx int-reg) (not (regionscorr-intersects regx not-reg)))
       (return-from regionscorrstore-other-intersections true))
   )
@@ -252,7 +252,7 @@
   ;; Look for one region that intersects both regions.
   (let (links ; Store of regions that intersect both given regions.
        )
-    (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
+    (loop for regx in (regionscorrstore-regionscorrs pathscorr-options) do
       (if (and (and (regionscorr-ne regx left-reg) (regionscorr-intersects regx left-reg))
 	       (and (regionscorr-ne regx right-reg) (regionscorr-intersects regx right-reg)))
 	(push regx links)
@@ -273,7 +273,7 @@
        )
 
     ;; Gather non-intersecting regions roughly between the two given regions.
-    (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
+    (loop for regx in (regionscorrstore-regionscorrs pathscorr-options) do
       (if (and (not (regionscorr-intersects regx left-reg)) (not (regionscorr-intersects regx right-reg))
 	       (regionscorr-intersects regx glide-path))
 	(push regx links)
@@ -305,7 +305,7 @@
         right-path	; Path from next-region to the right region.
        )
 
-    (loop for regx in (regionscorrstore-regionscorr-list pathscorr-options) do
+    (loop for regx in (regionscorrstore-regionscorrs pathscorr-options) do
 
       ;; Find regions that intersect the left region, and at least one other region.
       (when (and (regionscorr-ne regx left-reg) (regionscorr-intersects regx left-reg))
@@ -350,33 +350,34 @@
   nil
 )
 
-;;; Return a regionscorrstore of intersections-of-intersection fragments.
-(defun regionscorrstore-intersections-of-intersections(store1) ; -> regionscorrstore
+;;; Return a regionscorrstore split by intersections.
+;;; Every fragment will be a subset of any original regionscorr it intersects.
+(defun regionscorrstore-split-by-intersections (store1) ; -> regionscorrstore
   (assert (regionscorrstore-p store1))
 
   (let ((store2 (regionscorrstore-new nil)))
 
     ;; Remove dups, if any.
-    (loop for regscorrx in (regionscorrstore-regionscorr-list store1) do
+    (loop for regscorrx in (regionscorrstore-regionscorrs store1) do
       (if (not (regionscorrstore-member store2 regscorrx))
-	(regionscorrstore-push store2 regscorrx)
+	    (regionscorrstore-push store2 regscorrx)
       )
     )
 
     (if (< (regionscorrstore-length store2) 2)
-      (return-from regionscorrstore-intersections-of-intersections store2))
+      (return-from regionscorrstore-split-by-intersections store2))
 
     (let (ints-not-found (store3 (regionscorrstore-new nil)) tmpstore (any-change true) store4 (ret (regionscorrstore-new nil)))
 
       (while any-change
-	(setf any-change false)
+        (setf any-change false)
 
-        (loop for regscorrx in (regionscorrstore-regionscorr-list store2) do
+        (loop for regscorrx in (regionscorrstore-regionscorrs store2) do
           (setf ints-not-found true)
   
-	  (setf tmpstore (regionscorrstore-new (list regscorrx)))
+	      (setf tmpstore (regionscorrstore-new (list regscorrx)))
 
-          (loop for regscorry in (regionscorrstore-regionscorr-list store2) do
+          (loop for regscorry in (regionscorrstore-regionscorrs store2) do
     
             (if (regionscorr-ne regscorrx regscorry)
   
@@ -387,21 +388,23 @@
   
                 (setf tmpstore (regionscorrstore-subtract-regionscorr tmpstore regscorry))
               )
-    	    )
+     	   )
           ) ; next regscorry
-          (loop for regscorrz in (regionscorrstore-regionscorr-list tmpstore) do
+
+          (loop for regscorrz in (regionscorrstore-regionscorrs tmpstore) do
             (regionscorrstore-push-nosubs store3 regscorrz)
           )
         ) ; next regscorrx
 
-	(setf store4 (regionscorrstore-subtract :min-store store2 :sub-store store3))
+	    (setf store4 (regionscorrstore-subtract :min-store store2 :sub-store store3))
 
         (when any-change
- 	  (setf store2 store4)
-	  (setf ret (regionscorrstore-append ret store3))
- 	  (setf store3 (regionscorrstore-new nil))
- 	)
+ 	      (setf store2 store4)
+	      (setf ret (regionscorrstore-append ret store3))
+ 	      (setf store3 (regionscorrstore-new nil))
+ 	    )
       ) ; end while
+
       (setf ret (regionscorrstore-append ret store3)) ; pick up last regions, with no intersections.
       ;; Return results.
       ret
@@ -415,7 +418,7 @@
   (assert (regionscorrstore-p sub-store))
 
   (let ((ret min-store))
-    (loop for regscorrx in (regionscorrstore-regionscorr-list sub-store) do
+    (loop for regscorrx in (regionscorrstore-regionscorrs sub-store) do
         (if (regionscorrstore-any-intersection ret regscorrx)
 	  (setf ret (regionscorrstore-subtract-regionscorr ret regscorrx))
 	)

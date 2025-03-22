@@ -4,8 +4,8 @@
 ;;;;
 ;;;; The rule struct can be manipulated in a number of ways, like union and intersection.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The rule struct.
 ;;;

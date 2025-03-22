@@ -1,7 +1,7 @@
 ;;; Implement a squarestore struct and functions.                                                                
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;; The squarestore struct.
 (defstruct squarestore

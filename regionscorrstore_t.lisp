@@ -151,7 +151,7 @@
     (format t "~&  regionscorrstore-find-path OK")
   )
 
-  ; Test regionscorrstore-intersections-of-intersections.
+  ; Test regionscorrstore-split-by-intersections.
   (let (store1 store2)
     ;; Test three overlapping regions, with 0101 overlaped by all three.
     (setf store1 (regionscorrstore-new (list
@@ -159,7 +159,7 @@
       (regionscorr-new (list (region-from 'rX1X1)))
       (regionscorr-new (list (region-from 'r0XX1))))))
 
-    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    (setf store2 (regionscorrstore-split-by-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 6))
     (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'r0101)))))
@@ -174,7 +174,7 @@
       (regionscorr-new (list (region-from 'rX1XX)))
       (regionscorr-new (list (region-from 'r01X1))))))
 
-    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    (setf store2 (regionscorrstore-split-by-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 3))
     (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rX1X0)))))
@@ -186,7 +186,7 @@
       (regionscorr-new (list (region-from 'rX1XX)))
       (regionscorr-new (list (region-from 'rX1XX))))))
 
-    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    (setf store2 (regionscorrstore-split-by-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 1))
     (assert (regionscorrstore-member store2 (regionscorr-new (list (region-from 'rX1XX)))))
@@ -194,11 +194,11 @@
     ;; Test no regionscorr.
     (setf store1 (regionscorrstore-new nil))
 
-    (setf store2 (regionscorrstore-intersections-of-intersections store1))
+    (setf store2 (regionscorrstore-split-by-intersections store1))
     ;(format t "~& ~&store2: ~A" store2)
     (assert (= (regionscorrstore-length store2) 0))
 
-    (format t "~&  regionscorrstore-intersections-of-intersections OK")
+    (format t "~&  regionscorrstore-split-by-intersections OK")
   )
 
   (format t "~&regionscorrstore-tests done")

@@ -140,15 +140,17 @@
       (setf not-5 (region-subtract :min-reg max-reg :sub-reg (region-from 'r0101)))
       (setf not-7 (region-subtract :min-reg max-reg :sub-reg (region-from 'r0111)))
       (setf pos-57 (regionstore-union not-5 not-7))
-      (format t "~&pos-57: ~A" (regionstore-str pos-57))
+      ;(format t "~&pos-57: ~A" (regionstore-str pos-57))
 
       (setf not-8 (region-subtract :min-reg max-reg :sub-reg (region-from 'r1000)))
       (setf not-c (region-subtract :min-reg max-reg :sub-reg (region-from 'r1100)))
       (setf pos-8c (regionstore-union not-8 not-c))
-      (format t "~&pos-8c: ~A" (regionstore-str pos-8c))
+      ;(format t "~&pos-8c: ~A" (regionstore-str pos-8c))
 
       (setf pos-regs (regionstore-intersection pos-57 pos-8c))
-      (format t "~&pos-regs: ~A" (regionstore-str pos-regs))
+      ;(format t "~&pos-regs: ~A" (regionstore-str pos-regs))
+      (assert (string-equal (regionstore-str pos-regs)
+               "RS[rX1X0, r0XX0, rXX1X, rX0XX, r1XX1, r11XX, rXX01, rX10X, r0X0X]"))
   )
 
   (format t "~&regionstore-tests done")

@@ -1,6 +1,6 @@
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ;;;; Implement the Action type.
 ;;;;
@@ -53,6 +53,14 @@
   (assert (and (integerp id) (>= id 0)))
 
   (setf (domain-id domx) id)
+)
+
+;;; Set the domain state.
+(defun domain-set-state (domx stax) ; -> nothing.  Side effect, domain id is changed.
+  (assert (domain-p domx))
+  (assert (state-p stax))
+
+  (setf (domain-current-state domx) stax)
 )
 
 ;;; Return a string representing a domain
@@ -137,7 +145,7 @@
     ;(format t "~&steps found ~A" (stepstore-str steps))
     ;; Check for one step that spans the gap.
     (let (span-steps)
-      (loop for stepx in (stepstore-step-list steps) do
+      (loop for stepx in (stepstore-steps steps) do
         (when (and (region-superset-of :sup (rule-initial-region (step-rule stepx)) :sub from-reg)
                    (region-intersects (rule-result-region (step-rule stepx)) to-reg))
           (push stepx span-steps)) 
@@ -150,7 +158,7 @@
 
     ;; Gather steps that intersect the from-reg or two-reg.
     (let (step-list stepy planx)
-      (loop for stepx in (stepstore-step-list steps) do
+      (loop for stepx in (stepstore-steps steps) do
 	    ;(format t "~& rule ~A initial ~A result ~A" (step-rule stepx) (rule-initial-region (step-rule stepx))
 	    ;                                                              (rule-result-region (step-rule stepx)))
 	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepx))) (region-str from-reg)

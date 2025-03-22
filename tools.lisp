@@ -1,5 +1,8 @@
 ; Extraneous useful functions.
 
+(defvar true t)
+(defvar false nil)
+
 (defun bool-p (val)
   (or (eq val true) (eq val false))
 )

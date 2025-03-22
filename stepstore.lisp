@@ -1,11 +1,11 @@
 ; Implement a store of steps.
 
-(defvar true t)
-(defvar false nil)
+
+
 
 ; Implement a store of steps.
 (defstruct stepstore
-  step-list  ; A list of zero, or more, non-duplicate, same number bits, steps.
+  steps  ; A list of zero, or more, non-duplicate, same number bits, steps.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,7 +24,7 @@
   ;(format t "~&steps ~A" steps)
   (assert (step-list-p steps))
 
-  (make-stepstore :step-list  steps)
+  (make-stepstore :steps  steps)
 )
 
 ; Push a new step into a stepstore, suppress dups, subsets.
@@ -34,14 +34,14 @@
   (assert (stepstore-p storex))
   (assert (step-p stpx))
 
-  (push stpx (stepstore-step-list storex))
+  (push stpx (stepstore-steps storex))
 )
 
 ; Return the number of steps in a stepstore.
 (defun stepstore-length (storex) ; -> number.
   (assert (stepstore-p storex))
 
-  (length (stepstore-step-list storex))
+  (length (stepstore-steps storex))
 )
 
 ; Return true if a stepstore is empty.
@@ -67,7 +67,7 @@
   ) 
   (let ((ret "(steps: ") (start t))
 
-    (loop for stpx in (stepstore-step-list storex) do
+    (loop for stpx in (stepstore-steps storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
 
       (setf ret (concatenate 'string ret (format nil " ~&  ~A" (step-str stpx))))
@@ -83,7 +83,7 @@
   (assert (stepstore-p storex))
   (assert (step-p stpx))
 
-  (if (member stpx (stepstore-step-list storex) :test #'step-eq) true false)
+  (if (member stpx (stepstore-steps storex) :test #'step-eq) true false)
 )
 
 ;;; Return the first step of a non-empty stepstore.
@@ -91,7 +91,7 @@
   (assert (stepstore-p storex))
   (assert (stepstore-is-not-empty storex))
 
-  (car (stepstore-step-list storex))
+  (car (stepstore-steps storex))
 )
 
 ;;; Return the last step of a non-empty stepstore.
@@ -99,7 +99,7 @@
   (assert (stepstore-p storex))
   (assert (stepstore-is-not-empty storex))
 
-  (car (last (stepstore-step-list storex)))
+  (car (last (stepstore-steps storex)))
 )
 
 ;;; Return the number of bits used is elements of a non-empty stepstore.
