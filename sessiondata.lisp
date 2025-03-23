@@ -7,6 +7,7 @@
     cant-do         ; A NeedStore of needs that cannot be done.
     selectregions-store ; A SelectRegionsStore.
     selectregions-paths   ; Non-rated selectregions plus selectregion split by intersections.
+    le0-levels       ; A list of successively more negative selectregion levels, starting with 0.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -28,6 +29,7 @@
                       :can-do (needstore-new nil)
                       :cant-do (needstore-new nil)
                       :selectregions-store (selectregionstore-new nil)
+                      :le0-levels nil
     )
 )
 
@@ -65,7 +67,7 @@
     (assert (typep (car symbols) 'SYMBOL))
     (assert (eq (car symbols) 'SD))
     
-    (let (sdx key ds sr sc rest-symbols path-regions)
+    (let (sdx key ds sr sc rest-symbols)
         (cond ((string= (symbol-name (car symbols)) "SD")
                 (setf rest-symbols (cdr symbols))
                 ;(format t "~&sessiondata-from4 ~A ~A" (type-of rest-symbols) rest-symbols)
@@ -84,7 +86,7 @@
                 )
                 (assert ds) ; one ds required.
 
-                ;; Stort sessiondata.
+                ;; Start sessiondata.
                 (setf sdx (make-sessiondata :domains ds
                                             :needs (needstore-new nil)
                                             :can-do (needstore-new nil)
@@ -117,35 +119,52 @@
                     )
                 )
 
-                ;; Calc rate (0, 0) selectregions.
-                (setf path-regions (regionscorrstore-new (list (sessiondata-domain-max-regions sdx))))
-                (loop for srx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
-                    (setf path-regions (regionscorrstore-subtract-regionscorr path-regions (selectregions-regionscorr srx)))
-                )
-                ;; Add selectregions split by intersections.
-                (setf path-regions (regionscorrstore-append path-regions
-                     (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrstore (sessiondata-selectregions-store sdx)))))
-                
-                ;; Add to sessiondata-selectregions-paths.
-                (loop for rcx in (regionscorrstore-regionscorrs path-regions) do
-                   (selectregionsstore-push (sessiondata-selectregions-paths sdx)
-                     (selectregions-new rcx (selectregionsstore-rate (sessiondata-selectregions-store sdx) rcx)))
-                )
+                (sessiondata-process-select-regions sdx)
 
-                (format t "~& ~&Selectregions:")
-                (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
-                  (format t "~&    ~A" (selectregions-str selx))
-                )
-                (format t "~& ~&Paths:" (selectregionsstore-str (sessiondata-selectregions-paths sdx)))
-                (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-paths sdx)) do
-                  (format t "~&    ~A" (selectregions-str selx))
-                )
                 ;; Return sessiondata instance.
                 (return-from sessiondata-from sdx)
               )
               (t (error "SD symbol missing")))
      )
      (error "drop-through?")
+)
+
+;;; Process selectregions, display results.
+(defun sessiondata-process-select-regions (sdx) ; -> side-effect, load selectregions-paths and le0-levels.
+  (assert (sessiondata-p sdx))
+
+  (let (path-regions (nums (list 0)))
+    ;; Calc rate (0, 0) selectregions.
+    (setf path-regions (regionscorrstore-new (list (sessiondata-domain-max-regions sdx))))
+    (loop for srx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
+      (setf path-regions (regionscorrstore-subtract-regionscorr path-regions (selectregions-regionscorr srx)))
+    )
+    ;; Add selectregions split by intersections.
+    (setf path-regions (regionscorrstore-append path-regions
+          (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrstore (sessiondata-selectregions-store sdx)))))
+                
+    ;; Add to sessiondata-selectregions-paths.
+    (loop for rcx in (regionscorrstore-regionscorrs path-regions) do
+      (selectregionsstore-push (sessiondata-selectregions-paths sdx)
+        (selectregions-new rcx (selectregionsstore-rate (sessiondata-selectregions-store sdx) rcx)))
+    )
+
+    (format t "~& ~&Selectregions:")
+    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
+      (format t "~&    ~A" (selectregions-str selx))
+    )
+    (format t "~& ~&Paths:" (selectregionsstore-str (sessiondata-selectregions-paths sdx)))
+    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-paths sdx)) do
+      (format t "~&    ~A" (selectregions-str selx))
+    )
+    ;; Create list of negative levels. 
+    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
+      (if (not (member (rate-negative (selectregions-rate selx)) nums))
+        (push (rate-negative (selectregions-rate selx)) nums))
+      )
+    (setf (sessiondata-le0-levels sdx) (sort nums #'>))
+    (format t "~& ~&LE0-levels: ~A" (sessiondata-le0-levels sdx))
+  )
 )
 
 ;;; Return all domain current states.

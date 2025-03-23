@@ -1,9 +1,5 @@
 ;;;; Implement a store of domains.
 
-
-
-
-; Implement a store of domains.
 (defstruct domainstore
   domains  ; A list of zero, or more, domains with unique id values.
 )
