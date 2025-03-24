@@ -224,7 +224,7 @@
   (actionstore-length (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)))
 )
 
-;;; Tak a domain action for need.
+;;; Take a domain action for need.
 (defun sessiondata-take-action-need (sessx dom-id act-id statex)
   (assert (sessiondata-p sessx))
   (assert (integerp dom-id))
@@ -234,6 +234,7 @@
   (action-take-sample-for-need (actionstore-nth (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id) statex)
 )
 
+;;; Find a square, given a state.
 (defun sessiondata-find-square (sessx dom-id act-id statex) ; -> square, or nil.
   (assert (sessiondata-p sessx))
   (assert (and (integerp dom-id) (< dom-id (sessiondata-num-domains sessx))))
@@ -242,10 +243,39 @@
   (action-find-square (actionstore-nth (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id) statex)
 )
 
+;;; Return plans to go from the current states to within a set of regions.
+;;; Tolerating more and more negative selectregions, as needed.
 (defun sessionstore-get-plans (sessx to-regs) ; -> PlansCorrStore.
   (assert (sessiondata-p sessx))
   (assert (regionscorr-p to-regs))
 
-  (domainstore-get-plans (sessiondata-domains sessx) (domainstore-all-current-regions (sessiondata-domains sessx)) to-regs)
- 
+  (sessionstore-get-plans2 sessx (domainstore-all-current-regions (sessiondata-domains sessx)) to-regs)
+)
+
+;;; Return plans to go from a given set of regions to within another set of regions.
+;;; Tolerating more and more negative selectregions, as needed.
+(defun sessionstore-get-plans2 (sessx from-regs to-regs) ; -> PlansCorrStore.
+  (assert (sessiondata-p sessx))
+  (assert (regionscorr-p from-regs))
+  (assert (regionscorr-p to-regs))
+  (assert (not (regionscorr-intersects from-regs to-regs)))
+
+  (let (from-rate to-rate min-rate le0-position)
+
+    (setf from-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) from-regs))
+    (setf to-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) to-regs))
+
+    (format t "~&from-rate ~A to-rate ~A" (rate-str from-rate) (rate-str to-rate))
+
+    (setf min-rate (min (rate-negative from-rate) (rate-negative to-rate)))
+    (format t "~&min-rate ~D" min-rate)
+
+    (setf le0-position (position min-rate (sessiondata-le0-levels sessx)))
+    (format t "~&le0-position ~D of ~A" le0-position (sessiondata-le0-levels sessx))
+
+    (loop for inx from le0-position below (length (sessiondata-le0-levels sessx)) do
+      (format t "~&le0 value ~D" (nth inx (sessiondata-le0-levels sessx)))
+;     (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs (sessiondata-selectregions-paths sessx))
+    )
+  )
 )

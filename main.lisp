@@ -244,7 +244,7 @@
                       (format t "~&Current states satisfy the request")
                       (progn
                         (format t "~&TODO get plans, run plans")
-                        ;(setf plans (sessionstore-get-plans sessx to-regs))
+                        (setf plans (sessionstore-get-plans sessx to-regs))
                         ;(format t "~&plans: ~A" (planscorrstore-str plans))
                       )
                     )

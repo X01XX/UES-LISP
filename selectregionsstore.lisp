@@ -93,7 +93,7 @@
   (let ((ret (rate-new :positive 0 :negative 0)))
 
     (loop for srx in (selectregionsstore-selectregions storex) do
-      (when (regionscorr-superset-of :sub regscr :sup (selectregions-regionscorr srx))
+      (when (regionscorr-intersects regscr (selectregions-regionscorr srx))
         (setf ret (rate-union ret (selectregions-rate srx)))
       )
     )
