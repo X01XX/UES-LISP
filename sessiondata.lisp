@@ -260,7 +260,7 @@
   (assert (regionscorr-p to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
 
-  (let (from-rate to-rate min-rate le0-position)
+  (let (from-rate to-rate min-rate le0-position upto)
 
     (setf from-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) from-regs))
     (setf to-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) to-regs))
@@ -274,8 +274,11 @@
     (format t "~&le0-position ~D of ~A" le0-position (sessiondata-le0-levels sessx))
 
     (loop for inx from le0-position below (length (sessiondata-le0-levels sessx)) do
-      (format t "~&le0 value ~D" (nth inx (sessiondata-le0-levels sessx)))
-;     (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs (sessiondata-selectregions-paths sessx))
+      (setf upto (nth inx (sessiondata-le0-levels sessx)))
+      (format t "~&le0 value ~D" upto)
+;     (setf plans (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs (sessiondata-selectregions-paths sessx) upto))
+;     (if plans
+;       (return-from sessionstore-get-plans2 plans))
     )
   )
 )
