@@ -1,7 +1,7 @@
 ;;;; Implement a series of regionscorr that intersect.
-
-
-
+;;;;
+;;;; A pathscorr can be used to plan a path from the first element to the last,
+;;;; avoiding more negative select regions, if any. 
 
 ;;; Implement a store of regions.
 (defstruct pathscorr
@@ -95,7 +95,7 @@
 	(if (or (regionscorr-superset-of :sup regx :sub last-reg)
 	        (regionscorr-superset-of :sub regx :sup last-reg))
 	  (setf ret (concatenate 'string ret "-"))
-	  (setf ret (concatenate 'string ret (format nil "-~A-" (regionscorr-intersection last-reg regx))))
+	  (setf ret (concatenate 'string ret (format nil "-~A-" (regionscorr-str (regionscorr-intersection last-reg regx)))))
 	)
       )
       (setf last-reg regx)
@@ -120,7 +120,7 @@
   (assert (pathscorr-p pathscorrx))
   (assert (pathscorr-is-not-empty pathscorrx))
 
-  (regionscorrstore-first-region (pathscorr-regionscorrstore pathscorrx))
+  (regionscorrstore-first-regionscorr (pathscorr-regionscorrstore pathscorrx))
 )
 
 ;;; Return the last regionscorr in a non-empty pathscorr.
@@ -128,7 +128,7 @@
   (assert (pathscorr-p pathscorrx))
   (assert (pathscorr-is-not-empty pathscorrx))
 
-  (regionscorrstore-last-region (pathscorr-regionscorrstore pathscorrx))
+  (regionscorrstore-last-regionscorr (pathscorr-regionscorrstore pathscorrx))
 )
 
 ;;; Return the cdr of a non-empty pathscorr.

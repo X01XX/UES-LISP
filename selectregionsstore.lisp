@@ -103,7 +103,9 @@
 )
 
 ;;; Return a regionscorrstore of all selectregions-regionscorr.
-(defun selectregionsstore-regionscorrstore (storex) ; -> regionscorrstore
+(defun selectregionsstore-regionscorrs (storex) ; -> regionscorrstore
+  (assert (selectregionsstore-p storex))
+
   (let ((ret (regionscorrstore-new nil)))
 
     (loop for selx in (selectregionsstore-selectregions storex) do
@@ -113,12 +115,29 @@
   )
 )
 
+;;; Return a regionscorrstore of all selectregions-regionscorr,
+;;; with rate negative values ge a given number.
+(defun selectregionsstore-regionscorr-upto (storex upto) ; -> regionscorrstore
+  (assert (selectregionsstore-p storex))
+  (assert (integerp upto))
+
+  (let ((ret (regionscorrstore-new nil)))
+
+    (loop for selx in (selectregionsstore-selectregions storex) do
+      (if (>= (rate-negative (selectregions-rate selx)))
+        (regionscorrstore-push ret (selectregions-regionscorr selx)))
+    )
+    ret
+  )
+)
+
+;;; Return selectregions split by intersections.
 ;;; Return selectregions split by intersections.
 ;;; Every fragment will be a subset of any original selectregions it intersects.
 (defun selectregionsstore-split-by-intersections (storex) ; -> selectregionsstore.
   (let ((ret (selectregionsstore-new nil)) regcorrs)
 
-    (setf regcorrs (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrstore storex)))
+    (setf regcorrs (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrs storex)))
 
     (loop for rcx in (regionscorrstore-regionscorrs regcorrs) do
       (selectregionsstore-push ret (selectregionsstore-new rcx (selectregionsstore-rate storex rcx)))

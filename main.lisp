@@ -181,7 +181,7 @@
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0) inx dom-id act-id statex regx grpx actx sqrx (run 0) plans)
+  (let (inp tokens token (step 0) (run 0))
     (loop 
       (incf step)
       (format t "~& ~&Step: ~D --------------------------------------------" step)
@@ -230,7 +230,7 @@
         ;; Like: to (rc (r1010 r111))
         ;; Where domain 0 uses 4 bits and domain 1 uses 3 bits.
         (if (string-equal (car tokens) "to")
-          (let (to-regs)
+          (let (to-regs plans)
             ;(format t "~&tokens: ~A" tokens)
             (setf to-regs (read-from-string (subseq inp 3)))
             ;(format t "~&to-regs: ~A" to-regs)
@@ -243,9 +243,14 @@
                     (if (regionscorr-superset-of :sup to-regs :sub (sessiondata-domain-current-regions sessx))
                       (format t "~&Current states satisfy the request")
                       (progn
-                        (format t "~&TODO get plans, run plans")
                         (setf plans (sessionstore-get-plans sessx to-regs))
-                        ;(format t "~&plans: ~A" (planscorrstore-str plans))
+                        (if plans
+                          (progn
+                            (format t "~&plans: ~A" (planscorrstore-str plans))
+                            (format t "~&TODO run plans")
+                          )
+                          (format t "~&plans not found")
+                        )
                       )
                     )
                   )
@@ -259,102 +264,114 @@
 
         ;; Check for do need.
         (if (string-equal (car tokens) "dn")
-          (if (= (length tokens) 2)
-            (progn
-              (setf inx (read-from-string (second tokens)))
-              (if (integerp inx)
-                (if (< inx (needstore-length (sessiondata-can-do sessx)))
-                  (progn
-                    (format t "~&Need chosen: ~A~& " (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
-                    (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
+          (let (inx)
+            (if (= (length tokens) 2)
+              (progn
+                (setf inx (read-from-string (second tokens)))
+                (if (integerp inx)
+                  (if (< inx (needstore-length (sessiondata-can-do sessx)))
+                    (progn
+                      (format t "~&Need chosen: ~A~& " (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
+                      (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
+                    )
+                    (format t "~&Invalid need number in dn command")
                   )
-                  (format t "~&Invalid need number in dn command"))
-                (format t "~&Invalid need number in on command"))
+                  (format t "~&Invalid need number in on command")
+                )
+              )
+              (format t "~&Did not understand dn command")
             )
-            (format t "~&Did not understand dn command"))
+          )
         )
 
         (if (string-equal (car tokens) "ss")
-          (if (= (length tokens) 4)
-            (progn
-              (setf dom-id (read-from-string (second tokens)))
-              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                (progn
-                  (setf act-id (read-from-string (third tokens)))
-                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                    (progn
-                      (setf statex (state-from-str (fourth tokens)))
-                      (if statex
-                         (sessiondata-take-action-need sessx dom-id act-id statex)
-                         (format t "~&Did not understand state in ss command"))
+          (let (dom-id act-id statex)
+            (if (= (length tokens) 4)
+              (progn
+                (setf dom-id (read-from-string (second tokens)))
+                (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                  (progn
+                    (setf act-id (read-from-string (third tokens)))
+                    (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                      (progn
+                        (setf statex (state-from-str (fourth tokens)))
+                        (if statex
+                           (sessiondata-take-action-need sessx dom-id act-id statex)
+                           (format t "~&Did not understand state in ss command")
+                        )
+                      )
+                      (format t "~&Did not understand action id in ss command")
                     )
-                    (format t "~&Did not understand action id in ss command")
                   )
+                  (format t "~&Did not understand domain id in ss command")
                 )
-                (format t "~&Did not understand domain id in ss command")
               )
+              (format t "~&Did not understand ss command")
             )
-            (format t "~&Did not understand ss command")
           )
         )
 
         (if (string-equal (car tokens) "act-sqrs")
-          (if (= (length tokens) 3)
-            (progn
-              (setf dom-id (read-from-string (second tokens)))
-              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                (progn
-                  (setf act-id (read-from-string (third tokens)))
-                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                    (format t "~&squares: ~A" (squarestore-str (action-squares
+          (let (dom-id act-id)
+            (if (= (length tokens) 3)
+              (progn
+                (setf dom-id (read-from-string (second tokens)))
+                (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                  (progn
+                    (setf act-id (read-from-string (third tokens)))
+                    (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                      (format t "~&squares: ~A" (squarestore-str (action-squares
                                                    (actionstore-nth
                                                      (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
                                                    act-id))))
-                    (format t "~&Did not understand action id in act-sqrs command")
+                      (format t "~&Did not understand action id in act-sqrs command")
+                    )
                   )
+                  (format t "~&Did not understand domain id in act-sqrs command")
                 )
-                (format t "~&Did not understand domain id in act-sqrs command")
               )
+              (format t "~&Did not understand act-sqrs command")
             )
-            (format t "~&Did not understand act-sqrs command")
           )
         )
 
         (if (string-equal (car tokens) "grp-sqrs")
-          (if (= (length tokens) 4)
-            (progn
-              (setf dom-id (read-from-string (second tokens)))
-              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                (progn
-                  (setf act-id (read-from-string (third tokens)))
-                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                    (progn
-                      (setf regx (region-from-str (fourth tokens)))
-                      (if regx
-                        (progn
-                          (setf actx (actionstore-nth
-                                          (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
-                          (setf grpx (groupstore-find (action-groups actx) regx))
-                          (if grpx
-                            (progn
-                              (loop for stax in (region-state-list (group-region grpx)) do
-                                (setf sqrx (squarestore-find (action-squares actx) stax))
-                                (if sqrx
-                                   (format t "~&~A" (square-str sqrx))
-                                   (format t "~&Square ~A not found?" (state-str sqrx)))
+          (let (dom-id act-id regx grpx sqrx actx)
+            (if (= (length tokens) 4)
+              (progn
+                (setf dom-id (read-from-string (second tokens)))
+                (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                  (progn
+                    (setf act-id (read-from-string (third tokens)))
+                    (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                      (progn
+                        (setf regx (region-from-str (fourth tokens)))
+                        (if regx
+                          (progn
+                            (setf actx (actionstore-nth
+                                            (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
+                            (setf grpx (groupstore-find (action-groups actx) regx))
+                            (if grpx
+                              (progn
+                                (loop for stax in (region-state-list (group-region grpx)) do
+                                  (setf sqrx (squarestore-find (action-squares actx) stax))
+                                  (if sqrx
+                                     (format t "~&~A" (square-str sqrx))
+                                     (format t "~&Square ~A not found?" (state-str sqrx)))
+                                )
                               )
-                            )
-                            (format t "~&Group not found in grp-sqrs command"))
-                        )
-                        (format t "~&Did not understand region in grp-sqrs command"))
+                              (format t "~&Group not found in grp-sqrs command"))
+                          )
+                          (format t "~&Did not understand region in grp-sqrs command"))
+                      )
+                      (format t "~&Did not understand action id in grp-sqrs command")
                     )
-                    (format t "~&Did not understand action id in grp-sqrs command")
                   )
+                  (format t "~&Did not understand domain id in grp-sqrs command")
                 )
-                (format t "~&Did not understand domain id in grp-sqrs command")
               )
+              (format t "~&Did not understand grp-sqrs command")
             )
-            (format t "~&Did not understand grp-sqrs command")
           )
         )
 

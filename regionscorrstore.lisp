@@ -1,9 +1,5 @@
 ; Implement a store of regionscorr instances.
 
-
-
-
-; Implement a store of regions.
 (defstruct regionscorrstore
   regionscorrs  ; A list of zero, or more, regionscorr.
 )
@@ -77,6 +73,17 @@
   true
 )
 
+;;; Return a regionscorrstore with a regionscorr removed.
+(defun regionscorrstore-remove (storex rcx) ; -> regionscorrstore
+  (assert (regionscorrstore-p storex))
+  (assert (regionscorr-p rcx))
+
+  (if (not (regionscorrstore-member storex rcx))
+    (format t "~&Problem: regionscorrstore-remove: regionscorr not in the store?"))
+
+  (regionscorrstore-new (remove rcx (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq))
+)
+
 ;;; Return the number of regions in a regionscorrstore.
 (defun regionscorrstore-length (storex) ; -> number.
   (assert (regionscorrstore-p storex))
@@ -122,12 +129,13 @@
   ;(format t "regionscorrstore-member storex ~A regx ~A" storex regx)
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
+  (assert (or (regionscorrstore-is-empty storex) (regionscorr-congruent (regionscorrstore-first-regionscorr storex) regx)))
 
   (if (member regx (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq) true false)
 )
 
 ;;; Return the first region in a non-empty regionscorrstore.
-(defun regionscorrstore-first-region (storex) ; -> region
+(defun regionscorrstore-first-regionscorr (storex) ; -> region
   (assert (regionscorrstore-p storex))
   (assert (regionscorrstore-is-not-empty storex))
 
@@ -135,7 +143,7 @@
 )
 
 ;;; Return the last region in a non-empty regionscorrstore.
-(defun regionscorrstore-last-region (storex) ; -> region
+(defun regionscorrstore-last-regionscorr (storex) ; -> region
   (assert (regionscorrstore-p storex))
   (assert (regionscorrstore-is-not-empty storex))
 
@@ -207,6 +215,7 @@
   (assert (regionscorrstore-p store))
   (assert (regionscorr-p int-reg))
   (assert (regionscorr-p not-reg))
+  (assert (regionscorr-congruent int-reg not-reg))
 
   (loop for regx in (regionscorrstore-regionscorrs store) do
     (if (and (regionscorr-intersects regx int-reg) (not (regionscorr-intersects regx not-reg)))
@@ -220,45 +229,50 @@
 ;;; Failure to find a path returns nil.
 ;;; The strategy is to keep dividing the problem into two smaller problems.
 ;;; Later, a path can be calculated from intersection to intersection.
-(defun regionscorrstore-find-path (pathscorr-options left-reg right-reg) ; -> path, or nil.
+(defun regionscorrstore-find-path (pathscorr-options left-reg right-reg) ; -> pathscorr, or nil.
   ;(format t "~&regionscorrstore-find-path ~A and ~A" left-reg right-reg)
   (assert (regionscorrstore-p pathscorr-options))
   (assert (regionscorr-p left-reg))
   (assert (regionscorr-p right-reg))
   (assert (not (regionscorr-intersects left-reg right-reg)))
+  (assert (regionscorr-congruent left-reg right-reg))
 
-  ;; No point without at least one intersectionu of the left region.
-  (if (not (regionscorrstore-any-intersection pathscorr-options left-reg))
+  ;; No point without at least one intersection of the left region.
+  (when (not (regionscorrstore-any-intersection pathscorr-options left-reg))
+    (format t "~&regionscorrstore-find-path: left-reg no intersection")
     (return-from regionscorrstore-find-path nil))
 
   ;; No point without at least one intersection of the right region.
-  (if (not (regionscorrstore-any-intersection pathscorr-options right-reg))
+  (when (not (regionscorrstore-any-intersection pathscorr-options right-reg))
+    (format t "~&regionscorrstore-find-path: right-reg no intersection")
     (return-from regionscorrstore-find-path nil))
 
   ;; Regions should not intersect already.
-  (if (regionscorr-intersects left-reg right-reg)
+  (when (regionscorr-intersects left-reg right-reg)
+    (format t "~&regionscorrstore-find-path: left-reg intersects right-reg")
     (return-from regionscorrstore-find-path nil))
 
   ;; Try to find a path between the regions.
   (regionscorrstore-find-path2 pathscorr-options left-reg right-reg)
 )
-(defun regionscorrstore-find-path2 (pathscorr-options left-reg right-reg) ; -> path, or nil. Probably should not call this function directly.
-  ;(format t "~&regionscorrstore-find-path2 ~A and ~A" left-reg right-reg)
-  ;(assert (regionscorrstore-p pathscorr-options))
-  ;(assert (regionscorr-p left-reg))
-  ;(assert (regionscorr-p right-reg))
+(defun regionscorrstore-find-path2 (pathscorr-options left-reg right-reg) ; -> pathscorr list, or nil. Probably should not call this function directly.
+  ;(format t "~&regionscorrstore-find-path2 ~A and ~A" (regionscorr-str left-reg) (regionscorr-str right-reg))
+  (assert (regionscorrstore-p pathscorr-options))
+  (assert (regionscorr-p left-reg))
+  (assert (regionscorr-p right-reg))
+  (assert (regionscorr-congruent left-reg right-reg))
 
   ;; Check for the successful end of a search, or sub-search.
   ;; Look for one region that intersects both regions.
   (let (links ; Store of regions that intersect both given regions.
        )
     (loop for regx in (regionscorrstore-regionscorrs pathscorr-options) do
-      (if (and (and (regionscorr-ne regx left-reg) (regionscorr-intersects regx left-reg))
-	       (and (regionscorr-ne regx right-reg) (regionscorr-intersects regx right-reg)))
-	(push regx links)
+      (if (and (regionscorr-intersects regx left-reg) (regionscorr-intersects regx right-reg))
+        (push regx links)
       )
     )
-    (if links
+    (when links
+      ;(format t "~&regionscorrstore-find-path2: links found. return 1")
       (return-from regionscorrstore-find-path2 (pathscorr-new (list left-reg (nth (random (length links)) links) right-reg)))
     )
   )
@@ -276,24 +290,35 @@
     (loop for regx in (regionscorrstore-regionscorrs pathscorr-options) do
       (if (and (not (regionscorr-intersects regx left-reg)) (not (regionscorr-intersects regx right-reg))
 	       (regionscorr-intersects regx glide-path))
-	(push regx links)
+	    (push regx links)
       )
     )
     (when links
       ;; Choose a region to split the problem in two.
       (setf middle-region (nth (random (length links)) links))
+      ;(format t "~&regionscorrstore-find-path2: middle-region ~A" (regionscorr-str middle-region))
  
-      (setf left-path (regionscorrstore-find-path2 pathscorr-options left-reg middle-region))
-      (if (null left-path)
+      ;(format t "~&regionscorrstore-find-path2: try left-middle")
+      (setf left-path (regionscorrstore-find-path2
+            (regionscorrstore-remove pathscorr-options middle-region) left-reg middle-region))
+
+      (when (null left-path)
+        ;(format t "~&regionscorrstore-find-path2: return 2")
         (return-from regionscorrstore-find-path2 nil))
 
-      (setf right-path (regionscorrstore-find-path2 pathscorr-options middle-region right-reg))
-      (if (null right-path)
+      ;(format t "~&regionscorrstore-find-path2: try middle-right")
+      (setf right-path (regionscorrstore-find-path2 
+         (regionscorrstore-remove pathscorr-options middle-region) middle-region right-reg))
+
+      (when (null right-path)
+        ;(format t "~&regionscorrstore-find-path2: return 3")
         (return-from regionscorrstore-find-path2 nil))
 
-      (if (regionscorr-eq (regionscorrstore-last-region left-path) (regionscorrstore-first-region right-path))
+      (when (regionscorr-eq (regionscorrstore-last-regionscorr left-path) (regionscorrstore-first-regionscorr right-path))
+        ;(format t "~&regionscorrstore-find-path2: return 4")
         (return-from regionscorrstore-find-path2 (pathscorr-append left-path (regionscorrstore-cdr right-path))))
 
+      ;(format t "~&regionscorrstore-find-path2: return 5")
       (return-from regionscorrstore-find-path2 (pathscorr-append left-path right-path))
     )
   )
@@ -309,17 +334,17 @@
 
       ;; Find regions that intersect the left region, and at least one other region.
       (when (and (regionscorr-ne regx left-reg) (regionscorr-intersects regx left-reg))
-	;; Check if the region intersects any other region, that left-reg does not intersect.
-	(if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg left-reg)
-	  (push regx links)
-	)
+        ;; Check if the region intersects any other region, that left-reg does not intersect.
+        (if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg left-reg)
+         (push regx links)
+        )
       )
       ;; Find regions that intersect the right region, and at least one other region.
       (when (and (regionscorr-ne regx right-reg) (regionscorr-intersects regx right-reg))
-	;; Check if the region intersects any other region, that left-reg does not intersect.
-	(if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg right-reg)
-	  (push regx links)
-	)	
+        ;; Check if the region intersects any other region, that left-reg does not intersect.
+        (if (regionscorrstore-other-intersections :store pathscorr-options :int-reg regx :not-reg right-reg)
+          (push regx links)
+        )	
       )
     )
     (when links
@@ -328,25 +353,32 @@
 
       ;; Process a region that intersects the left region.
       (when (regionscorr-intersects next-region left-reg)
+        ;(format t "~&regionscorrstore-find-path2: try next-right")
         (setf right-path (regionscorrstore-find-path2 pathscorr-options next-region right-reg))
-        (if (pathscorr-is-empty right-path)
+        (when (pathscorr-is-empty right-path)
+          ;(format t "~&regionscorrstore-find-path2: return 6")
           (return-from regionscorrstore-find-path2 right-path))
 
         (pathscorr-add-start right-path left-reg)
+        ;(format t "~&regionscorrstore-find-path2: return 7")
         (return-from regionscorrstore-find-path2 right-path)
       )
       ;; Process a region that intersects the right region.
       (when (regionscorr-intersects next-region right-reg)
+        ;(format t "~&regionscorrstore-find-path2: try left-next")
         (setf left-path (regionscorrstore-find-path2 pathscorr-options left-reg next-region))
-        (if (pathscorr-is-empty left-path)
+        (when (pathscorr-is-empty left-path)
+          ;(format t "~&regionscorrstore-find-path2: return 8")
           (return-from regionscorrstore-find-path2 left-path))
 
+        ;(format t "~&regionscorrstore-find-path2: return 9")
         (pathscorr-add-end left-path right-reg)
         (return-from regionscorrstore-find-path2 left-path)
       )
     )
   ) 
   ;; Default return.
+  (format t "~&regionscorrstore-find-path2: return 10")
   nil
 )
 

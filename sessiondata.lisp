@@ -6,8 +6,9 @@
     can-do          ; A NeedStore of needs that can be done.
     cant-do         ; A NeedStore of needs that cannot be done.
     selectregions-store ; A SelectRegionsStore.
-    selectregions-paths   ; Non-rated selectregions plus selectregion split by intersections.
+    selectregions-fragments   ; Selectregions-store split by intersections.
     le0-levels       ; A list of successively more negative selectregion levels, starting with 0.
+    regionscorrstore-paths ; List of regioncorrstores, for each le0-level.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -29,7 +30,9 @@
                       :can-do (needstore-new nil)
                       :cant-do (needstore-new nil)
                       :selectregions-store (selectregionstore-new nil)
+                      :selectregions-fragments (selectregionstore-new nil)
                       :le0-levels nil
+                      :regionscorrstore-paths nil
     )
 )
 
@@ -92,7 +95,9 @@
                                             :can-do (needstore-new nil)
                                             :cant-do (needstore-new nil)
                                             :selectregions-store (selectregionsstore-new nil)
-                                            :selectregions-paths (selectregionsstore-new nil)))
+                                            :selectregions-fragments (selectregionsstore-new nil)
+                                            :le0-levels nil
+                                            :regionscorrstore-paths nil))
 
                 ;(sessiondata-print sdx)
 
@@ -130,40 +135,76 @@
 )
 
 ;;; Process selectregions, display results.
-(defun sessiondata-process-select-regions (sdx) ; -> side-effect, load selectregions-paths and le0-levels.
+(defun sessiondata-process-select-regions (sdx) ; -> side-effect, load selectregions-fragments, le0-levels, regionscorrstore-paths.
   (assert (sessiondata-p sdx))
 
-  (let (path-regions (nums (list 0)))
-    ;; Calc rate (0, 0) selectregions.
-    (setf path-regions (regionscorrstore-new (list (sessiondata-domain-max-regions sdx))))
-    (loop for srx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
-      (setf path-regions (regionscorrstore-subtract-regionscorr path-regions (selectregions-regionscorr srx)))
+  ;; Check for no selectregions.
+  (if (selectregionsstore-is-empty (sessiondata-selectregions-store sdx))
+    (return-from sessiondata-process-select-regions))
+
+  ;; Print selectregions
+  (format t "~& ~&Selectregions:")
+  (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
+    (format t "~&    ~A" (selectregions-str selx))
+  )
+
+  (let (fragments nums paths max-regs nrate next-paths)
+
+    ;; Calc and save fragments as selectregions.
+    (setf fragments
+          (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrs (sessiondata-selectregions-store sdx))))
+    
+    (loop for rcx in (regionscorrstore-regionscorrs fragments) do
+      (selectregionsstore-push (sessiondata-selectregions-fragments sdx)
+         (selectregions-new rcx (selectregionsstore-rate (sessiondata-selectregions-store sdx) rcx)))
     )
-    ;; Add selectregions split by intersections.
-    (setf path-regions (regionscorrstore-append path-regions
-          (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrstore (sessiondata-selectregions-store sdx)))))
                 
-    ;; Add to sessiondata-selectregions-paths.
-    (loop for rcx in (regionscorrstore-regionscorrs path-regions) do
-      (selectregionsstore-push (sessiondata-selectregions-paths sdx)
-        (selectregions-new rcx (selectregionsstore-rate (sessiondata-selectregions-store sdx) rcx)))
+    ;; Print fragments.
+    (format t "~& ~&Fragments:")
+    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do
+      (format t "~&type ~A" (type-of selx))
+      (format t "~&    ~A" (selectregions-str selx))
     )
 
-    (format t "~& ~&Selectregions:")
-    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
-      (format t "~&    ~A" (selectregions-str selx))
-    )
-    (format t "~& ~&Paths:" (selectregionsstore-str (sessiondata-selectregions-paths sdx)))
-    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-paths sdx)) do
-      (format t "~&    ~A" (selectregions-str selx))
-    )
-    ;; Create list of negative levels. 
+    ;; Create, sort and save a list of negative levels. 
     (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
       (if (not (member (rate-negative (selectregions-rate selx)) nums))
         (push (rate-negative (selectregions-rate selx)) nums))
+    )
+    (setf nums (sort nums #'>))
+    (setf (sessiondata-le0-levels sdx) nums)
+
+    ;; Print LE0 levels.
+    (format t "~& ~&LE0-levels: ~A" nums)
+
+    ;; Calc regionscorr paths for each le0 level.
+    (setf paths nil)
+    (setf max-regs (sessiondata-domain-max-regions sdx))
+    (push (regionscorrstore-new (list max-regs)) paths)
+
+    (when (> (length nums) 1)
+      (loop for levx in (reverse (butlast nums)) do  ; The last value will be associated with max-regions.
+        ;(format t "~&  levx ~D" levx)
+        (setf next-paths (regionscorrstore-new (list max-regs)))
+
+        (loop for selx in  (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do    
+          (setf nrate (rate-negative (selectregions-rate selx)))
+          (when (not (zerop nrate))
+            (if (< nrate levx)
+              (setf next-paths (regionscorrstore-subtract-regionscorr next-paths (selectregions-regionscorr selx))))
+          )
+        )
+        (push next-paths paths)
       )
-    (setf (sessiondata-le0-levels sdx) (sort nums #'>))
-    (format t "~& ~&LE0-levels: ~A" (sessiondata-le0-levels sdx))
+    )
+
+    ;; Print and save paths.
+    (format t "~& ~&Levels and paths:")
+    (loop for rcsx in paths
+          for levx in (sessiondata-le0-levels sdx) do
+      (format t "~&   ~d ~a" levx (regionscorrstore-str rcsx))
+    )
+    (setf (sessiondata-regionscorrstore-paths sdx) paths)
   )
 )
 
@@ -201,6 +242,7 @@
 )
 
 ;;; Process a given need.
+;;; TODO pass (sessiondata-selectregions-paths sessx) to domainstore-process-need.
 (defun sessiondata-process-need (sessx nedx)
   ;(format t "~&sessiondata-process-need: ~A ~A" (type-of sessx) (type-of nedx))
   (assert (sessiondata-p sessx))
@@ -260,25 +302,39 @@
   (assert (regionscorr-p to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
 
-  (let (from-rate to-rate min-rate le0-position upto)
+  (let (from-rate to-rate min-rate le0-position plans path)
 
+    ;; Find maximum rate possible by the least rate of the from and to regionscorr.
     (setf from-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) from-regs))
     (setf to-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) to-regs))
-
-    (format t "~&from-rate ~A to-rate ~A" (rate-str from-rate) (rate-str to-rate))
-
     (setf min-rate (min (rate-negative from-rate) (rate-negative to-rate)))
-    (format t "~&min-rate ~D" min-rate)
 
+    ;; Find the rate position in the le0-levels list, and corresponding regionscorrstore-paths list.
     (setf le0-position (position min-rate (sessiondata-le0-levels sessx)))
-    (format t "~&le0-position ~D of ~A" le0-position (sessiondata-le0-levels sessx))
+    (if (null le0-position)
+      (error "min-rate not found?"))
 
-    (loop for inx from le0-position below (length (sessiondata-le0-levels sessx)) do
-      (setf upto (nth inx (sessiondata-le0-levels sessx)))
-      (format t "~&le0 value ~D" upto)
-;     (setf plans (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs (sessiondata-selectregions-paths sessx) upto))
-;     (if plans
-;       (return-from sessionstore-get-plans2 plans))
+    ;; From the maximum le0 rate, on down, try finding a path.  
+    (loop for inx from le0-position below (length (sessiondata-le0-levels sessx))
+          while (null path) do
+
+      (setf path (regionscorrstore-find-path (nth inx (sessiondata-regionscorrstore-paths sessx)) from-regs to-regs))
     )
+
+    (when (null path)
+      (format t "~&sessionstore-get-plans2: No path found")
+      (return-from sessionstore-get-plans2 nil)
+    )
+
+    (format t "~&sessionstore-get-plans2: Path found: ~A" (pathscorr-str path))
+
+    (format t "~&TODO get plans")
+    ;(setf plans (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs path))
+
+    ;(if (null plans)
+    ;  (format t "~&sessionstore-get-plans2: No plans found")
+    ;)
+
+    plans
   )
 )
