@@ -9,6 +9,7 @@
     selectregions-fragments   ; Selectregions-store split by intersections.
     le0-levels       ; A list of successively more negative selectregion levels, starting with 0.
     regionscorrstore-paths ; List of regioncorrstores, for each le0-level.
+    step-num        ; Current step number.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -33,7 +34,13 @@
                       :selectregions-fragments (selectregionstore-new nil)
                       :le0-levels nil
                       :regionscorrstore-paths nil
+                      :step-num 0
     )
+)
+
+;;; Increment the step num.
+(defun sessiondata-inc-step-num (sessx) ; -> side effect, step num changed.
+  (setf (sessiondata-step-num sessx) (+ 1 (sessiondata-step-num sessx)))
 )
 
 ;;; Return a string representation of a sessiondata instance.
@@ -97,7 +104,8 @@
                                             :selectregions-store (selectregionsstore-new nil)
                                             :selectregions-fragments (selectregionsstore-new nil)
                                             :le0-levels nil
-                                            :regionscorrstore-paths nil))
+                                            :regionscorrstore-paths nil
+                                            :step-num 0))
 
                 ;(sessiondata-print sdx)
 
@@ -162,7 +170,6 @@
     ;; Print fragments.
     (format t "~& ~&Fragments:")
     (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do
-      (format t "~&type ~A" (type-of selx))
       (format t "~&    ~A" (selectregions-str selx))
     )
 

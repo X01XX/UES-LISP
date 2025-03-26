@@ -1,11 +1,8 @@
 ;;; Implement a squarestore struct and functions.                                                                
 
-
-
-
 ;;; The squarestore struct.
 (defstruct squarestore
-  squares        ; A hash table of squares.
+  squares        ; A list of squares.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -25,7 +22,7 @@
 (defun squarestore-new () ; -> squarestore.
   ;(format t "~&squarestore-new")
 
-  (make-squarestore :squares (make-hash-table :test #'equalp)) ; equalp can detect state struct equality.
+  (make-squarestore :squares nil) ; equalp can detect state struct equality.
 )
 
 ;;; Add a square.
@@ -34,7 +31,7 @@
   (assert (squarestore-p storex))
   (assert (square-p sqrx))
 
-  (setf (gethash (square-state sqrx) (squarestore-squares storex)) sqrx) 
+  (push sqrx (squarestore-squares storex)) 
 
   ;(format t "~&squarestore-add: find after ~A" (type-of (squarestore-find storex (square-state sqrx))))
 )
@@ -45,24 +42,11 @@
   (assert (squarestore-p storex))
   (assert (state-p key))
 
-  (let (sqrx)
-    (setf sqrx (gethash key (squarestore-squares storex)))
-    ;(format t "~&squarestore-find: found ~A" (type-of sqrx))
-    sqrx
+  (loop for sqrx in (squarestore-squares storex) do
+    (if (state-eq key (square-state sqrx))
+      (return-from squarestore-find sqrx))
   )
-)
-
-;;; Return the most recent result of a square.
-(defun squarestore-most-recent-result (storex key) ; -> state, or nil.
-  (assert (squarestore-p storex))
-  (assert (state-p key))
-
-  (let (sqrx)
-    (setf sqrx (gethash key (squarestore-squares storex)))
-    (if sqrx
-        (square-most-recent-result sqrx)
-        nil)
-  )
+  nil
 )
 
 ;;; Return true if there is any square in a given region.
@@ -70,7 +54,7 @@
   (assert (squarestore-p storex))
   (assert (region-p regx))
 
-  (loop for stax being the hash-keys of (squarestore-squares storex) do
+  (loop for stax in (squarestore-squares storex) do
     (if (region-superset-of-state regx stax)
       (return-from squarestore-any-in true))
   )
@@ -83,7 +67,7 @@
   (assert (region-p regx))
 
   (let ((ret (statestore-new nil)))
-    (loop for stax being the hash-keys of (squarestore-squares storex) do
+    (loop for stax in (squarestore-squares storex) do
       (if (region-superset-of-state regx stax)
         (statestore-push ret stax))
     )
@@ -97,7 +81,7 @@
   (assert (region-p regx))
 
   (let (ret)
-    (loop for sqrx being the hash-values of (squarestore-squares storex) do
+    (loop for sqrx in (squarestore-squares storex) do
       (if (region-superset-of-state regx (square-state sqrx))
         (push sqrx ret))
     )
@@ -110,7 +94,7 @@
   (assert (squarestore-p storex))
   (assert (region-p regx))
 
-  (loop for sqrx being the hash-values of (squarestore-squares storex) do
+  (loop for sqrx in (squarestore-squares storex) do
     (if (and (region-superset-of-state regx (square-state sqrx)) (square-pnc sqrx))
         (return-from squarestore-pnc-square-in-region true))
   )
@@ -122,8 +106,8 @@
   (assert (squarestore-p storex))
 
   (let ((ret (statestore-new nil)))
-    (loop for stax being the hash-keys of (squarestore-squares storex) do
-        (statestore-push ret stax)
+    (loop for sqrx in (squarestore-squares storex) do
+        (statestore-push ret (square-state sqrx))
     )
     ret
   )
@@ -213,7 +197,7 @@
   (assert (squarestore-p storex))
 
   (let ((ret ""))
-    (loop for sqrx being the hash-values of (squarestore-squares storex) do
+    (loop for sqrx in (squarestore-squares storex) do
         (setf ret (concatenate 'string ret (format nil "~& ~A" (square-str sqrx))))
     )
     ret

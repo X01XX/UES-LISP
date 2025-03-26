@@ -515,7 +515,7 @@
 
     ;; Make a list of all squares.
     (let (sqrs sqr-y)
-      (loop for sqrx being the hash-values of (squarestore-squares (action-squares actx)) do
+      (loop for sqrx in (squarestore-squares (action-squares actx)) do
         (if (square-pnc sqrx)
           (push sqrx sqrs))
       )
@@ -1012,7 +1012,7 @@
   ;; Proccess orphaned squares.
   (let (sqrs)
     ;; Find orphaned squares.
-    (loop for sqrx being the hash-values of (squarestore-squares (action-squares actx)) do
+    (loop for sqrx in (squarestore-squares (action-squares actx)) do
       (if (and (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
                (not (groupstore-state-in-group (action-groups actx) (square-state sqrx)))
                (not (member sqrx sqrs)))

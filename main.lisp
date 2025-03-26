@@ -178,210 +178,247 @@
   (format t "~& ~&    grp-sqrs <domain-number> <action-number> <region> - Show squares of a domain and action.")
   (format t "~& ~&    run - Run steps until no more needs can be done.")
   (format t "~& ~&    to <regionscorr> - Change position to. Like: to (rc (r1010 r111))")
+  (format t "~& ~&    write-session file-path - Write session to a file.")
+  (format t "~& ~&    read-session  file-path - Read a session from a file.")
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (step 0) (run 0))
+  (let (inp tokens token (run 0))
+
     (loop 
-      (incf step)
-      (format t "~& ~&Step: ~D --------------------------------------------" step)
+      (setf (sessiondata-step-num sessx) (1+ (sessiondata-step-num sessx)))
+      (format t "~& ~&Step: ~D --------------------------------------------" (sessiondata-step-num sessx))
       (sessiondata-print sessx)
       (generate-and-display-needs sessx)
 
-        (setf inp "")
-        (when (or (= run 0) (needstore-is-empty (sessiondata-can-do sessx)))
-          (setf run 0)
-          (format t "~& ~&Press Enter or type a command: ")
-          (setf inp (read-line *STANDARD-INPUT*))
-        )
+      (setf inp "")
+      (when (or (= run 0) (needstore-is-empty (sessiondata-can-do sessx)))
+        (setf run 0)
+        (format t "~& ~&Press Enter or type a command: ")
+        (setf inp (read-line *STANDARD-INPUT*))
+      )
 
-        ; Parse tokens from the input string
-        (setf tokens nil token nil)
-        (loop for char across inp do
-          ;(format t "c ~A" char)
-          (when (char= char #\ )
-              (if (not (null token))
-                  (push token tokens))
-              (setf token nil)
-          )
-          (when (char/= char #\ )
-              (if token
-                  (setf token (format nil "~A~A" token char))
-                  (setf token (format nil "~A" char)))
-          )
+      ; Parse tokens from the input string
+      (setf tokens nil token nil)
+      (loop for char across inp do
+        ;(format t "c ~A" char)
+        (when (char= char #\ )
+            (if (not (null token))
+                (push token tokens))
+            (setf token nil)
         )
-        (when token
-          (push token tokens))
+        (when (char/= char #\ )
+            (if token
+                (setf token (format nil "~A~A" token char))
+                (setf token (format nil "~A" char)))
+        )
+      )
+
+      (when token
+        (push token tokens))
 
         (setf tokens (reverse tokens))
 
-        ;(format t "~&tokens: ~A" tokens)
+      ;(format t "~&tokens: ~A" tokens)
 
-        ;; Check for Quit.
-        (if (string-equal (car tokens) #\q)
-          (return-from command-loop))
+      ;; Check for Quit.
+      (if (string-equal (car tokens) #\q)
+        (return-from command-loop))
 
-        ;; Check for run command.
-        (if (string-equal (car tokens) "run")
-          (setf run 1)
-        )
+      ;; Check for run command.
+      (if (string-equal (car tokens) "run")
+        (setf run 1)
+      )
 
-        ;; Check for to regionscorr
-        ;; Like: to (rc (r1010 r111))
-        ;; Where domain 0 uses 4 bits and domain 1 uses 3 bits.
-        (if (string-equal (car tokens) "to")
-          (let (to-regs plans)
-            ;(format t "~&tokens: ~A" tokens)
-            (setf to-regs (read-from-string (subseq inp 3)))
-            ;(format t "~&to-regs: ~A" to-regs)
-            (setf to-regs (regionscorr-from to-regs))
-            (if to-regs
-              (progn
-                (if (regionscorr-congruent to-regs (sessiondata-domain-current-regions sessx))
-                  (progn
-                    (format t "~&to RegionsCorr ~A" (regionscorr-str to-regs))
-                    (if (regionscorr-superset-of :sup to-regs :sub (sessiondata-domain-current-regions sessx))
-                      (format t "~&Current states satisfy the request")
-                      (progn
-                        (setf plans (sessionstore-get-plans sessx to-regs))
-                        (if plans
-                          (progn
-                            (format t "~&plans: ~A" (planscorrstore-str plans))
-                            (format t "~&TODO run plans")
-                          )
-                          (format t "~&plans not found")
-                        )
-                      )
-                    )
-                  )
-                  (format t "~&The regionscorr definition in the to command is not congruent")
-                )
-              )
-              (format t "~&Could not convert the regionscorr definition in the to command")
-            )
+      (if (string-equal (car tokens) "write-session")
+        (let (inp create-flag (fname (second tokens)))
+          (setf create-flag t)
+          (when (open fname :direction :probe)
+            (format t "~&File ~A exists, overwrite? yes/no: " fname)
+            (setf create-flag (yes-or-no-p))
+          )
+          (when create-flag
+            (with-open-file (stream fname :direction :output)
+               (format stream "~S~%" sessx))
+            (format t "~&File ~A written" fname)
+            (format t "~& ~&Press Enter to continue: ")
+            (setf inp (read-line *STANDARD-INPUT*))
           )
         )
+      ) 
 
-        ;; Check for do need.
-        (if (string-equal (car tokens) "dn")
-          (let (inx)
-            (if (= (length tokens) 2)
-              (progn
-                (setf inx (read-from-string (second tokens)))
-                (if (integerp inx)
-                  (if (< inx (needstore-length (sessiondata-can-do sessx)))
+      (if (string-equal (car tokens) "read-session")
+        (let (inp (fname (second tokens)) sessx2)
+          (if (open fname :direction :probe)
+            (progn
+              (with-open-file (stream fname) (setf sessx2 (read stream)))
+              (format t "~&File ~A read. Type of input ~A" fname (type-of sessx2))
+              (if (typep sessx2 'sessiondata)
+                (setf sessx sessx2))
+            )
+            (format t "~&File ~A not found" fname)
+          )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
+        )
+      )
+
+      ;; Check for to regionscorr
+      ;; Like: to (rc (r1010 r111))
+      ;; Where domain 0 uses 4 bits and domain 1 uses 3 bits.
+      (if (string-equal (car tokens) "to")
+        (let (to-regs plans)
+          ;(format t "~&tokens: ~A" tokens)
+          (setf to-regs (read-from-string (subseq inp 3)))
+          ;(format t "~&to-regs: ~A" to-regs)
+          (setf to-regs (regionscorr-from to-regs))
+          (if to-regs
+            (progn
+              (if (regionscorr-congruent to-regs (sessiondata-domain-current-regions sessx))
+                (progn
+                  (format t "~&to RegionsCorr ~A" (regionscorr-str to-regs))
+                  (if (regionscorr-superset-of :sup to-regs :sub (sessiondata-domain-current-regions sessx))
+                    (format t "~&Current states satisfy the request")
                     (progn
-                      (format t "~&Need chosen: ~A~& " (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
-                      (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
-                    )
-                    (format t "~&Invalid need number in dn command")
-                  )
-                  (format t "~&Invalid need number in on command")
-                )
-              )
-              (format t "~&Did not understand dn command")
-            )
-          )
-        )
-
-        (if (string-equal (car tokens) "ss")
-          (let (dom-id act-id statex)
-            (if (= (length tokens) 4)
-              (progn
-                (setf dom-id (read-from-string (second tokens)))
-                (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                  (progn
-                    (setf act-id (read-from-string (third tokens)))
-                    (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                      (progn
-                        (setf statex (state-from-str (fourth tokens)))
-                        (if statex
-                           (sessiondata-take-action-need sessx dom-id act-id statex)
-                           (format t "~&Did not understand state in ss command")
+                      (setf plans (sessionstore-get-plans sessx to-regs))
+                      (if plans
+                        (progn
+                          (format t "~&plans: ~A" (planscorrstore-str plans))
+                          (format t "~&TODO run plans")
                         )
+                        (format t "~&plans not found")
                       )
-                      (format t "~&Did not understand action id in ss command")
                     )
                   )
-                  (format t "~&Did not understand domain id in ss command")
                 )
+                (format t "~&The regionscorr definition in the to command is not congruent")
               )
-              (format t "~&Did not understand ss command")
             )
+            (format t "~&Could not convert the regionscorr definition in the to command")
           )
         )
+      )
 
-        (if (string-equal (car tokens) "act-sqrs")
-          (let (dom-id act-id)
-            (if (= (length tokens) 3)
-              (progn
-                (setf dom-id (read-from-string (second tokens)))
-                (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+      ;; Check for do need.
+      (if (string-equal (car tokens) "dn")
+        (let (inx)
+          (if (= (length tokens) 2)
+           (progn
+              (setf inx (read-from-string (second tokens)))
+              (if (integerp inx)
+                (if (< inx (needstore-length (sessiondata-can-do sessx)))
                   (progn
-                    (setf act-id (read-from-string (third tokens)))
-                    (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                      (format t "~&squares: ~A" (squarestore-str (action-squares
-                                                   (actionstore-nth
-                                                     (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
-                                                   act-id))))
-                      (format t "~&Did not understand action id in act-sqrs command")
-                    )
+                    (format t "~&Need chosen: ~A~& " (need-str (needstore-nth (sessiondata-can-do sessx) inx)))
+                    (sessiondata-process-need sessx (needstore-nth (sessiondata-can-do sessx) inx))
                   )
-                  (format t "~&Did not understand domain id in act-sqrs command")
+                  (format t "~&Invalid need number in dn command")
                 )
+                (format t "~&Invalid need number in on command")
               )
-              (format t "~&Did not understand act-sqrs command")
             )
+            (format t "~&Did not understand dn command")
           )
         )
+      )
 
-        (if (string-equal (car tokens) "grp-sqrs")
-          (let (dom-id act-id regx grpx sqrx actx)
-            (if (= (length tokens) 4)
-              (progn
-                (setf dom-id (read-from-string (second tokens)))
-                (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                  (progn
-                    (setf act-id (read-from-string (third tokens)))
-                    (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                      (progn
-                        (setf regx (region-from-str (fourth tokens)))
-                        (if regx
-                          (progn
-                            (setf actx (actionstore-nth
-                                            (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
-                            (setf grpx (groupstore-find (action-groups actx) regx))
-                            (if grpx
-                              (progn
-                                (loop for stax in (region-state-list (group-region grpx)) do
-                                  (setf sqrx (squarestore-find (action-squares actx) stax))
-                                  (if sqrx
-                                     (format t "~&~A" (square-str sqrx))
-                                     (format t "~&Square ~A not found?" (state-str sqrx)))
-                                )
+      (if (string-equal (car tokens) "ss")
+        (let (dom-id act-id statex)
+          (if (= (length tokens) 4)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (progn
+                      (setf statex (state-from-str (fourth tokens)))
+                      (if statex
+                         (sessiondata-take-action-need sessx dom-id act-id statex)
+                         (format t "~&Did not understand state in ss command")
+                      )
+                    )
+                    (format t "~&Did not understand action id in ss command")
+                  )
+                )
+                (format t "~&Did not understand domain id in ss command")
+              )
+            )
+            (format t "~&Did not understand ss command")
+          )
+        )
+      )
+
+      (if (string-equal (car tokens) "act-sqrs")
+        (let (dom-id act-id)
+          (if (= (length tokens) 3)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (format t "~&squares: ~A" (squarestore-str (action-squares
+                                                 (actionstore-nth
+                                                   (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
+                                                 act-id))))
+                    (format t "~&Did not understand action id in act-sqrs command")
+                  )
+                )
+                (format t "~&Did not understand domain id in act-sqrs command")
+              )
+            )
+            (format t "~&Did not understand act-sqrs command")
+          )
+        )
+      )
+
+      (if (string-equal (car tokens) "grp-sqrs")
+        (let (dom-id act-id regx grpx sqrx actx)
+          (if (= (length tokens) 4)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (progn
+                      (setf regx (region-from-str (fourth tokens)))
+                      (if regx
+                        (progn
+                          (setf actx (actionstore-nth
+                                          (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
+                          (setf grpx (groupstore-find (action-groups actx) regx))
+                          (if grpx
+                            (progn
+                              (loop for stax in (region-state-list (group-region grpx)) do
+                                (setf sqrx (squarestore-find (action-squares actx) stax))
+                                (if sqrx
+                                   (format t "~&~A" (square-str sqrx))
+                                   (format t "~&Square ~A not found?" (state-str sqrx)))
                               )
-                              (format t "~&Group not found in grp-sqrs command"))
-                          )
-                          (format t "~&Did not understand region in grp-sqrs command"))
-                      )
-                      (format t "~&Did not understand action id in grp-sqrs command")
+                            )
+                            (format t "~&Group not found in grp-sqrs command"))
+                        )
+                        (format t "~&Did not understand region in grp-sqrs command"))
                     )
+                    (format t "~&Did not understand action id in grp-sqrs command")
                   )
-                  (format t "~&Did not understand domain id in grp-sqrs command")
                 )
+                (format t "~&Did not understand domain id in grp-sqrs command")
               )
-              (format t "~&Did not understand grp-sqrs command")
             )
+            (format t "~&Did not understand grp-sqrs command")
           )
         )
+      )
 
-        ;; Force specific domain action state sample, print square and square-count.
-        (if (null tokens) ; An unrecognized token will cause this to be skipped. so the effect is to just rerun get-needs.
-	      ;; Process needs.
-	      (if (needstore-is-not-empty (sessiondata-can-do sessx))
-	        (do-any-need sessx)
-	      )
-        )
+      ;; Force specific domain action state sample, print square and square-count.
+      (if (null tokens) ; An unrecognized token will cause this to be skipped. so the effect is to just rerun get-needs.
+	    ;; Process needs.
+	    (if (needstore-is-not-empty (sessiondata-can-do sessx))
+	      (do-any-need sessx)
+	    )
+      )
     ) ; end loop
   ) ; end let
 ) ; end command-loop
