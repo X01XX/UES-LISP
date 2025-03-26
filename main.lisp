@@ -183,13 +183,21 @@
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (run 0))
+  (let (inp tokens token (run 0) just-read-in)
 
     (loop 
-      (setf (sessiondata-step-num sessx) (1+ (sessiondata-step-num sessx)))
+      ;; Update step and needs, unless session just read in.
+      (if just-read-in
+        (setf just-read-in nil)
+        (progn 
+          (sessiondata-inc-step-num sessx)
+          (sessiondata-get-needs sessx)
+        )
+      )
+
       (format t "~& ~&Step: ~D --------------------------------------------" (sessiondata-step-num sessx))
       (sessiondata-print sessx)
-      (generate-and-display-needs sessx)
+      (display-needs sessx)
 
       (setf inp "")
       (when (or (= run 0) (needstore-is-empty (sessiondata-can-do sessx)))
@@ -253,8 +261,10 @@
             (progn
               (with-open-file (stream fname) (setf sessx2 (read stream)))
               (format t "~&File ~A read. Type of input ~A" fname (type-of sessx2))
-              (if (typep sessx2 'sessiondata)
-                (setf sessx sessx2))
+              (when (typep sessx2 'sessiondata)
+                (setf sessx sessx2)
+                (setf just-read-in t)
+              )
             )
             (format t "~&File ~A not found" fname)
           )
