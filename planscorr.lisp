@@ -175,3 +175,11 @@
   (regionscorr-eq (planscorr-result-regions plnscr1) (planscorr-initial-regions plnscr2))
 )
 
+;;; Add plan to the end of a planscorr.
+(defun planscorr-add-end (planscorrx plnx) ; -> nothing, side-effect planscorr changed.
+  (assert (planscorr-p planscorrx))
+  (assert (plan-p plnx))
+
+  (planstore-add-end (planscorr-planstore planscorrx) plnx)
+)
+

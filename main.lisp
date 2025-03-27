@@ -286,14 +286,14 @@
             (progn
               (if (regionscorr-congruent to-regs (sessiondata-domain-current-regions sessx))
                 (progn
-                  (format t "~&to RegionsCorr ~A" (regionscorr-str to-regs))
+                  ;(format t "~&to RegionsCorr ~A" (regionscorr-str to-regs))
                   (if (regionscorr-superset-of :sup to-regs :sub (sessiondata-domain-current-regions sessx))
                     (format t "~&Current states satisfy the request")
                     (progn
                       (setf plans (sessionstore-get-plans sessx to-regs))
                       (if plans
                         (progn
-                          (format t "~&plans: ~A" (planscorrstore-str plans))
+                          ;(format t "~&plans: ~A" (planscorrstore-str plans))
                           (format t "~&TODO run plans")
                         )
                         (format t "~&plans not found")

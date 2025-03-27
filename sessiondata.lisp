@@ -335,12 +335,13 @@
 
     (format t "~&sessionstore-get-plans2: Path found: ~A" (pathscorr-str path))
 
-    (format t "~&TODO get plans")
-    ;(setf plans (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs path))
+    ;(format t "~&TODO get plans")
+    (setf plans (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs path))
 
-    ;(if (null plans)
-    ;  (format t "~&sessionstore-get-plans2: No plans found")
-    ;)
+    (if plans
+      (format t "~&sessionstore-get-plans2: Plans found: ~A" (planscorrstore-str plans))
+      (format t "~&sessionstore-get-plans2: No plans found")
+    )
 
     plans
   )

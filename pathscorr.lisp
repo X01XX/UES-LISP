@@ -1,7 +1,31 @@
 ;;;; Implement a series of regionscorr that intersect.
 ;;;;
-;;;; A pathscorr can be used to plan a path from the first element to the last,
-;;;; avoiding more negative select regions, if any. 
+;;;; A pathscorr will be used to plan a path from the from-regionscorr (within a superset regionscorr)
+;;;; to the goal-regionscorr (within a superset regionscorr),
+;;;; within bridging (intersecting) selectregion-same-negative-rate regionscorrs. 
+;;;;
+;;;; Hopefully avoiding negative, or at least more negative, selectregions.
+;;;;
+;;;; --------       ----------
+;;;; - from -       - bridge -
+;;;; --------       ----------
+;;;;       ----------       --------
+;;;;       - bridge -       - goal -
+;;;;       ----------       --------
+;;;;
+;;;; So translate the from-regionscorr from intersection to intersection,
+;;;; and, finally, to the goal-regionscorr.
+;;;;
+;;;; The from-regionscorr within a superset regionscorr, and the goal-regionscorr within
+;;;; a superset regionscorr, are not bridging intresections, but are intersections.
+;;;;
+;;;;  A trival pathscorr would be like (1111, 00) - (XXXX, XX) - (0000, 10).
+;;;;
+;;;; The logic will be:
+;;;;
+;;;;  Current from-regionscorr in an intersection.
+;;;;  While not in last intersection
+;;;;    Translate to the next intersection, within the current superset regionscorr.
 
 ;;; Implement a store of regions.
 (defstruct pathscorr
@@ -88,18 +112,14 @@
     (return-from pathscorr-str "#S(pathscorr REGIONS NIL)")
   )
 
-  (let ((ret "#S(pathscorr REGIONSCORR ") (last-reg))
+  (let ((ret "#S(pathscorr ") (first t))
 
-    (loop for regx in (pathscorr-regionscorr-list pathscorrx) do
-      (when last-reg
-	(if (or (regionscorr-superset-of :sup regx :sub last-reg)
-	        (regionscorr-superset-of :sub regx :sup last-reg))
-	  (setf ret (concatenate 'string ret "-"))
-	  (setf ret (concatenate 'string ret (format nil "-~A-" (regionscorr-str (regionscorr-intersection last-reg regx)))))
-	)
+    (loop for rcx in (pathscorr-regionscorr-list pathscorrx) do
+      (if first
+        (setf first nil)
+        (setf ret (concatenate 'string ret "-"))
       )
-      (setf last-reg regx)
-      (setf ret (concatenate 'string ret (regionscorr-str regx)))
+      (setf ret (concatenate 'string ret (format nil "~A" (regionscorr-str rcx))))
     )
     (setf ret (concatenate 'string ret ")"))
     ret

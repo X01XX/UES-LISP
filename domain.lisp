@@ -135,10 +135,13 @@
   (assert (region-superset-of :sup with-reg :sub from-reg))
   (assert (region-superset-of :sup with-reg :sub to-reg))
 
-  (if (region-superset-of :sup to-reg :sub from-reg)
-    (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rule-new-region-to-region from-reg from-reg))))))
+  (if (region-intersects to-reg from-reg)
+    (let ((int-reg (region-intersection to-reg from-reg)))
+      ;(format t "~&domain-get-plan: returning 1 act 0 plan")
+      (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rule-new-region-to-region int-reg int-reg)))))))
 
   (when (zerop depth)
+    ;(format t "~&domain-get-plan: returning 2 nil")
     (return-from domain-get-plan nil))
 
   (let ((steps (domain-get-steps domx (rule-new-region-to-region from-reg to-reg) with-reg)) stepy)
@@ -152,6 +155,7 @@
       )
       (when span-steps
 	    (setf stepy (nth (random (length span-steps)) span-steps))
+        ;(format t "~&domain-get-plan: returning 3 plan")
 	    (return-from domain-get-plan (plan-new (list stepy)))
       )
     )
@@ -181,12 +185,16 @@
 	      (if stepy
 	        (progn
 	          (setf planx (domain-get-plan domx (step-result-region stepy) to-reg with-reg (1- depth)))
+              ;(format t "~&domain-get-plan: returning 4 plan/nil")
 	          (if planx
                 (return-from domain-get-plan (plan-link (plan-new (list stepy)) planx))
                 (return-from domain-get-plan nil)
 	          )
 	        )
-            (return-from domain-get-plan nil)
+            (progn
+              ;(format t "~&domain-get-plan: returning 5 nil")
+              (return-from domain-get-plan nil)
+            )
 	      )
         )
 	    ;(format t "~&rule result ~A intersects ~A = ~A" (region-str (rule-result-region (step-rule stepy))) (region-str to-reg)
@@ -194,11 +202,13 @@
 	    (when (region-intersects (rule-result-region (step-rule stepy)) to-reg)
 	      (setf stepy (step-restrict-result-region stepy to-reg))
           (setf planx (domain-get-plan domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+          ;(format t "~&domain-get-plan: returning 6 plan/nil")
 	      (if planx
             (return-from domain-get-plan (plan-link planx (plan-new (list stepy)))) 
             (return-from domain-get-plan nil))
         )
 	  )
+      ;(format t "~&domain-get-plan: returning 7 nil")
 	  (return-from domain-get-plan nil)
     ) ; end-let
   ) ; end-let

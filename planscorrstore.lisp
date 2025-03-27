@@ -45,11 +45,11 @@
 )
 
 ;;; Add planscorr to the end of a planscorrstore.
-(defun planscorrstore-add-end (storex plnx) ; -> nothing, side-effect planscorrstore changed.
+(defun planscorrstore-add-end (storex plnscx) ; -> nothing, side-effect planscorrstore changed.
   (assert (planscorrstore-p storex))
-  (assert (plan-p plnx))
+  (assert (planscorr-p plnscx))
 
-  (setf (planscorrstore-planscorrs storex) (append (planscorrstore-planscorrs storex) (list plnx)))
+  (setf (planscorrstore-planscorrs storex) (append (planscorrstore-planscorrs storex) (list plnscx)))
   (assert (planscorrstore-is-valid storex))
 )
 
@@ -97,7 +97,7 @@
 (defun planscorrstore-is-valid (storex) ; -> bool
   (loop for plnx in (planscorrstore-planscorrs storex)
         for plny in (cdr (planscorrstore-planscorrs storex)) do
-    (if (not (planscorr_is_linked_to(plnx plny)))
+    (if (not (planscorr-is-linked-to plnx plny))
       (return-from planscorrstore-is-valid false))
   )
   true

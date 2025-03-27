@@ -115,7 +115,7 @@
 )
 
 ;;; Return plans to go from one regionscorr to another.
-(defun domainstore-get-plans (storex from-regs to-regs pathx) ; -> planscorr
+(defun domainstore-get-plans (storex from-regs to-regs pathx) ; -> planscorrstore
   (assert (domainstore-p storex))
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
@@ -123,29 +123,33 @@
   (assert (domainstore-congruent storex from-regs))
   (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
-  (format t "~&domainstore-get-plans from ~A to ~A within ~A" (regionscorr-str from-regs) (regionscorr-str to-regs) (pathscorr-str pathx))
+  ;(format t "~&domainstore-get-plans: from ~A to ~A within ~A" (regionscorr-str from-regs) (regionscorr-str to-regs) (pathscorr-str pathx))
 
-  (let (last-regs pathx last-int cur-int) 
+  (let (last-int cur-regs next-regs next-int planx (ret (planscorrstore-new nil))) 
 
-    (setf last-regs (car (pathscorr-regionscorr-list pathx)))
     (setf last-int (car (pathscorr-regionscorr-list pathx)))
 
-    (loop for regsx in (cdr (pathscorr-regionscorr-list pathx)) do
-      ;(format t "~&last regs ~A regs ~A" last-regs regsx)
-      (when (not (regionscorr-superset-of :sup regsx :sub last-regs))
-        (setf cur-int (regionscorr-intersection last-regs regsx))
-        (format t "~&from ~A to ~A within ~A" (regionscorr-str last-int) (regionscorr-str cur-int) (regionscorr-str last-regs))
-        (setf last-int (regionscorr-translate-to last-int cur-int)) ; todo change from regionscorr-translate-to to get-plan.
-      )
+    (loop for inx from 0 below (- (pathscorr-length pathx) 2) do
 
-      (setf last-regs regsx)
-    )
+      (setf cur-regs  (nth (+ 1 inx) (pathscorr-regionscorr-list pathx)))
+      (setf next-regs (nth (+ 2 inx) (pathscorr-regionscorr-list pathx)))
+
+      (setf next-int (regionscorr-intersection cur-regs next-regs))
+
+      (setf planx (domainstore-get-plan storex last-int next-int cur-regs))
+      (if planx
+        (planscorrstore-add-end ret planx)
+        (return-from domainstore-get-plans nil)
+      )
+      (setf last-int (planscorr-result-regions planx)) ; s/b subset of next-int.
+   )
+   ret
   )
 )
 
 ;;; Return plans to go from one region to another, within a given region.
-(defun domainstore-get-plan (storex from-regs to-regs within) ; -> planstore, or nil.
-  (format t "~&domainstore-get-plan: from ~A to ~A within ~A" from-regs to-regs within)
+(defun domainstore-get-plan (storex from-regs to-regs within) ; -> planscorr, or nil.
+  ;(format t "~&domainstore-get-plan: from ~A to ~A within ~A" (regionscorr-str from-regs) (regionscorr-str to-regs) (regionscorr-str within))
   (assert (domainstore-p storex))
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
@@ -154,39 +158,35 @@
   (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
   
-  (if (not (regionscorr-superset-of :sup within :sub from-regs))
-    (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" within from-regs)
-    )
+  ;(if (not (regionscorr-superset-of :sup within :sub from-regs))
+  ;  (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" (regionscorr-str within) (regionscorr-str from-regs))
+  ;)
   (assert (regionscorr-superset-of :sup within :sub from-regs))
 
-  (if (not (regionscorr-superset-of :sup within :sub to-regs))
-    (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" within to-regs)
-    )
+  ;(if (not (regionscorr-superset-of :sup within :sub to-regs))
+  ;  (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" (regionscorr-str within) (regionscorr-str to-regs))
+  ;)
   (assert (regionscorr-superset-of :sup within :sub to-regs))
 
-  (let ((ret-store (planstore-new nil)) domx-plan from-next)
-
-    (setf from-next (car (regionscorr-region-list from-regs)))
+  (let ((ret-store (planscorr-new nil)) domx-plan)
 
     (loop for domx in (domainstore-domains storex)
           for from-regx in (regionscorr-region-list from-regs)
           for to-regx   in (regionscorr-region-list to-regs)
           for with-regx in (regionscorr-region-list within) do
 
-      (when (not (region-superset-of :sup to-regx :sub from-next))
+	  (assert (region-superset-of :sub from-regx :sup with-regx))
+	  (assert (region-superset-of :sub to-regx :sup with-regx))
 
-	(assert (region-superset-of :sup from-regx :sub from-next))
+      (setf domx-plan (domain-get-plan domx from-regx to-regx with-regx 5))
 
-        (setf domx-plan (domain-get-plan domx from-next to-regx with-regx 5))
+      (if (null domx-plan)
+       (return-from domainstore-get-plan nil))
 
-	(if (null domx-plan)
-	  (return-from domainstore-get-plan nil))
-
-        (if (plan-is-not-empty domx-plan)
-	  (planstore-add-end-link ret-store domx-plan))
-      )
+      (planscorr-add-end ret-store domx-plan)
     )
-    (format t "~&domainstore-get-plan: returning ~A" ret-store)
+
+    ;(format t "~&domainstore-get-plan: returning ~A" (planscorr-str ret-store))
     ret-store
   )
 )
