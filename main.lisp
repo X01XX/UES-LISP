@@ -294,7 +294,12 @@
                       (if plans
                         (progn
                           ;(format t "~&plans: ~A" (planscorrstore-str plans))
-                          (format t "~&TODO run plans")
+                          ;(format t "~&TODO run plans")
+                          (domainstore-run-plans (sessiondata-domains sessx) plans)
+                          (if (regionscorr-superset-of :sup (domainstore-max-regions (sessiondata-domains sessx)) :sub to-regs)
+                            (format t "~&Plans worked")
+                            (format t "~&Plans failed")
+                          )
                         )
                         (format t "~&plans not found")
                       )
@@ -306,6 +311,8 @@
             )
             (format t "~&Could not convert the regionscorr definition in the to command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 

@@ -177,13 +177,13 @@
         ;; Parse wanted 0->1 changes in X->x
         (setf msk-change (mask-new-and w01 x-not-x))
         (if (mask-is-not-low msk-change)
-  	  (setf rulz (rule-mask-off-ones rulz msk-change))
+  	      (setf rulz (rule-mask-off-ones rulz msk-change))
         )
   
         ;; Parse wanted 1->0 changes in X->x
         (setf msk-change (mask-new-and w10 x-not-x))
         (if (mask-is-not-low msk-change)
-  	  (setf rulz (rule-mask-off-zeros rulz msk-change))
+  	      (setf rulz (rule-mask-off-zeros rulz msk-change))
         )
         ;(format t "~&rulz ~A" rulz)
   
@@ -194,11 +194,11 @@
           ;(format t "~&rulz2 ~A" rulz)
           (when (region-intersects (rule-result-region rulz) within)
 
-  	    (if (region-intersects (rule-initial-region rulz) from-reg)
-  	      (setf rulz (rule-restrict-initial-region rulz from-reg)))
+  	        (if (region-intersects (rule-initial-region rulz) from-reg)
+  	          (setf rulz (rule-restrict-initial-region rulz from-reg)))
   
-  	    (if (region-intersects (rule-result-region rulz) to-reg)
-  	      (setf rulz (rule-restrict-result-region rulz to-reg)))
+  	        (if (region-intersects (rule-result-region rulz) to-reg)
+  	          (setf rulz (rule-restrict-result-region rulz to-reg)))
   
             ;(format t "~&rulz3 ~A" rulz)
   

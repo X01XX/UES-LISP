@@ -282,7 +282,9 @@
 )
 
 ;;; Run a plan.
-(defun domain-run-plan (domx planx) ; -> side effect, domain may be changed.
+;;; Return false as soon as an unexpected result happens.
+;;; Otherwise return true.
+(defun domain-run-plan (domx planx) ; -> bool. side effect, domain may be changed.
   (assert (domain-p domx))
   (assert (plan-p planx))
   (assert (= (domain-num-bits domx) (plan-num-bits planx)))
@@ -294,13 +296,18 @@
         (progn
           (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
           (setf (domain-current-state domx) (sample-result smpl))
+          (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
+            (format t "~&step result region unexpected.")
+            (return-from domain-run-plan false)
+          )
         )
         (progn
           (format t "~&step initial region is not a superset of the current state")
-          (return-from domain-run-plan)
+          (return-from domain-run-plan false)
         )
       ) 
     ) ; next stepx
+    true
   )
 )
 

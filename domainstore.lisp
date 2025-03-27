@@ -284,7 +284,7 @@
   )
 )
 
-;;; Seh the domain states.
+;;; Set the domain states.
 (defun domainstore-set-states (storex stacrx) ; side-effect, domains changed.
   (assert (domainstore-p storex))
   (assert (statescorr-p stacrx))
@@ -294,6 +294,28 @@
         for stax in (statescorr-state-list stacrx) do
    
     (domain-set-state domx stax)
+  )
+)
+
+;;; Run a planscorrstore struct.
+;;; Ruturn nil as soon as there is an unexpected result.
+;;; Otherwise return true.
+(defun domainstore-run-plans (storex plans) ; bool, side-effect, domain current-states changed.
+  (assert (domainstore-p storex))
+  (assert (planscorrstore-p plans))
+
+  (let (rslt)
+    (loop for pcx in (planscorrstore-planscorrs plans) do
+
+      (loop for plnx in (planscorr-plan-list pcx)
+            for domx in (domainstore-domains storex) do
+
+        (setf rslt (domain-run-plan domx plnx))
+        (if (null rslt)
+          (return-from domainstore-run-plans false))
+      )
+    )
+    true
   )
 )
 
