@@ -289,9 +289,13 @@
   (assert (plan-p planx))
   (assert (= (domain-num-bits domx) (plan-num-bits planx)))
 
+  (if (zerop (step-act-id (plan-first-step planx)))
+     (return-from domain-run-plan true))
+
   (let (smpl)
     (format t "~&Domain: ~D, running plan: ~A" (domain-id domx) (plan-str planx))
     (loop for stepx in (plan-step-list planx) do
+
       (if (region-superset-of-state (step-initial-region stepx) (domain-current-state domx))
         (progn
           (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))

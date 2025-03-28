@@ -172,6 +172,21 @@
   true
 )
 
+;;;; Return true if a regionscorr is a superset of a statescorr.
+(defun regionscorr-superset-of-states (rcx scx) ; -> bool
+  ;(format t "~&regionscorr-superset-of-states: ~A ~A" rcx scx) 
+  (assert (regionscorr-p rcx))
+  (assert (statescorr-p scx))
+  (assert (regionscorr-congruent-states rcx scx))
+
+  (loop for regx in (regionscorr-region-list rcx)
+        for stax in (statescorr-state-list scx) do
+    (if (not (region-superset-of-state regx stax))
+      (return-from regionscorr-superset-of-states false))
+  )
+  true
+)
+
 ;;; Return a list of regionscorr from subtracting two regionscorr.
 (defun regionscorr-subtract (&key min sub) ; -> regionscorrstore.
   ;(format t "~&regionscorr-subtract: ~A ~A" min sub)
@@ -253,6 +268,24 @@
 
     (if (/= (region-num-bits reg1) (region-num-bits reg2))
       (return-from regionscorr-congruent false))
+  )
+  true
+)
+
+;;; Return true if a regionscorr and statescorr have the same length and corresponding num-bits values.
+(defun regionscorr-congruent-states (rcx scx) ; -> bool
+  ;(format t "~&regionscorr-congruent-states: ~A ~A" rcx scx)
+  (assert (regionscorr-p rcx))
+  (assert (statescorr-p scx))
+
+  (if (/= (regionscorr-length rcx) (statescorr-length scx))
+    (return-from regionscorr-congruent-states false))
+
+  (loop for regx in (regionscorr-region-list rcx)
+        for stax in (statescorr-state-list scx) do
+
+      (if (/= (region-num-bits regx) (state-num-bits stax))
+        (return-from regionscorr-congruent-states false))
   )
   true
 )

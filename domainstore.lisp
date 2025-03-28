@@ -204,8 +204,8 @@
       (if (need-plan nedx)
         (needstore-push can-do nedx)
         (needstore-push cant-do nedx)
-     )
-    )
+      )
+    ) ; next nedx
     (values needs can-do cant-do)
   )
 )
@@ -243,11 +243,21 @@
   (assert (need-p nedx))
   (assert (< (need-dom-id nedx) (domainstore-length dmxs)))
 
-  ;; TODO Form from/to regionscorrs, with maximun regions except the domain specified in the need.
-  ;; TODO Then run domainstore-get-plans.
-  ;; TODO The plan may need changes in other domain states to avoid negative selectregions.
-  (let ((dom-id (need-dom-id nedx)))
+  (if (planscorrstore-p (need-plan nedx))
+    (let (smpl domx)
+      (domainstore-run-plans dmxs (need-plan nedx))
+      (setf domx (domainstore-nth dmxs (need-dom-id nedx)))
+      (when (or  ; If target is a regionscorr, no additional action is taken.
+           (and (state-p (need-target nedx)) (state-eq (domain-current-state domx) (need-target nedx)))
+           (and (region-p (need-target nedx)) (region-superset-of-state (need-target nedx) (domain-current-state domx)))
+          )   
+          (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) (need-act-id nedx)) (domain-current-state domx) nedx))
+          (setf (domain-current-state domx) (sample-result smpl))
+      )
+    )
+    (let ((dom-id (need-dom-id nedx)))
       (domain-process-need (domainstore-nth dmxs dom-id) nedx)
+    )
   )
 )
 

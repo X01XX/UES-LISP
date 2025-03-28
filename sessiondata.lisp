@@ -246,6 +246,46 @@
       (setf (sessiondata-can-do sessx) can-do)
       (setf (sessiondata-cant-do sessx) cant-do)
   )
+
+  ;; Testing
+  (let ((dmxs (sessiondata-domains sessx)))
+
+    (loop for nedx in (needstore-need-list (sessiondata-can-do sessx)) do
+
+      (when (plan-is-not-empty (need-plan nedx)) 
+      
+        (let (targetx
+             (cur-regs (domainstore-all-current-regions (sessiondata-domains sessx)))
+             )
+ 
+          (if (state-p (need-target nedx))
+            (setf targetx (region-new (list (need-target nedx))))
+            (setf targetx (need-target nedx)))
+ 
+          (let (new-target plans)
+  
+            ;; Calc all-domains target.
+            (setf new-target (regionscorr-new nil))
+            (loop for domx in (domainstore-domains dmxs) do
+              (if (= (domain-id domx) (need-dom-id nedx))
+                (regionscorr-add-end new-target targetx)
+                (regionscorr-add-end new-target (domain-max-region domx))
+              )
+            ) ; next domx
+ 
+            ;; Get plans
+            (setf plans (sessiondata-get-plans sessx new-target))
+ 
+            (when (not (null plans))
+              ;(format t "~&planxx: ~A vs ~A" (plan-str (need-plan nedx)) (planscorrstore-str plans))
+              (setf (need-plan nedx) plans)
+            )
+          ) ; end let
+        ) ; end let
+      ) ; end when
+    ) ; next nedx
+  )
+  ;; end testing
 )
 
 ;;; Process a given need.
@@ -294,16 +334,27 @@
 
 ;;; Return plans to go from the current states to within a set of regions.
 ;;; Tolerating more and more negative selectregions, as needed.
-(defun sessionstore-get-plans (sessx to-regs) ; -> PlansCorrStore.
+(defun sessiondata-get-plans (sessx to-regs) ; -> PlansCorrStore.
   (assert (sessiondata-p sessx))
   (assert (regionscorr-p to-regs))
 
-  (sessionstore-get-plans2 sessx (domainstore-all-current-regions (sessiondata-domains sessx)) to-regs)
+  (let (plans)
+    (setf plans (sessiondata-get-plans2 sessx (domainstore-all-current-regions (sessiondata-domains sessx)) to-regs))
+    (if plans
+      (return-from sessiondata-get-plans plans))
+    (setf plans (sessiondata-get-plans2 sessx (domainstore-all-current-regions (sessiondata-domains sessx)) to-regs))
+    (if plans
+      (return-from sessiondata-get-plans plans))
+    (setf plans (sessiondata-get-plans2 sessx (domainstore-all-current-regions (sessiondata-domains sessx)) to-regs))
+    (if plans
+      (return-from sessiondata-get-plans plans))
+    plans
+  )
 )
 
 ;;; Return plans to go from a given set of regions to within another set of regions.
 ;;; Tolerating more and more negative selectregions, as needed.
-(defun sessionstore-get-plans2 (sessx from-regs to-regs) ; -> PlansCorrStore.
+(defun sessiondata-get-plans2 (sessx from-regs to-regs) ; -> PlansCorrStore.
   (assert (sessiondata-p sessx))
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
@@ -325,22 +376,26 @@
     (loop for inx from le0-position below (length (sessiondata-le0-levels sessx))
           while (null path) do
 
+      (setf min-rate (nth inx (sessiondata-le0-levels sessx)))
       (setf path (regionscorrstore-find-path (nth inx (sessiondata-regionscorrstore-paths sessx)) from-regs to-regs))
     )
 
     (when (null path)
-      (format t "~&sessionstore-get-plans2: No path found")
-      (return-from sessionstore-get-plans2 nil)
+      (format t "~&sessiondata-get-plans2: No path found")
+      (return-from sessiondata-get-plans2 nil)
     )
 
-    (format t "~&sessionstore-get-plans2: Path found: ~A" (pathscorr-str path))
+    ;(format t "~&sessiondata-get-plans2: Path found: ~A" (pathscorr-str path))
 
     ;(format t "~&TODO get plans")
     (setf plans (domainstore-get-plans (sessiondata-domains sessx) from-regs to-regs path))
 
     (if plans
-      (format t "~&sessionstore-get-plans2: Plans found: ~A" (planscorrstore-str plans))
-      (format t "~&sessionstore-get-plans2: No plans found")
+      (progn
+        (setf (planscorrstore-value plans) min-rate)
+        ;(format t "~&sessiondata-get-plans2: Plans found: ~A" (planscorrstore-str plans))
+      )
+      ;(format t "~&sessiondata-get-plans2: No plans found")
     )
 
     plans

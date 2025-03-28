@@ -32,6 +32,17 @@
   (make-planscorr :planstore (planstore-new plans))
 )
 
+;;; Chegk if use of act 0 steps is valid.
+(defun planscorr-act0-steps-valid (plansc) ; -> bool
+  (assert (planscorr-p plansc))
+  
+  (loop for plnx in (planscorr-plan-list plansc) do
+    (if (not (plan-act0-steps-valid plnx))
+      (return-from planscorr-act0-steps-valid false))
+  )
+  true
+)
+
 ;;; Return a string representing a planscorr.
 (defun planscorr-str (plansc) ; -> string.
   (assert (planscorr-p plansc))

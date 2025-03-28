@@ -10,7 +10,7 @@
 ; Implement a store of plans.
 (defstruct planscorrstore
   planscorrs 	; A list of zero, or more, planscorr.
-  value	     	; A value representing select regions the plans pass through.
+  value	     	; A LE 0 value representing the negative value of select regions' rate the plans pass through.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -41,6 +41,8 @@
 
 ;;; Seh the value of a planscorrstore.
 (defun planscorrstore-set-value (storex val) ; -> nothing, side-effect planscorrstore-value changed.
+  (assert (planscorrstore-p storex))
+
   (setf (planscorrstore-value storex) val)
 )
 
@@ -78,7 +80,10 @@
 (defun planscorrstore-str (storex) ; -> string.
   (assert (planscorrstore-p storex))
 
-  (let ((ret "#S(PLANSCORRSTORE ") (start t))
+  (let ((ret "#S(PCST ") (start t))
+
+    (if (not (zerop (planscorrstore-value storex)))
+      (setf ret (concatenate 'string ret (format nil " ~D " (planscorrstore-value storex)))))
 
     (loop for plnx in (planscorrstore-planscorrs storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
@@ -95,9 +100,17 @@
 
 ;;; Check that planscorr items are linked.
 (defun planscorrstore-is-valid (storex) ; -> bool
+  (assert (planscorrstore-p storex))
+
   (loop for plnx in (planscorrstore-planscorrs storex)
         for plny in (cdr (planscorrstore-planscorrs storex)) do
+
     (if (not (planscorr-is-linked-to plnx plny))
+      (return-from planscorrstore-is-valid false))
+
+  )
+  (loop for plnx in (planscorrstore-planscorrs storex) do
+    (if (not (planscorr-act0-steps-valid plnx))
       (return-from planscorrstore-is-valid false))
   )
   true

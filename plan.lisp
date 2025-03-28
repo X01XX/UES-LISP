@@ -335,3 +335,17 @@
   )
 )
 
+;;; Check use of act 0 steps.
+(defun plan-act0-steps-valid (plnx) ; -> bool.
+  (assert (plan-p plnx))
+  
+  (if (< (length (plan-step-list plnx)) 2)
+    (return-from plan-act0-steps-valid true))
+
+  (loop for stepx in (plan-step-list plnx) do
+    (if (zerop (step-act-id stepx))
+      (return-from plan-act0-steps-valid false))
+  )
+  true
+)
+

@@ -29,6 +29,7 @@
     (plan nil)      ; Plan to position the current state to the target.
                     ; Nil means no plan to target.
                     ; An empty plan means the position is already at the target.
+                    ; Planscorrstore indicates actions in multiple domains to avoid negative selectregions.
 )
 
 ; Functions automatically created by defstruct:
@@ -91,10 +92,12 @@
         (if (string/= (need-extra-info needx) "")
             (setf str (concatenate 'string str (format nil " :info ~A" (need-extra-info needx)))))
 
-        (when (not (null (need-plan needx)))
-            (if (plan-is-empty (need-plan needx))
-              (setf str (concatenate 'string str " At target"))
-              (setf str (concatenate 'string str (format nil " :plan ~A" (plan-str (need-plan needx))))))
+        (cond ((plan-p (need-plan needx))
+               (if (plan-is-empty (need-plan needx))
+                 (setf str (concatenate 'string str " At target"))
+                 (setf str (concatenate 'string str (format nil " :plan ~A" (plan-str (need-plan needx)))))))
+              ((planscorrstore-p (need-plan needx))
+                 (setf str (concatenate 'string str (format nil " :plan ~A" (planscorrstore-str (need-plan needx))))))
         )
   
         (setf str (concatenate 'string str "]"))
