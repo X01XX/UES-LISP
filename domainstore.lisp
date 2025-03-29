@@ -199,6 +199,7 @@
     (loop for domx in (domainstore-domains dmxs) do
       (setf needs (needstore-append needs (domain-get-needs domx)))
     )
+
     ; Process needs to get can-do, cant-do.
     (loop for nedx in (needstore-needs needs) do
       (if (need-plan nedx)
@@ -206,6 +207,7 @@
         (needstore-push cant-do nedx)
       )
     ) ; next nedx
+
     (values needs can-do cant-do)
   )
 )

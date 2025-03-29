@@ -398,3 +398,19 @@
 
     (make-regionscorr :regionstore (regionstore-from (second symbols)))
 )
+
+;;; Return the distance between two regionscorrs.
+(defun regionscorr-distance (regscorr1 regscorr2) ; -> integer
+  (assert (regionscorr-p regscorr1))
+  (assert (regionscorr-p regscorr2))
+  (assert (regionscorr-congruent regscorr1 regscorr2))
+
+  (let ((cnt 0))
+    (loop for reg1 in (regionscorr-region-list regscorr1)
+  	      for reg2 in (regionscorr-region-list regscorr2) do
+  
+      (setf cnt (+ cnt (region-distance reg1 reg2)))
+    )
+    cnt
+  )
+)

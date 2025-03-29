@@ -3,8 +3,9 @@
 ;;; Define need kinds
 (defvar *first-sample-of-state* 1009) ; There should be no square stored with this state.
 (defvar *resample-state*        1013) ; There should be a non-pnc square stored with this state.
-(defvar *sample-in-region*      1019) ; There should be n square with a state in the region.
-(defvar *kinds* (list *first-sample-of-state* *resample-state* *sample-in-region*))
+(defvar *sample-in-region*      1019) ; There should be no square with a state in the region.
+(defvar *change-position*       1023) ; hange the current position.
+(defvar *kinds* (list *first-sample-of-state* *resample-state* *sample-in-region* *change-position*))
 
 ;;; Define need reasons
 (defvar *state-not-in-group* 2003)
@@ -12,11 +13,15 @@
 (defvar *contradictory-intersection* 2011)
 (defvar *between-ip* 2017)
 (defvar *expand-group* 2019)
+(defvar *avoid-negative-selectregions* 2023)
+(defvar *seek-positive-selectregions* 2027)
 (defvar *reasons* (list *state-not-in-group*
                         *confirm-group*
                         *contradictory-intersection*
                         *expand-group*
-                        *between-ip*)
+                        *between-ip*
+                        *avoid-negative-selectregions*
+                        *seek-positive-selectregions*)
    )
 
 (defstruct need
@@ -45,7 +50,7 @@
 ; (typep <instance> 'need) -> t
 
 ; Return a new need instance.
-(defun need-new (&key (dom-id 0) act-id kind reason target (extra-info ""))
+(defun need-new (&key (dom-id 0) (act-id 0) kind reason target (extra-info ""))
     (assert (integerp dom-id))
     (assert (integerp act-id))
     (assert (numberp kind))
@@ -62,8 +67,10 @@
     (assert (need-p needx))
 
     (let ((str "#S[NEED"))
-        (setf str (concatenate 'string str (format nil " :dom ~D" (need-dom-id needx))))
-        (setf str (concatenate 'string str (format nil " :act ~D" (need-act-id needx))))
+        (when (not (regionscorr-p (need-target needx)))
+          (setf str (concatenate 'string str (format nil " :dom ~D" (need-dom-id needx))))
+          (setf str (concatenate 'string str (format nil " :act ~D" (need-act-id needx))))
+        )
 
         (cond ((= (need-kind needx) *first-sample-of-state*)
                 (setf str (concatenate 'string str " :kind Get first sample of state")))
@@ -71,6 +78,8 @@
                 (setf str (concatenate 'string str " :kind Resample state")))
               ((= (need-kind needx) *sample-in-region*)
                 (setf str (concatenate 'string str " :kind Get sample in region")))
+              ((= (need-kind needx) *change-position*)
+                (setf str (concatenate 'string str " :kind Change current position")))
         )
 
         (cond ((= (need-reason needx) *state-not-in-group*)
@@ -83,11 +92,19 @@
                 (setf str (concatenate 'string str (format nil " :reason Between Incompatible Pair "))))
               ((= (need-reason needx) *expand-group*)
                 (setf str (concatenate 'string str (format nil " :reason To expand group"))))
+              ((= (need-reason needx) *avoid-negative-selectregions*)
+                (setf str (concatenate 'string str (format nil " :reason Avoid staying in a negative selectregion"))))
+              ((= (need-reason needx) *seek-positive-selectregions*)
+                (setf str (concatenate 'string str (format nil " :reason Seek staying in a positive selectregion"))))
         )
 
-        (if (state-p (need-target needx))
-            (setf str (concatenate 'string str (format nil " :target ~A" (state-str (need-target needx)))))
-            (setf str (concatenate 'string str (format nil " :target ~A" (region-str (need-target needx))))))
+        (cond ((state-p (need-target needx))
+               (setf str (concatenate 'string str (format nil " :target ~A" (state-str (need-target needx))))))
+              ((region-p (need-target needx))
+               (setf str (concatenate 'string str (format nil " :target ~A" (region-str (need-target needx))))))
+              ((regionscorr-p (need-target needx))
+               (setf str (concatenate 'string str (format nil " :target ~A" (regionscorr-str (need-target needx))))))
+        )
 
         (if (string/= (need-extra-info needx) "")
             (setf str (concatenate 'string str (format nil " :info ~A" (need-extra-info needx)))))

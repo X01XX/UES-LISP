@@ -247,16 +247,14 @@
       (setf (sessiondata-cant-do sessx) cant-do)
   )
 
-  ;; Testing
+  ;; Get domain needs while avoiding negative selectregions.
   (let ((dmxs (sessiondata-domains sessx)))
 
     (loop for nedx in (needstore-need-list (sessiondata-can-do sessx)) do
 
       (when (plan-is-not-empty (need-plan nedx)) 
       
-        (let (targetx
-             (cur-regs (domainstore-all-current-regions (sessiondata-domains sessx)))
-             )
+        (let (targetx)
  
           (if (state-p (need-target nedx))
             (setf targetx (region-new (list (need-target nedx))))
@@ -285,8 +283,24 @@
       ) ; end when
     ) ; next nedx
   )
-  ;; end testing
-)
+
+  ;; Check current position if no domain needs can be done.
+  (when (needstore-is-empty (sessiondata-can-do sessx))
+
+    (let (needs)
+      (setf needs (sessiondata-move-from-negative-selectregions sessx))
+
+      (loop for nedx in (needstore-needs needs) do
+
+        (if (need-plan nedx)
+          (needstore-push (sessiondata-can-do sessx) nedx)
+          (needstore-push (sessiondata-cant-do sessx) nedx)
+        )
+        (needstore-push (sessiondata-needs sessx) nedx)
+      ) ; next nedx
+    )
+  )
+) ; end sessiondata-get-needs
 
 ;;; Process a given need.
 ;;; TODO pass (sessiondata-selectregions-paths sessx) to domainstore-process-need.
@@ -399,5 +413,62 @@
     )
 
     plans
+  )
+)
+
+;;; Return need to exit negative-rated selectregion, with plan, if needed.
+(defun sessiondata-move-from-negative-selectregions (sessx) ; -> needstore.
+  ;(format t "~&sessiondata-move-from-negative-selectregions")
+
+  (assert (sessiondata-p sessx))
+
+  (let ((needs (needstore-new nil)) cur-regs cur-rate close-rcs (min-dist 9999) dist plans nedx)
+
+    (setf cur-regs (sessiondata-domain-current-regions sessx))
+    (setf cur-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) cur-regs))
+
+    (if (or (zerop (rate-negative cur-rate))  (= (rate-negative cur-rate) (car (sessiondata-le0-levels sessx))))
+      (return-from sessiondata-move-from-negative-selectregions needs))
+
+    ;; Collect closest regionstorecorrs from least negative in regionscorrstore-paths.
+    (loop for rcsx in (regionscorrstore-regionscorrs (car (sessiondata-regionscorrstore-paths sessx))) do
+
+      (setf dist (regionscorr-distance rcsx cur-regs))
+
+      (when (< dist min-dist)
+        (assert (plusp dist))
+        (setf min-dist dist close-rcs nil)) 
+
+      (if (= dist min-dist)
+        (push rcsx close-rcs))
+    )
+   
+    ;; Collect closest regionstorecorrs from least negative in regionscorrstore-paths.
+    (loop for rcsx in (regionscorrstore-regionscorrs (car (sessiondata-regionscorrstore-paths sessx))) do
+
+      (setf dist (regionscorr-distance rcsx cur-regs))
+
+      (when (< dist min-dist)
+        (assert (plusp dist))
+        (setf min-dist dist close-rcs nil)) 
+
+      (if (= dist min-dist)
+        (push rcsx close-rcs))
+    ) ; next rcsx
+
+    (loop for rcsx in close-rcs do
+      (setf nedx (need-new :kind *change-position*
+                           :reason *avoid-negative-selectregions*
+                           :target rcsx
+                           ))
+
+      (setf plans (sessiondata-get-plans sessx rcsx))
+      (if plans
+         (setf (need-plan nedx) plans)
+      )
+
+      (needstore-push needs nedx)
+    ) ; next rcsx
+    needs
   )
 )
