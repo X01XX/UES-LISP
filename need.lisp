@@ -95,7 +95,7 @@
               ((= (need-reason needx) *avoid-negative-selectregions*)
                 (setf str (concatenate 'string str (format nil " :reason Avoid staying in a negative selectregion"))))
               ((= (need-reason needx) *seek-positive-selectregions*)
-                (setf str (concatenate 'string str (format nil " :reason Seek staying in a positive selectregion"))))
+                (setf str (concatenate 'string str (format nil " :reason Seek a positive selectregion"))))
         )
 
         (cond ((state-p (need-target needx))

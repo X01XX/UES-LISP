@@ -10,6 +10,10 @@
     le0-levels       ; A list of successively more negative selectregion levels, starting with 0.
     regionscorrstore-paths ; List of regioncorrstores, for each le0-level.
     step-num        ; Current step number.
+    num-steps-at    ; Number steps at the current position.  Used with positive selectregions.
+                    ; Stay in a positive selectregion for a number of steps up to the value of the selectregion,
+                    ; if there is another positive selectregion option, else stay in one region.
+    previous-position ; Previous step position.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -35,6 +39,8 @@
                       :le0-levels nil
                       :regionscorrstore-paths nil
                       :step-num 0
+                      :num-steps-at 0
+                      :previous-position (statescorr-new nil)
     )
 )
 
@@ -64,6 +70,8 @@
     (setf rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) (sessiondata-domain-current-regions sessx)))
     (format t "~&Current states: ~A Status: ~A ~A" (statescorr-str (sessiondata-domain-current-states sessx))
        (rate-effect rate) (rate-str rate))
+    (if (plusp (sessiondata-num-steps-at sessx))
+      (format t ", boredom/satiation counter ~D" (sessiondata-num-steps-at sessx)))
 
     (domainstore-print (sessiondata-domains sessx))
   )
@@ -105,7 +113,9 @@
                                             :selectregions-fragments (selectregionsstore-new nil)
                                             :le0-levels nil
                                             :regionscorrstore-paths nil
-                                            :step-num 0))
+                                            :step-num 0
+                                            :num-steps-at 0
+                                            :previous-position (domainstore-all-current-states ds)))
 
                 ;(sessiondata-print sdx)
 
@@ -284,22 +294,47 @@
     ) ; next nedx
   )
 
-  ;; Check current position if no domain needs can be done.
+  ;; If no domain needs can be done, check status of current states.
   (when (needstore-is-empty (sessiondata-can-do sessx))
 
-    (let (needs)
+    (let (needs (neg-needs-can-do 0))
+
+      ;; Get needs for moving out of a negative selectregions, if any.
       (setf needs (sessiondata-move-from-negative-selectregions sessx))
 
-      (loop for nedx in (needstore-needs needs) do
+      (when (needstore-is-not-empty needs)
 
-        (if (need-plan nedx)
-          (needstore-push (sessiondata-can-do sessx) nedx)
-          (needstore-push (sessiondata-cant-do sessx) nedx)
+        (loop for nedx in (needstore-needs needs) do
+  
+          (if (need-plan nedx)
+            (progn
+              (incf neg-needs-can-do)
+              (needstore-push (sessiondata-can-do sessx) nedx)
+            )
+            (needstore-push (sessiondata-cant-do sessx) nedx)
+          )
+          (needstore-push (sessiondata-needs sessx) nedx)
+        ) ; next nedx
+        (if (> neg-needs-can-do 0)
+          (return-from sessiondata-get-needs) 
         )
-        (needstore-push (sessiondata-needs sessx) nedx)
-      ) ; next nedx
-    )
-  )
+      ) ; end when
+
+      ;; Get need for moving to a positive selectregions, if any.
+      (setf needs (sessiondata-move-to-positive-selectregions sessx))
+      (when (needstore-is-not-empty needs)
+        (loop for nedx in (needstore-needs needs) do
+  
+          (if (need-plan nedx)
+            (needstore-push (sessiondata-can-do sessx) nedx)
+            (needstore-push (sessiondata-cant-do sessx) nedx)
+          )
+          (needstore-push (sessiondata-needs sessx) nedx)
+        ) ; next nedx
+      )
+    ) ; end let
+  ) ; end when
+
 ) ; end sessiondata-get-needs
 
 ;;; Process a given need.
@@ -456,6 +491,7 @@
         (push rcsx close-rcs))
     ) ; next rcsx
 
+    ;; Generate needs.
     (loop for rcsx in close-rcs do
       (setf nedx (need-new :kind *change-position*
                            :reason *avoid-negative-selectregions*
@@ -472,3 +508,59 @@
     needs
   )
 )
+
+;;; Return need to seek positive-rated selectregion, with plan, if needed.
+(defun sessiondata-move-to-positive-selectregions (sessx) ; -> needstore.
+  ;(format t "~&sessiondata-move-to-positive-selectregions")
+
+  (assert (sessiondata-p sessx))
+
+  (let ((needs (needstore-new nil)) cur-regs cur-rate pos-rcs plans nedx)
+
+    (setf cur-regs (sessiondata-domain-current-regions sessx))
+    (setf cur-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) cur-regs))
+
+    (when (and (plusp (rate-positive cur-rate)) (< (sessiondata-num-steps-at sessx) (rate-positive cur-rate)))
+      (setf (sessiondata-num-steps-at sessx) (1+ (sessiondata-num-steps-at sessx)))
+      (return-from sessiondata-move-to-positive-selectregions needs))
+
+    ;; Collect selectregions that are positive, not superset current states. 
+    (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-fragments sessx)) do
+
+      (if (not (regionscorr-superset-of :sup (selectregions-regionscorr selx) :sub cur-regs))
+        (push (selectregions-regionscorr selx) pos-rcs))
+    )
+   
+    ; Generate needs.
+    (loop for rcsx in pos-rcs do
+      (setf nedx (need-new :kind *change-position*
+                           :reason *seek-positive-selectregions*
+                           :target rcsx
+                           ))
+
+      (setf plans (sessiondata-get-plans sessx rcsx))
+      (if plans
+         (setf (need-plan nedx) plans)
+      )
+
+      (needstore-push needs nedx)
+    ) ; next rcsx
+    needs
+  )
+)
+
+;;; Check and update previous-position and num-steps-at.
+(defun sessiondata-check-previous-position (sessx) ; -> side effect, sessiondata changed.
+  (assert (sessiondata-p sessx))
+
+  (let ((cur-states (sessiondata-domain-current-states sessx)))
+    (if (statescorr-eq cur-states (sessiondata-previous-position sessx))
+      (setf (sessiondata-num-steps-at sessx) (1+ (sessiondata-num-steps-at sessx)))
+      (progn
+        (setf (sessiondata-num-steps-at sessx) 0)
+        (setf (sessiondata-previous-position sessx) cur-states)
+      )
+    )
+  )
+)
+

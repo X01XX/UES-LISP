@@ -436,6 +436,8 @@
 	      (do-any-need sessx)
 	    )
       )
+      ;; Check previous states.      
+      (sessiondata-check-previous-position sessx)
     ) ; end loop
   ) ; end let
 ) ; end command-loop
