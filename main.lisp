@@ -39,9 +39,6 @@
 (load #p "rulestore.lisp")
 (load #p "rulestore_t.lisp")
 
-(load #p "rulescorr.lisp")
-(load #p "rulescorr_t.lisp")
-
 (load #p "group.lisp")
 (load #p "group_t.lisp")
 (load #p "groupstore.lisp")
@@ -65,12 +62,6 @@
 
 (load #p "anyxofn.lisp")
 (load #p "rate.lisp")
-
-(load #p "cngstps.lisp")
-(load #p "cngstps_t.lisp")
-
-(load #p "cngstpsstore.lisp")
-(load #p "cngstpsstore_t.lisp")
 
 (load #p "regionscorr.lisp")
 (load #p "regionscorr_t.lisp")
@@ -176,7 +167,7 @@
   (format t "~& ~&    ss <domain-number> <action-number> state - Sample State for a domain and action.")
   (format t "~& ~&    act-sqrs <domain-number> <action-number> - Show squares of a domain and action.")
   (format t "~& ~&    grp-sqrs <domain-number> <action-number> <region> - Show squares of a domain and action.")
-  (format t "~& ~&    run - Run steps until no more needs can be done.")
+  (format t "~& ~&    run - Run cycles until no more needs can be done.")
   (format t "~& ~&    to <regionscorr> - Change position to. Like: to (rc (r1010 r111))")
   (format t "~& ~&    write-session file-path - Write session to a file.")
   (format t "~& ~&    read-session  file-path - Read a session from a file.")
@@ -186,16 +177,16 @@
   (let (inp tokens token (run 0) just-read-in)
 
     (loop 
-      ;; Update step and needs, unless session just read in.
+      ;; Update cycle and needs, unless session just read in.
       (if just-read-in
         (setf just-read-in nil)
         (progn 
-          (sessiondata-inc-step-num sessx)
+          (sessiondata-inc-cycle-num sessx)
           (sessiondata-get-needs sessx)
         )
       )
 
-      (format t "~& ~&Step: ~D --------------------------------------------" (sessiondata-step-num sessx))
+      (format t "~& ~&Cycle: ~D --------------------------------------------" (sessiondata-cycle-num sessx))
       (sessiondata-print sessx)
       (display-needs sessx)
 
@@ -529,9 +520,7 @@
   (stepstore-tests)
 
   (change-tests)
-  (cngstps-tests)
 
-  (cngstpsstore-tests)
   (regionstore-tests)
 
   (pathscorr-tests)
@@ -551,7 +540,6 @@
   (selectregionsstore-tests)
 
   (maskscorr-tests)
-  (rulescorr-tests)
   (planscorr-tests)
   (planscorrstore-tests)
 

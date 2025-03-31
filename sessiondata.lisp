@@ -9,11 +9,11 @@
     selectregions-fragments   ; Selectregions-store split by intersections.
     le0-levels       ; A list of successively more negative selectregion levels, starting with 0.
     regionscorrstore-paths ; List of regioncorrstores, for each le0-level.
-    step-num        ; Current step number.
-    num-steps-at    ; Number steps at the current position.  Used with positive selectregions.
-                    ; Stay in a positive selectregion for a number of steps up to the value of the selectregion,
+    cycle-num        ; Current cycle number.
+    num-cycles-at    ; Number cycles at the current position.  Used with positive selectregions.
+                    ; Stay in a positive selectregion for a number of cycles up to the value of the selectregion,
                     ; if there is another positive selectregion option, else stay in one region.
-    previous-position ; Previous step position.
+    previous-position ; Previous cycle position.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -38,15 +38,15 @@
                       :selectregions-fragments (selectregionstore-new nil)
                       :le0-levels nil
                       :regionscorrstore-paths nil
-                      :step-num 0
-                      :num-steps-at 0
+                      :cycle-num 0
+                      :num-cycles-at 0
                       :previous-position (statescorr-new nil)
     )
 )
 
-;;; Increment the step num.
-(defun sessiondata-inc-step-num (sessx) ; -> side effect, step num changed.
-  (setf (sessiondata-step-num sessx) (+ 1 (sessiondata-step-num sessx)))
+;;; Increment the cycle num.
+(defun sessiondata-inc-cycle-num (sessx) ; -> side effect, cycle num changed.
+  (setf (sessiondata-cycle-num sessx) (+ 1 (sessiondata-cycle-num sessx)))
 )
 
 ;;; Return a string representation of a sessiondata instance.
@@ -70,8 +70,8 @@
     (setf rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) (sessiondata-domain-current-regions sessx)))
     (format t "~&Current states: ~A Status: ~A ~A" (statescorr-str (sessiondata-domain-current-states sessx))
        (rate-effect rate) (rate-str rate))
-    (if (plusp (sessiondata-num-steps-at sessx))
-      (format t ", boredom/satiation counter ~D" (sessiondata-num-steps-at sessx)))
+    (if (plusp (sessiondata-num-cycles-at sessx))
+      (format t ", boredom/satiation counter ~D" (sessiondata-num-cycles-at sessx)))
 
     (domainstore-print (sessiondata-domains sessx))
   )
@@ -113,8 +113,8 @@
                                             :selectregions-fragments (selectregionsstore-new nil)
                                             :le0-levels nil
                                             :regionscorrstore-paths nil
-                                            :step-num 0
-                                            :num-steps-at 0
+                                            :cycle-num 0
+                                            :num-cycles-at 0
                                             :previous-position (domainstore-all-current-states ds)))
 
                 ;(sessiondata-print sdx)
@@ -520,8 +520,8 @@
     (setf cur-regs (sessiondata-domain-current-regions sessx))
     (setf cur-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) cur-regs))
 
-    (when (and (plusp (rate-positive cur-rate)) (< (sessiondata-num-steps-at sessx) (rate-positive cur-rate)))
-      (setf (sessiondata-num-steps-at sessx) (1+ (sessiondata-num-steps-at sessx)))
+    (when (and (plusp (rate-positive cur-rate)) (< (sessiondata-num-cycles-at sessx) (rate-positive cur-rate)))
+      (setf (sessiondata-num-cycles-at sessx) (1+ (sessiondata-num-cycles-at sessx)))
       (return-from sessiondata-move-to-positive-selectregions needs))
 
     ;; Collect selectregions that are positive, not superset current states. 
@@ -549,15 +549,15 @@
   )
 )
 
-;;; Check and update previous-position and num-steps-at.
+;;; Check and update previous-position and num-cycles-at.
 (defun sessiondata-check-previous-position (sessx) ; -> side effect, sessiondata changed.
   (assert (sessiondata-p sessx))
 
   (let ((cur-states (sessiondata-domain-current-states sessx)))
     (if (statescorr-eq cur-states (sessiondata-previous-position sessx))
-      (setf (sessiondata-num-steps-at sessx) (1+ (sessiondata-num-steps-at sessx)))
+      (setf (sessiondata-num-cycles-at sessx) (1+ (sessiondata-num-cycles-at sessx)))
       (progn
-        (setf (sessiondata-num-steps-at sessx) 0)
+        (setf (sessiondata-num-cycles-at sessx) 0)
         (setf (sessiondata-previous-position sessx) cur-states)
       )
     )
