@@ -1,11 +1,7 @@
-
 ;;;; Implement a store of planscorr.
 ;;;;
 ;;;; From first to last, each planscorr result regions should equal the next
 ;;;; planscorr initial regions.
-
-
-
 
 ; Implement a store of plans.
 (defstruct planscorrstore

@@ -4,9 +4,6 @@
 ;;;;
 ;;;; The rule struct can be manipulated in a number of ways, like union and intersection.
 
-
-
-
 ;;; The rule struct.
 ;;;
 ;;; Single before/after samples can be directly set, for 0->0, 0->1, 1->1 and 1->0.
@@ -347,7 +344,7 @@
 ;;; Return a rule that has the minimun changes, to translate from one region to intersect another.
 ;;; A rule made this way will never have a X->x (0->1, 1->0) bit position.
 ;;; The X->x bit position can result from the union of two rules.
-(defun rule-new-region-to-region (reg1 reg2) ; -> rule.
+(defun rule-region-to-region (reg1 reg2) ; -> rule.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -435,7 +432,7 @@
   (if (region-intersects (rule-result-region rul1) (rule-initial-region rul2))
     (return-from rule-combine-sequence (rule-combine-sequence2 rul1 rul2)))
 
-  (let ((rule-between (rule-new-region-to-region (rule-result-region rul1) (rule-initial-region rul2))))
+  (let ((rule-between (rule-region-to-region (rule-result-region rul1) (rule-initial-region rul2))))
     (rule-combine-sequence2 (rule-combine-sequence2 rul1 rule-between) rul2)
   )
 )
@@ -477,7 +474,7 @@
   )
 )
 
-;;; Return a change form a rule..
+;;; Return a change from a rule.
 (defun rule-changes (rulx) ; -> change
   (assert (rule-p rulx))
 
@@ -581,3 +578,4 @@
                                   :m11 (mask-and (rule-m11 rulx) (mask-not (rule-m01 rulx)))
                                   :m10 (rule-m10 rulx)))
 )
+

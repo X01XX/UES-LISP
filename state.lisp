@@ -1,9 +1,6 @@
 ;;;; Implement the state struct and functions.
 ;;;; It reresents a square on a K-Map.
 
-
-
-
 ;;; The state struct.
 (defstruct state
   value  ; A value.

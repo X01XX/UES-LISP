@@ -1,8 +1,5 @@
 ;;;; Implement the region struct and functions.
 
-
-
-
 ;;; The region struct.
 ;;; It represents a 2^x by 2^y region of squares on a K-Map.
 (defstruct region
@@ -448,21 +445,6 @@
     )
     true
   )
-)
-
-;;; Return a change containing unwanted changes in acheiving a region as a goal.
-(defun region-unwanted-changes (regx) ; -> change
-  (assert (region-p regx))
-
-  (change-new :m01 (region-0-mask regx)
-              :m10 (region-1-mask regx)
-  )
-
-)
-
-;;; Return the number of unwanted changes.
-(defun region-num-unwanted-changes (regx) ; -> integer.
-  (change-num-changes (region-unwanted-changes regx))
 )
 
 ;;; Return the distance between a region and a state.

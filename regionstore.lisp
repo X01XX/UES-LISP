@@ -1,8 +1,5 @@
 ;;;; Implement a store of regions.
 
-
-
-
 ; Implement a store of regions.
 (defstruct regionstore
   regions  ; A list of zero, or more, regions.

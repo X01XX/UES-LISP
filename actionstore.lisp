@@ -1,9 +1,4 @@
 ; Implement a store of actions.
-
-
-
-
-; Implement a store of actions.
 (defstruct actionstore
   actions  ; A list of zero, or more, non-duplicate, same number bits, actions.
 )
@@ -89,15 +84,16 @@
 )
 
 ;  Return possible steps, given a rule.
-(defun actionstore-get-steps (storex rule-to-goal within) ; -> stepstore.
+(defun actionstore-get-steps (storex from-reg to-reg within) ; -> stepstore.
   ;(format t "~&actionstore-get-steps")
   (assert (actionstore-p storex))
-  (assert (rule-p rule-to-goal))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
   (assert (region-p within))
   
   (let ((ret-steps (stepstore-new nil)) act-steps)
     (loop for actx in (actionstore-actions storex) do
-      (setf act-steps (action-get-steps actx rule-to-goal within))
+      (setf act-steps (action-get-steps actx from-reg to-reg within))
       (loop for stpx in (stepstore-steps act-steps) do
         (stepstore-push ret-steps stpx) 
       )

@@ -1,8 +1,5 @@
 ;;;; Implement the plan struct and functions.
 
-
-
-
 ;;; The plan struct.
 (defstruct plan
   stepstore        ; A store of steps to go from one state to another.  May be empty.
@@ -318,7 +315,7 @@
 	  (setf actx (parse-integer (car actions)))
 	  (setf reg2 (region-from-str (car regions)))
 	  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
-	  (setf rulx (rule-new-region-to-region reg1 reg2))
+	  (setf rulx (rule-region-to-region reg1 reg2))
 	  ;(format t "~&rule is: ~A" rulx)
 	  (setf stepx (step-new :act-id actx :rule rulx))
 	  ;(format t "~&step ~A" (step-str stepx))

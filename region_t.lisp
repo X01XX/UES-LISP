@@ -400,20 +400,6 @@
     (format t "~&  region-edge-dif-mask OK")
   )
 
-  ; Test region-unwanted-changes.
-  (let (reg1 unwanted)
-    (setf reg1 (region-from 'r01x_01x_01x))
-     ;                  0->1 m100_100_100 
-     ;                  1->0 m010_010_010
-
-    (setf unwanted (region-unwanted-changes reg1))
-
-    (assert (mask-eq (change-m01 unwanted) (mask-from 'm100_100_100)))
-    (assert (mask-eq (change-m10 unwanted) (mask-from 'm010_010_010)))
-
-    (format t "~&  region-unwanted-changes OK")
-  )
-
  (format t "~&region-tests done")
  t
 )

@@ -238,17 +238,17 @@
     (format t "~&  rule-subset-of OK")
   )
 
-  ; Test rule-new-region-to-region.
+  ; Test rule-region-to-region.
   (let (rul1 reg1 reg2)
     (setf reg1 (region-from 'r000_111_xxx_Xx))
     (setf reg2 (region-from 'r01x_01x_01x_xX))
 
-    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    (setf rul1 (rule-region-to-region reg1 reg2))
     ;(format t "~&rul1 ~A" (rule-str rul1))
 
     (assert (rule-eq rul1 (rule-from "[00/01/00_10/11/11/x0_x1/xx/XX/XX]")))
 
-    (format t "~&  rule-new-region-to-region OK")
+    (format t "~&  rule-region-to-region OK")
   )
 
 
@@ -326,7 +326,7 @@
     (setf reg1 (region-from 'r000_111_xxx))
     (setf reg2 (region-from 'r01x_01x_01x))
 
-    (setf rul1 (rule-new-region-to-region reg1 reg2))
+    (setf rul1 (rule-region-to-region reg1 reg2))
     ;(format t "~&rul1       ~A" rul1)
 
     (setf wanted (rule-changes rul1))

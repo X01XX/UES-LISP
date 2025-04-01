@@ -1,7 +1,3 @@
-
-
-
-
 ;;;; Implement the Action type.
 ;;;;
 (defstruct domain
@@ -86,14 +82,16 @@
 )
 
 ;;; Return possible steps, given a rule.
-(defun domain-get-steps (domx rule-to-goal within) ; -> stepstore.
+(defun domain-get-steps (domx from-reg to-reg within) ; -> stepstore.
   (assert (domain-p domx))
-  (assert (rule-p rule-to-goal))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
   (assert (region-p within))
-  (assert (= (domain-num-bits domx) (rule-num-bits rule-to-goal)))
+  (assert (= (domain-num-bits domx) (region-num-bits from-reg)))
+  (assert (= (domain-num-bits domx) (region-num-bits to-reg)))
   (assert (= (domain-num-bits domx) (region-num-bits within)))
 
-  (actionstore-get-steps (domain-actions domx) rule-to-goal within)
+  (actionstore-get-steps (domain-actions domx) from-reg to-reg within)
 )
 
 ;;; Return the number of bits used by a domain.
@@ -138,13 +136,13 @@
   (if (region-intersects to-reg from-reg)
     (let ((int-reg (region-intersection to-reg from-reg)))
       ;(format t "~&domain-get-plan: returning 1 act 0 plan")
-      (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rule-new-region-to-region int-reg int-reg)))))))
+      (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rule-region-to-region int-reg int-reg)))))))
 
   (when (zerop depth)
     ;(format t "~&domain-get-plan: returning 2 nil")
     (return-from domain-get-plan nil))
 
-  (let ((steps (domain-get-steps domx (rule-new-region-to-region from-reg to-reg) with-reg)) stepy)
+  (let ((steps (domain-get-steps domx from-reg to-reg with-reg)) stepy)
     ;(format t "~&steps found ~A" (stepstore-str steps))
     ;; Check for one step that spans the gap.
     (let (span-steps)

@@ -1,9 +1,4 @@
-; Implement a store of groups.
-
-
-
-
-; Implement a store of groups.
+;;;; Implement a store of groups.
 (defstruct groupstore
   groups  ; A list of zero, or more, non-duplicate, same number bits, groups.
 )
@@ -116,20 +111,22 @@
 )
 
 ; Return possible steps to satisfy a rule.
-(defun groupstore-get-steps (storex rule-to-goal within) ; -> stepstore.
+(defun groupstore-get-steps (storex from-reg to-reg within) ; -> stepstore.
   ;(format t "~&groupstore-get-steps")
   (assert (groupstore-p storex))
-  (assert (rule-p rule-to-goal))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
   (assert (region-p within))
 
   (let ((ret-steps (stepstore-new nil)) steps)
     (loop for grpx in (groupstore-groups storex) do
-        (setf steps (group-get-steps grpx rule-to-goal within))
-	(loop for stpx in (stepstore-steps steps) do
-	  (if (not (stepstore-member ret-steps stpx))
-	    (stepstore-push ret-steps stpx)
-	  )	
-	)
+        (setf steps (group-get-steps grpx from-reg to-reg within))
+
+	  (loop for stpx in (stepstore-steps steps) do
+	    (if (not (stepstore-member ret-steps stpx))
+	      (stepstore-push ret-steps stpx)
+	    )
+	  )
     )
     ret-steps
   )

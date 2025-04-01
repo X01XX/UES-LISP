@@ -1,8 +1,5 @@
 ;;;; Implement the mask struct and functions.
 
-
-
-
 ;;; The mask struct.
 (defstruct mask
   value ; A value, where bits set to one have some meaning.

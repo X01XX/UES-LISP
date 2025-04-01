@@ -1,8 +1,5 @@
 ;;;; Implement a series of regions, with bit-number values corresponding to a list of domains.
 
-
-
-
 ; Implement a store of corresponding regions.
 (defstruct regionscorr
   regionstore  ; A regionstore of zero, or more, regions.

@@ -3,9 +3,6 @@
 ;;;; Arranged to implement a path within a selectplans fragment, the plans can
 ;;;; be run in parallel.
 
-
-
-
 ; Implement a store of corresponding plans.
 (defstruct planscorr
   planstore  ; A planstore of zero, or more, plans.

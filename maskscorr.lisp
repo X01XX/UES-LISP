@@ -1,8 +1,5 @@
 ;;;; Implement a series of masks, with bit-number values corresponding to a list of domains.
 
-
-
-
 ; Implement a store of corresponding masks.
 (defstruct maskscorr
   maskstore  ; A maskstore of zero, or more, masks.

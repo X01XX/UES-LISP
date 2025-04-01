@@ -1,8 +1,5 @@
 ;;;; Implement the selectregions struct and functions.
 
-
-
-
 ;;; The selectregions struct.
 (defstruct selectregions
   regionscorr   ; A store of correspondung regions.

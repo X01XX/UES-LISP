@@ -1,9 +1,4 @@
-;;;; Implement a needstore structxa, a store of need struct instances.
-
-
-
-
-;;; Implement a store of masks.
+;;;; Implement a needstore struct, a store of need struct instances.
 (defstruct needstore
   needs  ; A list of zero, or more, non-duplicate, same number bits, needs.
 )

@@ -1,7 +1,4 @@
-; Implement a store of steps.
-
-
-
+;;;; Implement a store of steps.
 
 ; Implement a store of steps.
 (defstruct stepstore

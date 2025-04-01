@@ -1,9 +1,5 @@
-; Implement a store of plans.
+;;;; Implement a store of plans.
 
-
-
-
-; Implement a store of plans.
 (defstruct planstore
   plans  ; A list of zero, or more, plans.
 )

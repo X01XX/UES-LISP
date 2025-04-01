@@ -1,6 +1,3 @@
-
-
-
 ;;;; Implement the Action type.
 ;;;;
 (defstruct action
@@ -105,16 +102,15 @@
 )
 
 ;;; Return possible steps given a rule to satisfy.
-(defun action-get-steps (actx rule-to-goal within) ; -> stepstore.
+(defun action-get-steps (actx from-reg to-reg within) ; -> stepstore.
   (assert (action-p actx))
-  (assert (rule-p rule-to-goal))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
   (assert (region-p within))
-  (assert (= (action-num-bits actx) (rule-num-bits rule-to-goal)))
-  (assert (= (action-num-bits actx) (region-num-bits within)))
 
   ;(format t "~&action-get-steps")
   (let ((ret-steps (stepstore-new nil)) group-steps)
-    (setf group-steps (groupstore-get-steps (action-groups actx) rule-to-goal within))
+    (setf group-steps (groupstore-get-steps (action-groups actx) from-reg to-reg within))
     (loop for stpx in (stepstore-steps group-steps) do
       (setf (step-act-id stpx) (action-id actx))
       (stepstore-push ret-steps stpx)

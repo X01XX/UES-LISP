@@ -1,8 +1,5 @@
 ;;;; Implement a statestore struct and functions.
 
-
-
-
 ;;; The statestore struct.
 (defstruct statestore
   states  ; A list of zero, or more, non-duplicate, same number bits, states.

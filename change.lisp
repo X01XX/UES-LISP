@@ -1,8 +1,5 @@
 ;;;; Implement a change struct and functions.
 
-
-
-
 ;;; The change struct.
 (defstruct change
   m01  ; 0->1 mask.
@@ -36,9 +33,9 @@
   (change-p cngx)
 
   (let ((str "(0->1 "))
-    (setf str (concatenate 'string str (value-str (mask-value (change-m01 cngx)))))
+    (setf str (concatenate 'string str (mask-str (change-m01 cngx))))
     (setf str (concatenate 'string str ", 1->0 "))
-    (setf str (concatenate 'string str (value-str (mask-value (change-m10 cngx)))))
+    (setf str (concatenate 'string str (mask-str (change-m10 cngx))))
     (setf str (concatenate 'string str ")"))
     str
   )
@@ -106,3 +103,33 @@
   (and (mask-eq (change-m01 cng1) (change-m01 cng2))
        (mask-eq (change-m10 cng1) (change-m10 cng2)))
 )
+
+;;; Return the boolean and of two changes.
+(defun change-and (cng1 cng2) ; -> change
+  (change-p cng1)
+  (change-p cng2)
+  (assert (= (change-num-bits cng1) (change-num-bits cng2)))
+
+  (change-new :m01 (mask-new-and (change-m01 cng1) (change-m01 cng2))
+              :m10 (mask-new-and (change-m10 cng1) (change-m10 cng2)))
+)
+
+;;; Return the inverse of a change.
+(defun change-not (cngx) ; -> change
+  (change-p cngx)
+
+  (change-new :m01 (mask-new (mask-not (change-m01 cngx)))
+              :m10 (mask-new (mask-not (change-m10 cngx))))
+)
+
+;;; Return the boolean (and x (not y))
+(defun change-and-not (cng1 cng2) ; -> change
+  ;(format t "~&change-and-not: cng1 ~A cng2 ~A" (type-of cng1) (type-of cng2))
+  (change-p cng1)
+  (change-p cng2)
+  ;(format t "~&change-and-not: cng1 ~A cng2 ~A" (change-str cng1) (change-str cng2))
+  (assert (= (change-num-bits cng1) (change-num-bits cng2)))
+
+  (change-and cng1 (change-not cng2))
+)
+

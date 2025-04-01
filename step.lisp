@@ -1,12 +1,10 @@
-
-
-
-
 ;;;; Implement the Step type.
 ;;;;
 (defstruct step
-  act-id	; An action ID, GE zero.
-  rule		; A rule.
+  act-id	    ; An action ID, GE zero.
+  rule		    ; A rule.
+  num-wanted    ; Number wanted changes, GT 0.
+  num-unwanted  ; Number unwanted changes. Ideally, this should be LT num-wanted.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,11 +22,11 @@
 
 ;;; Return a new step.
 ;;; A nil act-id indicates it will be assigned later.
-(defun step-new (&key act-id rule)
+(defun step-new (&key act-id rule num-wanted num-unwanted)
   (assert (rule-p rule))
   (assert (and (integerp act-id) (>= act-id 0)))
 
-  (make-step :act-id act-id :rule rule)
+  (make-step :act-id act-id :rule rule :num-wanted num-wanted :num-unwanted num-unwanted)
 )
 
 ;;; Return a string representing a step

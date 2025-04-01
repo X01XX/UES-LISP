@@ -1,8 +1,4 @@
-
-
-
-
-; Implement a store of rules.
+;;;; Implement a store of rules.
 (defstruct rulestore
   rules  ; A list of zero, or two, non-duplicate, same number bits, rules.
 )

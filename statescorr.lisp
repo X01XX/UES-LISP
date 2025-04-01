@@ -1,8 +1,5 @@
 ;;;; Implement a series of states, with bit-number values corresponding to a list of domains.
 
-
-
-
 ; Implement a store of corresponding states.
 (defstruct statescorr
   states  ; A statestore of zero, or more, states.

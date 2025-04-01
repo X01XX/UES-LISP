@@ -1,7 +1,3 @@
-
-
-
-
 ;;;; Implement the Group type.
 ;;;;
 ;;;; The state values of the region will be the same as the state values
@@ -129,114 +125,75 @@
 )
 
 ; Return possible steps, given group, rule, from-region, to-region.
-(defun group-get-steps (grpx rule-to-goal within) ; -> stepstore.
+(defun group-get-steps (grpx from-reg to-reg within) ; -> stepstore.
   ;(format t "~&group-get-steps")
-  ;(format t "~&group-get-steps group ~A rule ~A" grpx rule-to-goal)
+  ;(format t "~&group-get-steps group ~A" grpx)
   (assert (group-p grpx))
-  (assert (rule-p rule-to-goal))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
   (assert (region-p within))
-  (assert (= (group-num-bits grpx) (rule-num-bits rule-to-goal)))
-  (assert (= (group-num-bits grpx) (region-num-bits within)))
 
-  (let ((ret-steps (stepstore-new nil)) x-not-x rulz w01 w10 msk-change from-reg to-reg
-	    (wanted-changes (rule-changes rule-to-goal))
-        (unwanted-changes (region-unwanted-changes (rule-result-region rule-to-goal)))
-        num-wanted num-unwanted
-	    step-rule
-       )
+  (let ((ret-steps (stepstore-new nil)) rulz
+        rule-num-wanted rule-num-unwanted
+       (dont-care-changes (change-new :m01 (region-x-mask to-reg) :m10 (region-x-mask to-reg)))
+       (wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
+       rule-unwanted-changes
+       rule-wanted-changes
+       tmp-rule)
 
     ;; TODO Handle *pn-two* groups.
     (if (pn-ne (group-pn grpx) *pn-one*)
       (return-from group-get-steps ret-steps))
 
-    (setf from-reg (rule-initial-region rule-to-goal))
-    (setf to-reg (rule-result-region rule-to-goal))
-    ;(format t "~&group-get-steps: from: ~A to: ~A within: within ~A" from-reg to-reg within)
-
-    ;(format t "~&rules ~A" (rulestore-rules (group-rules grpx)))
+    (if (not (region-intersects (group-region grpx) within))
+      (return-from group-get-steps ret-steps))
 
     (loop for ruly in (rulestore-rules (group-rules grpx)) do
+      ;(format t "~&ruly ~A" ruly)
 
-      (when (or (value-is-not-low (mask-and (rule-m01 ruly) (change-m01 wanted-changes)))
-                (value-is-not-low (mask-and (rule-m10 ruly) (change-m10 wanted-changes))))
-        ;(format t "~&ruly ~A" ruly)
-  
-        ;; Where wanted changes are at a position where the rule is X->x,
-        ;; remove the unwanted part.
-  
-	;; Init work rule.
-	(setf rulz ruly)
+      (setf rulz (rule-restrict-initial-region ruly within))
 
-        ;; Calc needed masks.
-        (setf x-not-x (mask-new-and (rule-m01 ruly) (rule-m10 ruly))) ; Get mask of X->x.
-  
-        ;; Get wanted change masks.
-        (setf w01 (change-m01 wanted-changes)) ; get wanted 0->1s.
-        (setf w10 (change-m10 wanted-changes)) ; get wanted 1->0s.
-  
-        ;; Parse wanted 0->1 changes in X->x
-        (setf msk-change (mask-new-and w01 x-not-x))
-        (if (mask-is-not-low msk-change)
-  	      (setf rulz (rule-mask-off-ones rulz msk-change))
-        )
-  
-        ;; Parse wanted 1->0 changes in X->x
-        (setf msk-change (mask-new-and w10 x-not-x))
-        (if (mask-is-not-low msk-change)
-  	      (setf rulz (rule-mask-off-zeros rulz msk-change))
-        )
-        ;(format t "~&rulz ~A" rulz)
-  
-        (when (region-intersects (rule-initial-region rulz) within)
+      (when (region-intersects (rule-result-region rulz) within)
 
-          (setf rulz (rule-restrict-initial-region rulz within))
+        (setf rulz (rule-restrict-result-region rulz within))
 
-          ;(format t "~&rulz2 ~A" rulz)
-          (when (region-intersects (rule-result-region rulz) within)
+        (if (region-intersects (rule-initial-region rulz) from-reg)
+          (setf rulz (rule-restrict-initial-region rulz from-reg)))
 
-  	        (if (region-intersects (rule-initial-region rulz) from-reg)
-  	          (setf rulz (rule-restrict-initial-region rulz from-reg)))
-  
-  	        (if (region-intersects (rule-result-region rulz) to-reg)
-  	          (setf rulz (rule-restrict-result-region rulz to-reg)))
-  
-            ;(format t "~&rulz3 ~A" rulz)
-  
-  	    (setf num-wanted (change-num-changes (rule-intersection-change rulz wanted-changes)))
-  
-            (when (plusp num-wanted)
-  
-  	       (setf num-unwanted (change-num-changes (rule-intersection-change rulz unwanted-changes)))
-  
-                 (cond ((and (region-intersects (rule-initial-region rulz) from-reg)
-                             (region-intersects (rule-result-region rulz) to-reg))
+        (if (region-intersects (rule-result-region rulz) to-reg)
+          (setf rulz (rule-restrict-result-region rulz to-reg)))
 
-			(setf step-rule (rule-restrict-initial-region rulz from-reg))
-                        (stepstore-push ret-steps (step-new :act-id 0   ; Caller may change.
-							    :rule step-rule
-							    )))
-  
-                       ((region-intersects (rule-initial-region rulz) from-reg)
+        (setf rule-wanted-changes (change-and (rule-changes rulz) wanted-changes))
 
-			(setf step-rule (rule-restrict-initial-region rulz from-reg))
-                        (stepstore-push ret-steps (step-new :act-id 0   ; Caller may change
-							    :rule step-rule
-							    )))
-  
-                       ((region-intersects (rule-result-region rulz) to-reg)
+        (when (change-is-not-low rule-wanted-changes)
 
-			(setf step-rule (rule-restrict-result-region rulz to-reg))
-                        (stepstore-push ret-steps (step-new :act-id 0   ; Caller may change
-							    :rule step-rule
-							    )))
+          ;; Parse wanted 0->1 changes in X->x, X->1.
+          (if (mask-is-not-low (change-m01 rule-wanted-changes))
+  	        (setf rulz (rule-mask-off-ones rulz (change-m01 rule-wanted-changes)))
+          )
   
-  		     (t
-                         (stepstore-push ret-steps (step-new :act-id 0 :rule rulz)))
-                 )
-            ) ; end-when 4
-  	  ) ; end-when 3
-        ); end-when 2
-      ) ; end-when 1
+          ;; Parse wanted 1->0 changes in X->x, X->0.
+          (if (mask-is-not-low (change-m10 rule-wanted-changes))
+  	        (setf rulz (rule-mask-off-zeros rulz (change-m10 rule-wanted-changes)))
+          )
+
+          (setf tmp-rule (rule-region-to-region from-reg (rule-initial-region rulz)))
+          (setf tmp-rule (rule-combine-sequence tmp-rule rulz))
+          (setf rule-unwanted-changes (change-and-not (change-and-not (rule-changes tmp-rule) wanted-changes) dont-care-changes))
+
+          ;(format t "~&from ~A to ~A using rule ~A with wanted changes ~A unwanted changes ~A"
+          ;  (region-str from-reg) (region-str to-reg) (rule-str rulz)
+          ;  (change-str rule-wanted-changes) (change-str rule-unwanted-changes))
+
+    	  (setf rule-num-wanted (change-num-changes rule-wanted-changes))
+    	  (setf rule-num-unwanted (change-num-changes rule-unwanted-changes))
+    
+          (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
+                                              :rule rulz
+                                              :num-wanted   rule-num-wanted
+                                              :num-unwanted rule-num-unwanted))
+        ) ; end when 2
+      ) ; end when 1
     ) ; end-loop
     ret-steps
   ) ; end-let

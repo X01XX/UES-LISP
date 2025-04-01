@@ -1,7 +1,4 @@
-; Implement a store of selectregionss.
-
-
-
+;;;; Implement a store of selectregionss.
 
 ; Implement a store of selectregionss.
 (defstruct selectregionsstore

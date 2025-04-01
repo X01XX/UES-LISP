@@ -1,9 +1,4 @@
 ;;;; Implement a store of masks.
-
-
-
-
-;;; Implement a store of masks.
 (defstruct maskstore
   masks  ; A list of zero, or more, non-duplicate, same number bits, masks.
 )
