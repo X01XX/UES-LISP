@@ -139,7 +139,7 @@
        (wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
        rule-unwanted-changes
        rule-wanted-changes
-       tmp-rule)
+       tmp-rule-from tmp-rule-to)
 
     ;; TODO Handle *pn-two* groups.
     (if (pn-ne (group-pn grpx) *pn-one*)
@@ -177,17 +177,22 @@
   	        (setf rulz (rule-mask-off-zeros rulz (change-m10 rule-wanted-changes)))
           )
 
-          (setf tmp-rule (rule-region-to-region from-reg (rule-initial-region rulz)))
-          (setf tmp-rule (rule-combine-sequence tmp-rule rulz))
-          (setf rule-unwanted-changes (change-and-not (change-and-not (rule-changes tmp-rule) wanted-changes) dont-care-changes))
-
-          ;(format t "~&from ~A to ~A using rule ~A with wanted changes ~A unwanted changes ~A"
-          ;  (region-str from-reg) (region-str to-reg) (rule-str rulz)
-          ;  (change-str rule-wanted-changes) (change-str rule-unwanted-changes))
+          (setf tmp-rule-from (rule-region-to-region from-reg (rule-initial-region rulz)))
+          (setf tmp-rule-to (rule-region-to-region (rule-result-region rulz) to-reg))
+          (setf rule-unwanted-changes (change-and-not
+                                        (change-and-not
+                                          (change-or (rule-changes tmp-rule-from) (rule-changes tmp-rule-to)) wanted-changes)
+                                       dont-care-changes))
 
     	  (setf rule-num-wanted (change-num-changes rule-wanted-changes))
     	  (setf rule-num-unwanted (change-num-changes rule-unwanted-changes))
     
+          ;(when (> rule-num-unwanted 0)
+          ;  (format t "~&from ~A to ~A using rule ~A with wanted changes ~A unwanted changes ~A num ~D"
+          ;  (region-str from-reg) (region-str to-reg) (rule-str rulz)
+          ;  (change-str rule-wanted-changes) (change-str rule-unwanted-changes) rule-num-unwanted)
+          ;)
+
           (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
                                               :rule rulz
                                               :num-wanted   rule-num-wanted

@@ -36,6 +36,8 @@
     (let ((str "#S(STEP "))
         (setf str (concatenate 'string str (format nil "act-id ~D" (step-act-id stpx))))
         (setf str (concatenate 'string str (format nil " rule ~A" (rule-str (step-rule stpx)))))
+        ;(setf str (concatenate 'string str (format nil " wanted ~D" (step-num-wanted stpx))))
+        ;(setf str (concatenate 'string str (format nil " unwanted ~D" (step-num-unwanted stpx))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -87,6 +89,9 @@
 
 ;;; Return a step with its rule initial region restricted bf a given region.
 (defun step-restrict-initial-region (stepx regx) ; -> step
+  (assert (step-p stepx))
+  (assert (region-p regx))
+
   (let ((new-rule (rule-restrict-initial-region (step-rule stepx) regx)))
 
     (make-step :act-id (step-act-id stepx) 
@@ -97,6 +102,9 @@
 
 ;;; Return a step with its rule result region restricted bf a given region.
 (defun step-restrict-result-region (stepx regx) ; -> step
+  (assert (step-p stepx))
+  (assert (region-p regx))
+
   (let ((new-rule (rule-restrict-result-region (step-rule stepx) regx)))
 
     (make-step :act-id (step-act-id stepx) 

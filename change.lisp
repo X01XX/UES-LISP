@@ -133,3 +133,13 @@
   (change-and cng1 (change-not cng2))
 )
 
+;;; Return the boolean or of two changes.
+(defun change-or (cng1 cng2) ; -> change
+  (change-p cng1)
+  (change-p cng2)
+  (assert (= (change-num-bits cng1) (change-num-bits cng2)))
+
+  (change-new :m01 (mask-new-or (change-m01 cng1) (change-m01 cng2))
+              :m10 (mask-new-or (change-m10 cng1) (change-m10 cng2)))
+)
+

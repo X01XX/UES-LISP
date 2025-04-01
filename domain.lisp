@@ -121,6 +121,7 @@
 )
 
 ;;; Return a plan to change a current region to a goal region.
+;;; Since a random-depth-first process is used, try more than once, if needed.
 (defun domain-get-plan (domx from-reg to-reg with-reg depth) ; -> plan, or nil.
   ;(format t "~&domain-get-plan: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg) (region-str to-reg) (region-str with-reg) depth)
   (assert (domain-p domx))
@@ -133,14 +134,29 @@
   (assert (region-superset-of :sup with-reg :sub from-reg))
   (assert (region-superset-of :sup with-reg :sub to-reg))
 
+  (let (plan)
+    (loop for i from 0 to 2
+          while (null plan) do
+      (setf plan (domain-get-plan2 domx from-reg to-reg with-reg depth))
+    )
+    plan
+  )
+)
+
+;;; Return a plan to change a current region to a goal region.
+;;; Choose one step randomly, then recurse.
+;;; So random forward-chaining, backward-chaining, with each step.
+(defun domain-get-plan2 (domx from-reg to-reg with-reg depth) ; -> plan, or nil.
+  ;(format t "~&domain-get-plan2: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg) (region-str to-reg) (region-str with-reg) depth)
+
   (if (region-intersects to-reg from-reg)
     (let ((int-reg (region-intersection to-reg from-reg)))
-      ;(format t "~&domain-get-plan: returning 1 act 0 plan")
-      (return-from domain-get-plan (plan-new (list (step-new :act-id 0 :rule (rule-region-to-region int-reg int-reg)))))))
+      ;(format t "~&domain-get-plan2: returning 1 act 0 plan")
+      (return-from domain-get-plan2 (plan-new (list (step-new :act-id 0 :rule (rule-region-to-region int-reg int-reg)))))))
 
   (when (zerop depth)
-    ;(format t "~&domain-get-plan: returning 2 nil")
-    (return-from domain-get-plan nil))
+    ;(format t "~&domain-get-plan2: returning 2 nil")
+    (return-from domain-get-plan2 nil))
 
   (let ((steps (domain-get-steps domx from-reg to-reg with-reg)) stepy)
     ;(format t "~&steps found ~A" (stepstore-str steps))
@@ -149,17 +165,20 @@
       (loop for stepx in (stepstore-steps steps) do
         (when (and (region-superset-of :sup (rule-initial-region (step-rule stepx)) :sub from-reg)
                    (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-          (push stepx span-steps)) 
+          (push stepx span-steps)
+
+
+        ) 
       )
       (when span-steps
 	    (setf stepy (nth (random (length span-steps)) span-steps))
-        ;(format t "~&domain-get-plan: returning 3 plan")
-	    (return-from domain-get-plan (plan-new (list stepy)))
+        ;(format t "~&domain-get-plan2: returning 3 plan")
+	    (return-from domain-get-plan2 (plan-new (list stepy)))
       )
     )
 
-    ;; Gather steps that intersect the from-reg or two-reg.
-    (let (step-list stepy planx)
+    ;; Gather steps that intersect the from-reg or to-reg.
+    (let (step-list stepy planx (from-cnt 0) (to-cnt 0) step-list-intermediate plan1 plan2 plan3 plan4)
       (loop for stepx in (stepstore-steps steps) do
 	    ;(format t "~& rule ~A initial ~A result ~A" (step-rule stepx) (rule-initial-region (step-rule stepx))
 	    ;                                                              (rule-result-region (step-rule stepx)))
@@ -167,10 +186,42 @@
 	    ;    	                                         (region-intersects (rule-initial-region (step-rule stepx)) from-reg))
 	    ;(format t "~&rule result ~A intersects ~A = ~A" (region-str (rule-result-region (step-rule stepx))) (region-str to-reg)
 		;                                                (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-	    (when (or (region-intersects (rule-initial-region (step-rule stepx)) from-reg)
-	              (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-	      (push stepx step-list))
+	    (cond ((region-intersects (rule-initial-region (step-rule stepx)) from-reg)
+	           (push stepx step-list)
+               (incf from-cnt)
+              )
+	         ((region-intersects (rule-result-region (step-rule stepx)) to-reg)
+	          (push stepx step-list)
+              (incf to-cnt)
+
+              ;; Game the following random choice by favoring steps with more wanted changes than unwanted.
+              (when (> (step-num-wanted stepx) (step-num-unwanted stepx))
+                ;(format t "~&wanted ~D GT unwanted ~D step ~A" (step-num-wanted stepx) (step-num-unwanted stepx) (step-str stepx))
+                (push stepx step-list)
+              )
+             )
+             (t (push stepx step-list-intermediate))
+        )
       )
+      ;; Check for intermediate steps.
+      ;; TODO better selection logic.
+      (when (and (not (null step-list-intermediate)) (= 1 (random 3)))
+	    ;; Choose a random step.
+	    (setf stepy (nth (random (length step-list-intermediate)) step-list-intermediate))
+
+        (setf plan1 (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+        (if (null plan1) (return-from domain-get-plan2 nil))
+        (setf plan2 (plan-link plan1 (plan-new (list stepy))))
+        (if (null plan2) (return-from domain-get-plan2 nil))
+        (setf plan3 (domain-get-plan2 domx (plan-result-region plan2) to-reg with-reg (1- depth)))
+        (if (null plan3) (return-from domain-get-plan2 nil))
+        (setf plan4 (plan-link plan2 plan3))
+        ;(if plan4
+        ;   (format t "~&intermediate step plan ~A" (plan-str plan4))
+        ;   (format t "~&intermediate step ~A failed" (step-str stepy)))
+        (return-from domain-get-plan2 plan4)
+      )
+
 	  (when step-list
 	    ;; Choose a random step.
 	    (setf stepy (nth (random (length step-list)) step-list))
@@ -182,16 +233,16 @@
 	      (setf stepy (step-restrict-initial-region stepy from-reg))
 	      (if stepy
 	        (progn
-	          (setf planx (domain-get-plan domx (step-result-region stepy) to-reg with-reg (1- depth)))
-              ;(format t "~&domain-get-plan: returning 4 plan/nil")
+	          (setf planx (domain-get-plan2 domx (step-result-region stepy) to-reg with-reg (1- depth)))
+              ;(format t "~&domain-get-plan2: returning 4 plan/nil")
 	          (if planx
-                (return-from domain-get-plan (plan-link (plan-new (list stepy)) planx))
-                (return-from domain-get-plan nil)
+                (return-from domain-get-plan2 (plan-link (plan-new (list stepy)) planx))
+                (return-from domain-get-plan2 nil)
 	          )
 	        )
             (progn
-              ;(format t "~&domain-get-plan: returning 5 nil")
-              (return-from domain-get-plan nil)
+              ;(format t "~&domain-get-plan2: returning 5 nil")
+              (return-from domain-get-plan2 nil)
             )
 	      )
         )
@@ -199,15 +250,15 @@
 		;                                                (region-intersects (rule-result-region (step-rule stepy)) to-reg))
 	    (when (region-intersects (rule-result-region (step-rule stepy)) to-reg)
 	      (setf stepy (step-restrict-result-region stepy to-reg))
-          (setf planx (domain-get-plan domx from-reg (step-initial-region stepy) with-reg (1- depth)))
-          ;(format t "~&domain-get-plan: returning 6 plan/nil")
+          (setf planx (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+          ;(format t "~&domain-get-plan2: returning 6 plan/nil")
 	      (if planx
-            (return-from domain-get-plan (plan-link planx (plan-new (list stepy)))) 
-            (return-from domain-get-plan nil))
+            (return-from domain-get-plan2 (plan-link planx (plan-new (list stepy)))) 
+            (return-from domain-get-plan2 nil))
         )
 	  )
-      ;(format t "~&domain-get-plan: returning 7 nil")
-	  (return-from domain-get-plan nil)
+      ;(format t "~&domain-get-plan2: returning 7 nil")
+	  (return-from domain-get-plan2 nil)
     ) ; end-let
   ) ; end-let
 )

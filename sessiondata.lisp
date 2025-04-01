@@ -527,7 +527,7 @@
     ;; Collect selectregions that are positive, not superset current states. 
     (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-fragments sessx)) do
 
-      (if (not (regionscorr-superset-of :sup (selectregions-regionscorr selx) :sub cur-regs))
+      (if (and (> (rate-positive (selectregions-rate selx)) 0) (not (regionscorr-superset-of :sup (selectregions-regionscorr selx) :sub cur-regs)))
         (push (selectregions-regionscorr selx) pos-rcs))
     )
    
