@@ -46,8 +46,10 @@
 (defun planscorrstore-add-end (storex plnscx) ; -> nothing, side-effect planscorrstore changed.
   (assert (planscorrstore-p storex))
   (assert (planscorr-p plnscx))
+  ;(format t "~&~A ~A" (planscorrstore-str storex) (planscorr-str plnscx))
 
   (setf (planscorrstore-planscorrs storex) (append (planscorrstore-planscorrs storex) (list plnscx)))
+
   (assert (planscorrstore-is-valid storex))
 )
 

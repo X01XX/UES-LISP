@@ -143,3 +143,12 @@
               :m10 (mask-new-or (change-m10 cng1) (change-m10 cng2)))
 )
 
+;;; Return true if to changes have at least one bit, set to one, in common.
+(defun change-intersects (cng1 cng2) ; -> bool
+  (change-p cng1)
+  (change-p cng2)
+  (assert (= (change-num-bits cng1) (change-num-bits cng2)))
+
+  (change-is-not-low (change-and cng1 cng2)) 
+)
+

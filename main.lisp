@@ -170,7 +170,7 @@
   (format t "~& ~&    run - Run cycles until no more needs can be done.")
   (format t "~& ~&    to <regionscorr> - Change position to. Like: to (rc (r1010 r111))")
   (format t "~& ~&    write-session file-path - Write session to a file.")
-  (format t "~& ~&    read-session  file-path - Read a session from a file.")
+  (format t "~& ~&    read-session  file-path - Read a session from a file. Struct changes may invalidate previously stored sessions.")
 
   (assert (sessiondata-p sessx))
 

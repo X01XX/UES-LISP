@@ -214,6 +214,9 @@
   (assert (plan-is-valid plany))
   (assert (= (plan-num-bits planx) (plan-num-bits plany)))
 
+  (if (and (plan-is-not-empty plany) (zerop (step-act-id (plan-first-step plany))))
+    (return-from plan-link planx))
+
   (let ((result-reg (step-result-region (plan-last-step planx)))
         (initial-reg (step-initial-region (plan-first-step plany))))
 

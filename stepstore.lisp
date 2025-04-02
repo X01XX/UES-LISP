@@ -107,3 +107,116 @@
 
   (step-num-bits (stepstore-first-step stpstrx))
 )
+
+;;; Return steps that have an initial region intersecting a given region.
+(defun stepstore-initial-region-intersects (storex regx) ; -> stepstore
+  (assert (stepstore-p storex))
+  (assert (region-p regx))
+
+  (let ((ret (stepstore-new nil)))
+    (loop for stpx in (stepstore-steps storex) do
+      (if (region-intersects (step-initial-region stpx) regx)
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+;;; Return steps that have a result region intersecting a given region.
+(defun stepstore-result-region-intersects (storex regx) ; -> stepstore
+  (assert (stepstore-p storex))
+  (assert (region-p regx))
+
+  (let ((ret (stepstore-new nil)))
+    (loop for stpx in (stepstore-steps storex) do
+      (if (region-intersects (step-result-region stpx) regx)
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+;;; Return steps that have a change that intersects a given change.
+(defun stepstore-change-intersects (storex cngx) ; -> stepstore.
+  (assert (stepstore-p storex))
+  (assert (change-p cngx))
+
+  (let ((ret (stepstore-new nil)))
+    (loop for stpx in (stepstore-steps storex) do
+      (if (change-intersects (step-change stpx) cngx)
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+;;; Return steps not equal steps in a second store.
+(defun stepstore-difference (storex storey) ; -> stepstore.
+  (assert (stepstore-p storex))
+  (assert (stepstore-p storey))
+
+  (let ((ret (stepstore-new nil)))
+    (loop for stpx in (stepstore-steps storex) do
+      (if (not (stepstore-member storey stpx))
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+;;; Return the union of two stepstores.
+(defun stepstore-union (storex storey) ; -> stepstore.
+  (assert (stepstore-p storex))
+  (assert (stepstore-p storey))
+
+  (let ((ret (stepstore-new nil)))
+    (loop for stpx in (stepstore-steps storex) do
+      (if (not (stepstore-member ret stpx))
+        (stepstore-push ret stpx))
+    )
+    (loop for stpx in (stepstore-steps storey) do
+      (if (not (stepstore-member ret stpx))
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+;;; Return the nth element of a StepStore.
+(defun stepstore-nth (storex inx) ; -> step instance, or nil.
+  (assert (stepstore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (stepstore-length storex))
+    (return-from stepstore-nth nil))
+
+  (nth inx (stepstore-steps storex))
+)
+
+;;; Return steps in both stepstores.
+(defun stepstore-intersection (storex storey) ; -> stepstore.
+  (assert (stepstore-p storex))
+  (assert (stepstore-p storey))
+
+  (let ((ret (stepstore-new nil)))
+    (loop for stpx in (stepstore-steps storex) do
+      (if (stepstore-member storey stpx)
+        (stepstore-push ret stpx))
+    )
+    ret
+  )
+)
+
+;;; Return all changes in steps of a non-empty stepstore.
+(defun stepstore-aggregate-changes (storex) ; -> change
+  (assert (stepstore-p storex))
+  (assert (stepstore-is-not-empty storex))
+
+  (let ((cng (rule-changes (step-rule (stepstore-first-step storex)))))
+    (loop for stpx in (cdr (stepstore-steps storex)) do
+      (setf cng (change-or cng (rule-changes (step-rule stpx))))
+    )
+    cng
+  )
+)
+

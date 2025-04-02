@@ -178,7 +178,7 @@
 	  (assert (region-superset-of :sub from-regx :sup with-regx))
 	  (assert (region-superset-of :sub to-regx :sup with-regx))
 
-      (setf domx-plan (domain-get-plan domx from-regx to-regx with-regx 5))
+      (setf domx-plan (domain-get-plan domx from-regx to-regx with-regx))
 
       (if (null domx-plan)
        (return-from domainstore-get-plan nil))

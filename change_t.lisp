@@ -34,5 +34,61 @@
     (format t "~&  change-split OK")
   )
 
+  ; Test change-or.
+  (let (cng1 cng2 cng3)
+    (setf cng1 (change-new :m01 (mask-from 'm1001) :m10 (mask-from 'm0101)))
+    (setf cng2 (change-new :m01 (mask-from 'm0101) :m10 (mask-from 'm0110)))
+    (setf cng3 (change-or cng1 cng2))
+    (assert (change-eq cng3 (change-new :m01 (mask-from 'm1101) :m10 (mask-from 'm0111))))
+
+    (format t "~&  change-or OK")
+  )
+
+  ; Test change-and.
+  (let (cng1 cng2 cng3)
+    (setf cng1 (change-new :m01 (mask-from 'm1001) :m10 (mask-from 'm0101)))
+    (setf cng2 (change-new :m01 (mask-from 'm0101) :m10 (mask-from 'm0110)))
+    (setf cng3 (change-and cng1 cng2))
+    (assert (change-eq cng3 (change-new :m01 (mask-from 'm0001) :m10 (mask-from 'm0100))))
+
+    (format t "~&  change-and OK")
+  )
+
+  ; Test change-not.
+  (let (cng1 cng2)
+    (setf cng1 (change-new :m01 (mask-from 'm1001) :m10 (mask-from 'm0101)))
+    (setf cng2 (change-not cng1))
+    (assert (change-eq cng2 (change-new :m01 (mask-from 'm0110) :m10 (mask-from 'm1010))))
+
+    (format t "~&  change-not OK")
+  )
+
+  ; Test change-and-not.
+  (let (cng1 cng2 cng3)
+    (setf cng1 (change-new :m01 (mask-from 'm1001) :m10 (mask-from 'm0101)))
+    (setf cng2 (change-new :m01 (mask-from 'm0101) :m10 (mask-from 'm0110)))
+    (setf cng3 (change-and-not cng1 cng2))
+    (assert (change-eq cng3 (change-new :m01 (mask-from 'm1000) :m10 (mask-from 'm0001))))
+
+    (format t "~&  change-and-not OK")
+  )
+
+  ; Test change-intersects
+  (let (cng1 cng2 bool1)
+    (setf cng1 (change-new :m01 (mask-from 'm1001) :m10 (mask-from 'm0101)))
+    (setf cng2 (change-new :m01 (mask-from 'm0101) :m10 (mask-from 'm0110)))
+    (setf bool1 (change-intersects cng1 cng2))
+    (assert bool1)
+
+    (setf cng1 (change-new :m01 (mask-from 'm1001) :m10 (mask-from 'm0101)))
+    (setf cng2 (change-new :m01 (mask-from 'm0110) :m10 (mask-from 'm1010)))
+    (setf bool1 (change-intersects cng1 cng2))
+    (assert (not bool1))
+
+    (format t "~&  change-intersects OK")
+  )
+
+  ; Test change-not.
+  ; Test change-not.
   (format t "~&change-tests done")
 )

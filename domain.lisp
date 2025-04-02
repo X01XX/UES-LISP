@@ -122,7 +122,7 @@
 
 ;;; Return a plan to change a current region to a goal region.
 ;;; Since a random-depth-first process is used, try more than once, if needed.
-(defun domain-get-plan (domx from-reg to-reg with-reg depth) ; -> plan, or nil.
+(defun domain-get-plan (domx from-reg to-reg with-reg) ; -> plan, or nil.
   ;(format t "~&domain-get-plan: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg) (region-str to-reg) (region-str with-reg) depth)
   (assert (domain-p domx))
   (assert (region-p from-reg))
@@ -134,10 +134,11 @@
   (assert (region-superset-of :sup with-reg :sub from-reg))
   (assert (region-superset-of :sup with-reg :sub to-reg))
 
-  (let (plan)
+  (let (plan
+       (num-changes (rule-num-changes (rule-region-to-region from-reg to-reg)))) ; adjust depth limit by number chnages needed.
     (loop for i from 0 to 2
           while (null plan) do
-      (setf plan (domain-get-plan2 domx from-reg to-reg with-reg depth))
+      (setf plan (domain-get-plan2 domx from-reg to-reg with-reg (* 2 num-changes)))
     )
     plan
   )
@@ -158,17 +159,31 @@
     ;(format t "~&domain-get-plan2: returning 2 nil")
     (return-from domain-get-plan2 nil))
 
-  (let ((steps (domain-get-steps domx from-reg to-reg with-reg)) stepy)
+  (let ((steps (domain-get-steps domx from-reg to-reg with-reg))
+        (wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
+        steps-from steps-to steps-both agg-changes)
+
+    (when (stepstore-is-empty steps)
+      (return-from domain-get-plan2 nil))
+
+    ;; Check if steps contain all wanted changes.
+    (if (not (change-eq (change-and wanted-changes (stepstore-aggregate-changes steps)) wanted-changes))
+      (return-from domain-get-plan2 nil))
+
     ;(format t "~&steps found ~A" (stepstore-str steps))
+    (setf steps-from (stepstore-initial-region-intersects steps from-reg))
+    (setf steps-to   (stepstore-initial-region-intersects steps to-reg))
+
+    (setf steps-both (stepstore-intersection steps-from steps-to))
+
     ;; Check for one step that spans the gap.
-    (let (span-steps)
-      (loop for stepx in (stepstore-steps steps) do
-        (when (and (region-superset-of :sup (rule-initial-region (step-rule stepx)) :sub from-reg)
-                   (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-          (push stepx span-steps)
-
-
-        ) 
+    (let (span-steps stepy)
+      (loop for stepx in (stepstore-steps steps-both) do
+        (setf stepy (step-restrict-initial-region stepx from-reg))
+        (when (region-intersects (step-result-region stepy) to-reg)
+           (setf stepy (step-restrict-result-region stepy to-reg))
+           (push stepx span-steps)
+        )
       )
       (when span-steps
 	    (setf stepy (nth (random (length span-steps)) span-steps))
@@ -178,36 +193,17 @@
     )
 
     ;; Gather steps that intersect the from-reg or to-reg.
-    (let (step-list stepy planx (from-cnt 0) (to-cnt 0) step-list-intermediate plan1 plan2 plan3 plan4)
-      (loop for stepx in (stepstore-steps steps) do
-	    ;(format t "~& rule ~A initial ~A result ~A" (step-rule stepx) (rule-initial-region (step-rule stepx))
-	    ;                                                              (rule-result-region (step-rule stepx)))
-	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepx))) (region-str from-reg)
-	    ;    	                                         (region-intersects (rule-initial-region (step-rule stepx)) from-reg))
-	    ;(format t "~&rule result ~A intersects ~A = ~A" (region-str (rule-result-region (step-rule stepx))) (region-str to-reg)
-		;                                                (region-intersects (rule-result-region (step-rule stepx)) to-reg))
-	    (cond ((region-intersects (rule-initial-region (step-rule stepx)) from-reg)
-	           (push stepx step-list)
-               (incf from-cnt)
-              )
-	         ((region-intersects (rule-result-region (step-rule stepx)) to-reg)
-	          (push stepx step-list)
-              (incf to-cnt)
+    (let (step-list stepy planx step-list-intermediate plan1 plan2 plan3 plan4)
 
-              ;; Game the following random choice by favoring steps with more wanted changes than unwanted.
-              (when (> (step-num-wanted stepx) (step-num-unwanted stepx))
-                ;(format t "~&wanted ~D GT unwanted ~D step ~A" (step-num-wanted stepx) (step-num-unwanted stepx) (step-str stepx))
-                (push stepx step-list)
-              )
-             )
-             (t (push stepx step-list-intermediate))
-        )
-      )
+      (setf step-list (stepstore-union steps-from steps-to))
+
+      (setf step-list-intermediate (stepstore-difference steps step-list))
+
       ;; Check for intermediate steps.
       ;; TODO better selection logic.
-      (when (and (not (null step-list-intermediate)) (= 1 (random 3)))
+      (when (and (stepstore-is-not-empty step-list-intermediate) (= 1 (random 3)))
 	    ;; Choose a random step.
-	    (setf stepy (nth (random (length step-list-intermediate)) step-list-intermediate))
+	    (setf stepy (stepstore-nth step-list-intermediate (random (stepstore-length step-list-intermediate))))
 
         (setf plan1 (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
         (if (null plan1) (return-from domain-get-plan2 nil))
@@ -222,9 +218,9 @@
         (return-from domain-get-plan2 plan4)
       )
 
-	  (when step-list
+	  (when (stepstore-is-not-empty step-list)
 	    ;; Choose a random step.
-	    (setf stepy (nth (random (length step-list)) step-list))
+	    (setf stepy (stepstore-nth step-list (random (stepstore-length step-list))))
 
 	    ;; Recurse to build the rest of the plan.
 	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepy))) (region-str from-reg)
@@ -278,14 +274,14 @@
                   (setf (need-plan needx) (plan-new nil))
                   (setf (need-plan needx) (domain-get-plan domx (region-new (domain-current-state domx))
                                                                (region-new (need-target needx))
-                                                               (domain-max-region domx) 10)))
+                                                               (domain-max-region domx))))
               )
               ((region-p (need-target needx))
                 (if (region-superset-of-state (need-target needx) (domain-current-state domx))
                   (setf (need-plan needx) (plan-new nil))
                   (setf (need-plan needx) (domain-get-plan domx (region-new (domain-current-state domx))
                                                                (need-target needx)
-                                                               (domain-max-region domx) 10)))
+                                                               (domain-max-region domx))))
               )
               (t (error "Unrecognized target type"))
         )
