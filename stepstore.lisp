@@ -143,7 +143,7 @@
 
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
-      (if (change-intersects (step-change stpx) cngx)
+      (if (change-intersects (rule-changes (step-rule stpx)) cngx)
         (stepstore-push ret stpx))
     )
     ret
@@ -220,3 +220,7 @@
   )
 )
 
+;;; Return a random step from a non-empty store.
+(defun stepstore-random-step (storex) ; -> step
+  (stepstore-nth storex (random (stepstore-length storex)))
+)

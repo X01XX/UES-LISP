@@ -16,7 +16,7 @@
   )
 
   ; Test stepstore-intersection.
-  (let (storex storey step1 step2 step3 step4)
+  (let (storex storey storez step1 step2 step3 step4)
     (setf step1 (step-new :act-id 0 :rule (rule-from "[XX]")))
     (setf step2 (step-new :act-id 1 :rule (rule-from "[XX]")))
     (setf step3 (step-new :act-id 1 :rule (rule-from "[XX]")))
@@ -35,7 +35,7 @@
   )
 
   ; Test stepstore-union.
-  (let (storex storey step1 step2 step3 step4)
+  (let (storex storey storez step1 step2 step3 step4)
     (setf step1 (step-new :act-id 0 :rule (rule-from "[XX]")))
     (setf step2 (step-new :act-id 1 :rule (rule-from "[XX]")))
     (setf step3 (step-new :act-id 1 :rule (rule-from "[XX]")))
@@ -56,7 +56,7 @@
   )
 
   ; Test stepstore-difference.
-  (let (storex storey step1 step2 step3 step4)
+  (let (storex storey storez step1 step2 step3 step4)
     (setf step1 (step-new :act-id 0 :rule (rule-from "[XX]")))
     (setf step2 (step-new :act-id 1 :rule (rule-from "[XX]")))
     (setf step3 (step-new :act-id 1 :rule (rule-from "[XX]")))
@@ -74,7 +74,7 @@
   )
 
   ; Test stepstore-initial-region-intersects.
-  (let (storex storey step1 step2 step3 step4)
+  (let (storex storez step1 step2 step3)
     (setf step1 (step-new :act-id 0 :rule (rule-from "[XX/10/00/11]")))
     (setf step2 (step-new :act-id 1 :rule (rule-from "[XX/00/00/10]")))
     (setf step3 (step-new :act-id 2 :rule (rule-from "[XX/00/00/00]")))
@@ -89,7 +89,7 @@
   )
 
   ; Test stepstore-result-region-intersects.
-  (let (storex storey step1 step2 step3)
+  (let (storex storez step1 step2 step3)
     (setf step1 (step-new :act-id 0 :rule (rule-from "[XX/10/00/11]")))
     (setf step2 (step-new :act-id 1 :rule (rule-from "[XX/00/00/10]")))
     (setf step3 (step-new :act-id 2 :rule (rule-from "[XX/00/00/00]")))
@@ -104,7 +104,7 @@
   )
 
   ; Test stepstore-aggregate-changes.
-  (let (storex storey step1 step2 step3 cngx)
+  (let (storex step1 step2 step3 cngx)
     (setf step1 (step-new :act-id 0 :rule (rule-from "[XX/10/01/11]")))
     (setf step2 (step-new :act-id 1 :rule (rule-from "[XX/00/00/10]")))
     (setf step3 (step-new :act-id 2 :rule (rule-from "[XX/01/00/00]")))

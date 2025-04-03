@@ -148,7 +148,8 @@
 ;;; Choose one step randomly, then recurse.
 ;;; So random forward-chaining, backward-chaining, with each step.
 (defun domain-get-plan2 (domx from-reg to-reg with-reg depth) ; -> plan, or nil.
-  ;(format t "~&domain-get-plan2: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg) (region-str to-reg) (region-str with-reg) depth)
+  ;(format t "~&domain-get-plan2: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg)
+  ;  (region-str to-reg) (region-str with-reg) depth)
 
   (if (region-intersects to-reg from-reg)
     (let ((int-reg (region-intersection to-reg from-reg)))
@@ -161,7 +162,7 @@
 
   (let ((steps (domain-get-steps domx from-reg to-reg with-reg))
         (wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
-        steps-from steps-to steps-both agg-changes)
+        steps-from steps-to steps-both)
 
     (when (stepstore-is-empty steps)
       (return-from domain-get-plan2 nil))
@@ -193,34 +194,47 @@
     )
 
     ;; Gather steps that intersect the from-reg or to-reg.
-    (let (step-list stepy planx step-list-intermediate plan1 plan2 plan3 plan4)
+    (let (steps-from-to stepy planx steps-intermediate plan1 plan2 plan3 plan4 intermediate-unique-changes)
 
-      (setf step-list (stepstore-union steps-from steps-to))
+      (setf steps-from-to (stepstore-union steps-from steps-to))
 
-      (setf step-list-intermediate (stepstore-difference steps step-list))
+      (setf steps-intermediate (stepstore-difference steps steps-from-to))
 
       ;; Check for intermediate steps.
-      ;; TODO better selection logic.
-      (when (and (stepstore-is-not-empty step-list-intermediate) (= 1 (random 3)))
-	    ;; Choose a random step.
-	    (setf stepy (stepstore-nth step-list-intermediate (random (stepstore-length step-list-intermediate))))
+      (when (stepstore-is-not-empty steps-intermediate)
 
-        (setf plan1 (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
-        (if (null plan1) (return-from domain-get-plan2 nil))
-        (setf plan2 (plan-link plan1 (plan-new (list stepy))))
-        (if (null plan2) (return-from domain-get-plan2 nil))
-        (setf plan3 (domain-get-plan2 domx (plan-result-region plan2) to-reg with-reg (1- depth)))
-        (if (null plan3) (return-from domain-get-plan2 nil))
-        (setf plan4 (plan-link plan2 plan3))
-        ;(if plan4
-        ;   (format t "~&intermediate step plan ~A" (plan-str plan4))
-        ;   (format t "~&intermediate step ~A failed" (step-str stepy)))
-        (return-from domain-get-plan2 plan4)
+        (setf intermediate-unique-changes 
+          (change-and wanted-changes (stepstore-aggregate-changes steps-intermediate)))
+
+        (if (stepstore-is-not-empty steps-from-to)
+          (setf intermediate-unique-changes (change-and-not intermediate-unique-changes (stepstore-aggregate-changes steps-from-to))))
+
+        ;; Split problem into: from-reg -> step-initial-region -> step-result-region -> to-reg.
+        (when (change-is-not-low intermediate-unique-changes)
+          ;(format t "~&intermediate-unique-changes ~A" (change-str intermediate-unique-changes))
+
+          (setf steps-intermediate (stepstore-change-intersects steps-intermediate intermediate-unique-changes))
+
+          ;; Choose a random step.
+          (setf stepy (stepstore-random-step steps-intermediate))
+  
+          (setf plan1 (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+          (if (null plan1) (return-from domain-get-plan2 nil))
+          (setf plan2 (plan-link plan1 (plan-new (list stepy))))
+          (if (null plan2) (return-from domain-get-plan2 nil))
+          (setf plan3 (domain-get-plan2 domx (plan-result-region plan2) to-reg with-reg (1- depth)))
+          (if (null plan3) (return-from domain-get-plan2 nil))
+          (setf plan4 (plan-link plan2 plan3))
+          ;(if plan4
+          ;   (format t "~&intermediate step plan ~A" (plan-str plan4))
+          ;   (format t "~&intermediate step ~A failed" (step-str stepy)))
+          (return-from domain-get-plan2 plan4)
+        )
       )
 
-	  (when (stepstore-is-not-empty step-list)
+	  (when (stepstore-is-not-empty steps-from-to)
 	    ;; Choose a random step.
-	    (setf stepy (stepstore-nth step-list (random (stepstore-length step-list))))
+	    (setf stepy (stepstore-random-step steps-from-to))
 
 	    ;; Recurse to build the rest of the plan.
 	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepy))) (region-str from-reg)
