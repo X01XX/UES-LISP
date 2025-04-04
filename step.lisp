@@ -3,8 +3,6 @@
 (defstruct step
   act-id	    ; An action ID, GE zero.
   rule		    ; A rule.
-  num-wanted    ; Number wanted changes, GT 0.
-  num-unwanted  ; Number unwanted changes. Ideally, this should be LT num-wanted.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -22,11 +20,11 @@
 
 ;;; Return a new step.
 ;;; A nil act-id indicates it will be assigned later.
-(defun step-new (&key act-id rule num-wanted num-unwanted)
+(defun step-new (&key act-id rule)
   (assert (rule-p rule))
   (assert (and (integerp act-id) (>= act-id 0)))
 
-  (make-step :act-id act-id :rule rule :num-wanted num-wanted :num-unwanted num-unwanted)
+  (make-step :act-id act-id :rule rule)
 )
 
 ;;; Return a string representing a step
@@ -36,8 +34,6 @@
     (let ((str "#S(STEP "))
         (setf str (concatenate 'string str (format nil "act-id ~D" (step-act-id stpx))))
         (setf str (concatenate 'string str (format nil " rule ~A" (rule-str (step-rule stpx)))))
-        ;(setf str (concatenate 'string str (format nil " wanted ~D" (step-num-wanted stpx))))
-        ;(setf str (concatenate 'string str (format nil " unwanted ~D" (step-num-unwanted stpx))))
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -91,6 +87,10 @@
 (defun step-restrict-initial-region (stepx regx) ; -> step
   (assert (step-p stepx))
   (assert (region-p regx))
+  (assert (region-intersects regx (step-initial-region stepx)))
+
+  (if (region-superset-of :sup regx :sub (step-initial-region stepx))
+    (return-from step-restrict-initial-region stepx))
 
   (let ((new-rule (rule-restrict-initial-region (step-rule stepx) regx)))
 
@@ -104,6 +104,10 @@
 (defun step-restrict-result-region (stepx regx) ; -> step
   (assert (step-p stepx))
   (assert (region-p regx))
+  (assert (region-intersects regx (step-result-region stepx)))
+
+  (if (region-superset-of :sup regx :sub (step-result-region stepx))
+    (return-from step-restrict-result-region stepx))
 
   (let ((new-rule (rule-restrict-result-region (step-rule stepx) regx)))
 
@@ -111,5 +115,12 @@
   	       :rule new-rule 
     )
   )
+)
+
+;;; Return the changes made by a step.
+(defun step-changes (stepx) ; -> change
+  (assert (step-p stepx))
+
+  (rule-changes (step-rule stepx))
 )
 

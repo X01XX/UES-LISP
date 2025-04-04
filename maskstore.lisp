@@ -70,7 +70,7 @@
   (assert (maskstore-p storex))
   (assert (mask-p mskx))
 
-  (if (member mskx (maskstore-masks storex) :test #'mask-eq) true false)
+  (member mskx (maskstore-masks storex) :test #'mask-eq)
 )
 
 ;;; Return the first mask in a store.

@@ -25,40 +25,16 @@
   )
 )
 
-; Push a new group into a groupstore, suppress dups, subsets.
-; Return true if the group has been added.
-(defun groupstore-push (storex groupx) ; -> bool, true if added.
+;;; Push a new group into a groupstore.
+(defun groupstore-push (storex groupx) ; -> side effect, groupstore changed.
   (assert (groupstore-p storex))
   (assert (group-p groupx))
 
   (if (groupstore-is-not-empty storex)
     (assert (= (group-num-bits groupx) (group-num-bits (groupstore-first storex)))))
 
-  (if (groupstore-member storex groupx)
-    (return-from groupstore-push false))
-
-  (let (del-grps)
-
-    ; Check for equal, superset and subset groups.
-    (loop for grpx in (groupstore-groups storex) do
-      (if (region-superset-of :sub (group-region groupx) :sup (group-region grpx))
-        (return-from groupstore-push false))
-
-      (if (region-superset-of :sup (group-region groupx) :sub (group-region grpx))
-        (push grpx del-grps))
-    )
-
-    ; Delete subset groups, if any.
-    (loop for grpx in del-grps do
-        (remove grpx (groupstore-groups storex) :test #'group-eq)
-    )
-
-    ; Add the new group to the end of the groups list, old survivors migrate to the beginning of the list.
-    (if (null (groupstore-groups storex))
-      (push groupx (groupstore-groups storex))
-      (push groupx (cdr (last (groupstore-groups storex))))) 
-  )
-  true
+  ; Add the new group to the end of the groups list, old survivors migrate to the beginning of the list.
+  (groupstore-add-end storex groupx)
 )
 
 ; Return the number of groups in a groupstore.
@@ -100,7 +76,7 @@
   (assert (groupstore-p storex))
   (assert (group-p grpx))
 
-  (if (member grpx (groupstore-groups storex) :test #'group-eq) true false)
+  (member grpx (groupstore-groups storex) :test #'group-eq)
 )
 
 (defun groupstore-first (storex) ; -> group

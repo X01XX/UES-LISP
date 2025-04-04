@@ -131,7 +131,7 @@
   (assert (regionscorr-p regx))
   (assert (or (regionscorrstore-is-empty storex) (regionscorr-congruent (regionscorrstore-first-regionscorr storex) regx)))
 
-  (if (member regx (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq) true false)
+  (member regx (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq)
 )
 
 ;;; Return the first region in a non-empty regionscorrstore.

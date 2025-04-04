@@ -77,7 +77,7 @@
   (assert (statestore-p storex))
   (assert (state-p stax))
 
-  (if (member stax (statestore-states storex) :test #'state-eq) true false)
+  (member stax (statestore-states storex) :test #'state-eq)
 )
 
 ;;; Return the first state of a non-empty statestore.

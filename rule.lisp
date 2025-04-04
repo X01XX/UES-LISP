@@ -579,3 +579,76 @@
                                   :m10 (rule-m10 rulx)))
 )
 
+
+;;;; Return a list of rules based a a number or restrictions.
+(defun rule-restrict-by (rulx from-reg to-reg within) ; -> rulestore.
+  (assert (rule-p rulx))
+  (assert (region-p from-reg))
+  (assert (region-p to-reg))
+  (assert (region-p within))
+
+  (let ((ret-store (rulestore-new nil))
+        (wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
+        (glide-path (region-union from-reg to-reg))
+        rule-wanted-changes
+       )
+
+    ;; Restrict rulx to the within region.
+    (if (not (region-intersects (rule-initial-region rulx) within))
+      (return-from rule-restrict-by ret-store)
+    )
+    (if (not (region-superset-of :sup within :sub (rule-initial-region rulx)))
+      (setf rulx (rule-restrict-initial-region rulx within))
+    )
+    (if (not (region-intersects (rule-result-region rulx) within))
+      (return-from rule-restrict-by ret-store)
+    )
+    (if (not (region-superset-of :sup within :sub (rule-result-region rulx)))
+      (setf rulx (rule-restrict-result-region rulx within)))
+
+    ;; Calc wanted changes in rulx.
+    (setf rule-wanted-changes (change-and (rule-changes rulx) wanted-changes))
+    (if (change-is-low rule-wanted-changes)
+      (return-from rule-restrict-by ret-store))
+
+    ;; Restrict rule by wanted changes.
+    (if (mask-is-not-low (change-m01 rule-wanted-changes))
+  	  (setf rulx (rule-mask-off-ones rulx (change-m01 rule-wanted-changes))) ; X->x, X->1, to 0->1.
+    )
+    (if (mask-is-not-low (change-m10 rule-wanted-changes))
+  	  (setf rulx (rule-mask-off-zeros rulx (change-m10 rule-wanted-changes))) ; X->x, X->0, to 1->0.
+    )
+
+    ;; Restrict rule initial region by glide-path, if needed, and no wanted changes are lost.
+    (if (region-intersects (rule-initial-region rulx) glide-path)
+      (if (not (region-superset-of :sup glide-path :sub (rule-initial-region rulx)))
+        ;; Restrict rule to glide-path.
+        (let ((rulz (rule-restrict-initial-region rulx glide-path)))
+          ;; Check that no wanted changes are lost.
+          (if (change-eq (rule-changes rulz) rule-wanted-changes)
+            (rulestore-push ret-store rulz))
+        )
+      )
+    )
+    
+    ;; Restrict rule result region by glide-path, if needed, and no wanted changes are lost.
+    (if (region-intersects (rule-result-region rulx) glide-path)
+      (if (not (region-superset-of :sup glide-path :sub (rule-result-region rulx)))
+        ;; Restrict rule to glide-path.
+        (let ((rulz (rule-restrict-result-region rulx glide-path)))
+          ;; Check that no wanted changes are lost.
+          (if (change-eq (rule-changes rulz) rule-wanted-changes)
+            (if (not (rulestore-member ret-store rulz))
+              (rulestore-push ret-store rulz))
+          )
+        )
+      )
+    )
+
+    ;; Check if no glide-path restrictions worked.
+    (if (rulestore-is-empty ret-store)
+      (rulestore-push ret-store rulx))
+
+    ret-store
+  )
+)

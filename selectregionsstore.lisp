@@ -72,7 +72,7 @@
   (assert (selectregionsstore-p storex))
   (assert (selectregions-p sregsx))
 
-  (if (member sregsx (selectregionsstore-selectregions storex) :test #'selectregions-eq) true false)
+  (member sregsx (selectregionsstore-selectregions storex) :test #'selectregions-eq)
 )
 
 (defun selectregionsstore-first-selectregions (storex) ; -> selectregions

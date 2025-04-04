@@ -318,3 +318,20 @@
   (rulestore-rules storex)
 )
   
+; Return true if a rulestore contains a given rule.
+(defun rulestore-member (storex rulx) ; -> bool 
+  (assert (rulestore-p storex))
+  (assert (rule-p rulx))
+
+  (member rulx (rulestore-rules storex) :test #'rule-eq)
+)
+
+;;; Push a new rule into a rulestore, suppress dups.
+(defun rulestore-push (store rulx) ; -> side-effect rulestore is changed.
+  (assert (rulestore-p store))
+  (assert (rule-p rulx))
+
+  (if (not (rulestore-member store rulx))
+    (push rulx (rulestore-rules store)))
+)
+

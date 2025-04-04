@@ -80,7 +80,7 @@
   (assert (stepstore-p storex))
   (assert (step-p stpx))
 
-  (if (member stpx (stepstore-steps storex) :test #'step-eq) true false)
+  (member stpx (stepstore-steps storex) :test #'step-eq)
 )
 
 ;;; Return the first step of a non-empty stepstore.
@@ -143,7 +143,7 @@
 
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
-      (if (change-intersects (rule-changes (step-rule stpx)) cngx)
+      (if (change-intersects (step-changes stpx) cngx)
         (stepstore-push ret stpx))
     )
     ret
@@ -212,15 +212,44 @@
   (assert (stepstore-p storex))
   (assert (stepstore-is-not-empty storex))
 
-  (let ((cng (rule-changes (step-rule (stepstore-first-step storex)))))
+  (let ((cng (step-changes (stepstore-first-step storex))))
     (loop for stpx in (cdr (stepstore-steps storex)) do
-      (setf cng (change-or cng (rule-changes (step-rule stpx))))
+      (setf cng (change-or cng (step-changes stpx)))
     )
     cng
   )
 )
 
-;;; Return a random step from a non-empty store.
-(defun stepstore-random-step (storex) ; -> step
-  (stepstore-nth storex (random (stepstore-length storex)))
+;;; Return a psuedo-random step from a non-empty store.
+(defun stepstore-select-step (storex glide-path) ; -> step
+  (assert (stepstore-p storex))
+  (assert (stepstore-is-not-empty storex))
+
+  (if (= 1 (stepstore-length storex))
+    (return-from stepstore-select-step (stepstore-first-step storex)))
+
+  (let (rate (min-rate 99999) ret-step stepy)
+    ;; Check three randomly selected steps, choose one based on minimum excursion from glide-path.
+    (loop for i from 0 to 2 do
+
+      (setf stepy (stepstore-nth storex (random (stepstore-length storex))))
+
+      (setf rate (+ (region-distance (step-initial-region stepy) glide-path)
+                    (region-distance (step-result-region stepy) glide-path)))
+
+      (if (and (region-intersects (step-initial-region stepy) glide-path)
+               (not (region-superset-of :sup glide-path :sub (step-initial-region stepy))))
+        (incf rate))
+
+      (if (and (region-intersects (step-result-region stepy) glide-path)
+               (not (region-superset-of :sup glide-path :sub (step-result-region stepy))))
+        (incf rate))
+
+      (when (< rate min-rate)
+        (setf min-rate rate)
+        (setf ret-step stepy)
+      )
+    )
+    ret-step
+  )
 )

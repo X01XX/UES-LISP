@@ -183,6 +183,7 @@
         (setf stepy (step-restrict-initial-region stepx from-reg))
         (when (region-intersects (step-result-region stepy) to-reg)
            (setf stepy (step-restrict-result-region stepy to-reg))
+           (step-calc-wanted-unwanted stepy from-reg to-reg)
            (push stepx span-steps)
         )
       )
@@ -194,7 +195,9 @@
     )
 
     ;; Gather steps that intersect the from-reg or to-reg.
-    (let (steps-from-to stepy planx steps-intermediate plan1 plan2 plan3 plan4 intermediate-unique-changes)
+    (let (steps-from-to stepy planx steps-intermediate plan1 plan2 plan3 plan4 intermediate-unique-changes
+         (glide-path (region-union from-reg to-reg))
+         )
 
       (setf steps-from-to (stepstore-union steps-from steps-to))
 
@@ -211,12 +214,16 @@
 
         ;; Split problem into: from-reg -> step-initial-region -> step-result-region -> to-reg.
         (when (change-is-not-low intermediate-unique-changes)
-          ;(format t "~&intermediate-unique-changes ~A" (change-str intermediate-unique-changes))
+          ;(format t "~&Dom ~D wanted-changes ~A" (domain-id domx) (change-str wanted-changes))
+          ;(format t "~&Dom ~D intermediate-unique-changes ~A" (domain-id domx) (change-str intermediate-unique-changes))
+          
+          ;(if (stepstore-is-not-empty steps-from-to)
+          ;  (format t "~&Dom ~D steps-from-to-changes ~A" (domain-id domx) (change-str (change-and wanted-changes (stepstore-aggregate-changes steps-from-to)))))
 
           (setf steps-intermediate (stepstore-change-intersects steps-intermediate intermediate-unique-changes))
 
           ;; Choose a random step.
-          (setf stepy (stepstore-random-step steps-intermediate))
+          (setf stepy (stepstore-select-step steps-intermediate glide-path))
   
           (setf plan1 (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
           (if (null plan1) (return-from domain-get-plan2 nil))
@@ -234,7 +241,7 @@
 
 	  (when (stepstore-is-not-empty steps-from-to)
 	    ;; Choose a random step.
-	    (setf stepy (stepstore-random-step steps-from-to))
+	    (setf stepy (stepstore-select-step steps-from-to glide-path))
 
 	    ;; Recurse to build the rest of the plan.
 	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepy))) (region-str from-reg)

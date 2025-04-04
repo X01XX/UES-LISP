@@ -167,7 +167,7 @@
   (assert (regionstore-p storex))
   (assert (region-p regx))
 
-  (if (member regx (regionstore-regions storex) :test #'region-eq) true false)
+  (member regx (regionstore-regions storex) :test #'region-eq)
 )
 
 ;;; Return the first region in a non-empty regionstore.
