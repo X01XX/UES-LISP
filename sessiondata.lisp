@@ -521,7 +521,6 @@
     (setf cur-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) cur-regs))
 
     (when (and (plusp (rate-positive cur-rate)) (< (sessiondata-num-cycles-at sessx) (rate-positive cur-rate)))
-      (setf (sessiondata-num-cycles-at sessx) (1+ (sessiondata-num-cycles-at sessx)))
       (return-from sessiondata-move-to-positive-selectregions needs))
 
     ;; Collect selectregions that are positive, not superset current states. 
