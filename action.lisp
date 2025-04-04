@@ -119,8 +119,9 @@
   )
 )
 
-;;; Return needs for sample in a region, an initial sample, or resample of existing non-pnc square.
-;;; There should be no pnc square in the region.
+;;; Return needs for the first sample in a region,
+;;; the first pnc square in a region,
+;;; or the far square from the first pnc square found.
 (defun action-needs-for-region (actx regx reason &optional ex-in) ; -> needstore.
   (assert (action-p actx))
   (assert (region-p regx))
@@ -140,7 +141,23 @@
     ;; Get squares with the highest number of samples.
     (setf sqrs-in (square-list-sample-next sqrs-in))
 
-    ;; Load needs for squares with the higest number of results.
+    ;; If there is a pnc square, test the far square.
+    (loop for sqrx in sqrs-in do
+      (when (square-pnc sqrx)
+        (let ((sta-far (region-far-state regx (square-state sqrx))) sqr-far)
+          (setf sqr-far (squarestore-find (action-squares actx) sta-far))
+          (if sqr-far
+            (if (not (square-pnc sqr-far))
+              (needstore-push ret (action-get-need-sample-state actx sta-far reason ex-in))
+            )
+            (needstore-push ret (action-get-need-sample-state actx sta-far reason ex-in))
+          )
+        )
+        (return-from action-needs-for-region ret)
+      )
+    )
+
+    ;; Load needs for squares with the highest number of results.
     (loop for sqrx in sqrs-in do
         (needstore-push ret (action-get-need-resample-state actx (square-state sqrx) reason ex-in))
     )
@@ -190,7 +207,7 @@
            (action-make-groups-from-square actx sqrx)
         )
       )
-    )
+    ) ; end let.
 
     ;; Generate needs to confirm groups.
     (let (grp-needs)
@@ -204,7 +221,7 @@
             (setf needs (needstore-append needs grp-needs)))
         )
       ) ; next grpx
-    )
+    ) ; end let
 
     ;; Generate needs for resolving contradictory intersections.
     (let (grpx grpy reg-int rules-int reg-far)
@@ -249,31 +266,20 @@
           ) ; next iny.
         )
       ) ; next inx.
+    ) ; end let
 
-      ;; Get structure needs.
-      (setf needs (needstore-append needs (action-structure-needs actx change-surface)))
-
-      ;; Check groups against structure boundaries.
-      (let (regs far-reg)
-        (when (not (null (action-logical-structure actx)))
-
-          (loop for grpx in (groupstore-groups (action-groups actx)) do
-             (when (group-pnc grpx)
-
-               (setf regs (regionstore-regions-superset (action-logical-structure actx) (group-region grpx)))  
-
-               (loop for regx in regs do
-
-                 (when (not (region-eq regx (group-region grpx)))
-
-                   (setf far-reg (region-far-region regx (group-region grpx)))
-
-                   (if (not (squarestore-pnc-square-in-region (action-squares actx) far-reg))
-                     (setf needs (needstore-append needs (action-needs-for-region actx far-reg *expand-group* (format nil "~A" (region-str (group-region grpx)))))))
-                 )
-               ) ; next regx
-            )
-          ) ; next grpx
+    ;; Get structure needs.
+    (let ((structure-needs (action-structure-needs actx change-surface)) needs2)
+      (when (needstore-is-not-empty structure-needs)
+        (setf needs (needstore-append needs structure-needs))
+      )
+      (when (and (not (null (action-logical-structure actx))) (needstore-is-empty structure-needs))
+        ;; Check calculated regions are groups.
+        (loop for regx in (regionstore-regions (action-logical-structure actx)) do
+          (when (null (groupstore-find (action-groups actx) regx))
+            (setf needs2 (action-needs-for-region actx regx *confirm-group* " group implied by structure"))
+            (setf needs (needstore-append needs needs2))
+          )
         )
       )
     )
