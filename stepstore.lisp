@@ -237,14 +237,6 @@
       (setf rate (+ (region-distance (step-initial-region stepy) glide-path)
                     (region-distance (step-result-region stepy) glide-path)))
 
-      (if (and (region-intersects (step-initial-region stepy) glide-path)
-               (not (region-superset-of :sup glide-path :sub (step-initial-region stepy))))
-        (incf rate))
-
-      (if (and (region-intersects (step-result-region stepy) glide-path)
-               (not (region-superset-of :sup glide-path :sub (step-result-region stepy))))
-        (incf rate))
-
       (when (< rate min-rate)
         (setf min-rate rate)
         (setf ret-step stepy)

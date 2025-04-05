@@ -623,11 +623,7 @@
     (if (region-intersects (rule-initial-region rulx) glide-path)
       (if (not (region-superset-of :sup glide-path :sub (rule-initial-region rulx)))
         ;; Restrict rule to glide-path.
-        (let ((rulz (rule-restrict-initial-region rulx glide-path)))
-          ;; Check that no wanted changes are lost.
-          (if (change-eq (rule-changes rulz) rule-wanted-changes)
-            (rulestore-push ret-store rulz))
-        )
+        (rulestore-push ret-store (rule-restrict-initial-region rulx glide-path))
       )
     )
     
@@ -635,13 +631,7 @@
     (if (region-intersects (rule-result-region rulx) glide-path)
       (if (not (region-superset-of :sup glide-path :sub (rule-result-region rulx)))
         ;; Restrict rule to glide-path.
-        (let ((rulz (rule-restrict-result-region rulx glide-path)))
-          ;; Check that no wanted changes are lost.
-          (if (change-eq (rule-changes rulz) rule-wanted-changes)
-            (if (not (rulestore-member ret-store rulz))
-              (rulestore-push ret-store rulz))
-          )
-        )
+        (rulestore-push ret-store (rule-restrict-result-region rulx glide-path))
       )
     )
 
