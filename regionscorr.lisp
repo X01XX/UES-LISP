@@ -71,15 +71,6 @@
   (format nil "(RC ~A)" (regionstore-str2 (regionscorr-regionstore regionscorrx)))
 )
 
-;;; Return true if a regionscorr contains a given region.
-(defun _regionscorr-contains (regionscorrx regx) ; -> bool
-  ;(format t "regionscorr-contains regionscorrx ~A regx ~A" regionscorrx regx)
-  (assert (regionscorr-p regionscorrx))
-  (assert (region-p regx))
-
-  (regionstore-member (regionscorr-regionstore regionscorrx) regx)
-)
-
 ;;; Return true if two regionscorrs intersect.
 (defun regionscorr-intersects (regscorr1 regscorr2) ; -> bool
   (assert (regionscorr-p regscorr1))
@@ -285,18 +276,6 @@
         (return-from regionscorr-congruent-states false))
   )
   true
-)
-
-;;; Return an edge mask for a regionscorr.
-(defun regionscorr-edge-mask (regionscorr1) ; -> maskscorr
-  (assert (regionscorr-p regionscorr1))
-
-  (let (mask-list)
-    (loop for regx in (regionscorr-region-list regionscorr1) do
-      (setf mask-list (append mask-list (list (region-edge-mask regx))))
-    )
-    (maskscorr-new mask-list)
-  )
 )
 
 ;;; Return regionscorr X mask.

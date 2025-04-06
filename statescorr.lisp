@@ -93,30 +93,6 @@
   (not (statescorr-eq stascorr1 stascorr2))
 )
 
-;;; Return true if a list is a list of statescorr.
-;;; An empty list will return true.
-(defun statescorr-list-p (state-list) ; -> bool
-  ;; Check arg type.
-  (if (not (listp state-list))
-    (return-from statescorr-list-p false))
-
-  (let (first-item)
-    (loop for stax in state-list do
-
-      ;; Check item type.
-      (if (not (statescorr-p stax))
-        (return-from statescorr-list-p false))
-
-      ;; Check item characteristics.
-      (if first-item
-	(if (not (statescorr-congruent stax first-item))
-          (return-from statescorr-list-p false))
-	(setf first-item stax))
-    )
-    true
-  )
-)
-
 ;;; Return true if two statescorr have the same length and corresponding state-num-bits values.
 (defun statescorr-congruent (statescorr1 statescorr2) ; -> bool
   ;(format t "~&statescorr-congruent: ~A ~A" statescorr1 statescorr2)

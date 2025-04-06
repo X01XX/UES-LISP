@@ -151,14 +151,6 @@
   (regionscorrstore-last-regionscorr (pathscorr-regionscorrstore pathscorrx))
 )
 
-;;; Return the cdr of a non-empty pathscorr.
-(defun pathscorr-cdr (pathscorrx) ; -> pathscorr.
-  (assert (pathscorr-p pathscorrx))
-  (assert (pathscorr-is-not-empty pathscorrx))
-
-  (make-pathscorr :regionscorrstore (regionscorrstore-cdr (pathscorr-regionscorrstore pathscorrx)))
-)
-
 ;;; Append two pathscorrs.
 ;;; Preserve order.
 (defun pathscorr-append (store1 store2) ; -> pathscorr

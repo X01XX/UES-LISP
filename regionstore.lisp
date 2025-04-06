@@ -86,6 +86,18 @@
   false
 )
 
+;;; Return true if any region in a store intersects a passed region.
+(defun regionstore-any-intersection-of (storex regx) ; -> bool
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+
+  (loop for regy in (regionstore-regions storex) do
+    (if (region-intersects regy regx)
+      (return-from regionstore-any-intersection-of true))
+  )
+  false
+)
+
 ;;; Add a region to a regionstore if there are no regions that are subset.
 ;;; Delete supersets of new region.
 (defun regionstore-push-nosups (storex regx) ; -> bool, true if regionstore is changed.
@@ -186,14 +198,6 @@
   (car (last (regionstore-regions storex)))
 )
 
-;;; Return the cdr of a non-empty regionstore.
-(defun regionstore-cdr (storex) ; -> regionstore.
-  (assert (regionstore-p storex))
-  (assert (regionstore-is-not-empty storex))
-
-  (make-regionstore :regions (cdr (regionstore-regions storex)))
-)
-
 ;;; Return a regionstore minus a region.
 (defun regionstore-subtract-region (storex regx) ; -> regionstore.
   (assert (regionstore-p storex))
@@ -238,18 +242,6 @@
     )
     ret
   )
-)
-
-;;; Return true if there is any region in a regionstore that intersects a given region.
-(defun regionstore-any-intersection (storex regx) ; -> bool.
-  (assert (regionstore-p storex))
-  (assert (region-p regx))
-
-  (loop for regy in (regionstore-regions storex) do
-    (if (region-intersects regy regx)
-      (return-from regionstore-any-intersection true))
-  )
-  false 
 )
 
 ;;; Append two regionstores.
@@ -405,20 +397,6 @@
       (regionstore-push-nosubs ret regy)
     )
 
-    ret
-  )
-)
-
-;;; Return a list of regions that are superset, or equal, to a given region.
-(defun regionstore-regions-superset (storex regx) ; -> list of regions.
-  (assert (regionstore-p storex))
-  (assert (region-p regx))
-
-  (let (ret)
-    (loop for regy in (regionstore-regions storex) do
-      (if (region-superset-of :sup regy :sub regx)
-        (push regy ret))
-    )
     ret
   )
 )

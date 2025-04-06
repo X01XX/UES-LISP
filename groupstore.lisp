@@ -58,10 +58,10 @@
 (defun groupstore-str (storex) ; -> string.
   (assert (groupstore-p storex))
 
-  (let ((ret "#S(GROUPSTORE ") (start t))
+  (let ((ret "(GS ") (start t))
 
     (loop for grpx in (groupstore-groups storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
 
       (setf ret (concatenate 'string ret (format nil " ~&    ~A" (group-str grpx))))
     )

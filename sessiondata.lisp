@@ -50,10 +50,10 @@
 )
 
 ;;; Return a string representation of a sessiondata instance.
-(defun sessiondata-str (sessx)  ; -> string.                                                                      
+(defun sessiondata-str (sessx)  ; -> string.
   (assert (sessiondata-p sessx))
 
-    (let ((strs "#S(SESSIONDATA "))
+    (let ((strs "(SD "))
       (setf strs (concatenate 'string strs (domainstore-str (sessiondata-domains sessx))))
 
       (setf strs (concatenate 'string strs ")"))
@@ -441,12 +441,11 @@
 
     (if plans
       (progn
-        (setf (planscorrstore-value plans) min-rate)
+        (planscorrstore-set-value plans min-rate)
         ;(format t "~&sessiondata-get-plans2: Plans found: ~A" (planscorrstore-str plans))
       )
       ;(format t "~&sessiondata-get-plans2: No plans found")
     )
-
     plans
   )
 )

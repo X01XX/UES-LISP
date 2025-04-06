@@ -101,20 +101,6 @@
   (state-num-bits (domain-current-state domx))
 )
 
-;;; Return true if a list is a list of domains.
-;;; An empty list will return true.
-(defun domain-list-p (domlst) ; -> bool
-  ;(format t "~&domain-list-p: ~A" domlst)
-  (if (not (listp domlst))
-    (return-from domain-list-p false))
-
-  (loop for domx in domlst do
-    (if (not (domain-p domx))
-      (return-from domain-list-p false))
-  )
-  true
-)
-
 ;;; Return the maximum region for a domain.
 (defun domain-max-region (domx) ; -> region.
   (region-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx)))))
@@ -183,7 +169,6 @@
         (setf stepy (step-restrict-initial-region stepx from-reg))
         (when (region-intersects (step-result-region stepy) to-reg)
            (setf stepy (step-restrict-result-region stepy to-reg))
-           (step-calc-wanted-unwanted stepy from-reg to-reg)
            (push stepx span-steps)
         )
       )

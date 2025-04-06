@@ -196,27 +196,6 @@
     (state-eq (square-state sqr1) (square-state sqr2))
 )
 
-;;; Return can combination now indicator
-;;; A possible subset relationship will return false, but
-;;; with more samples may return true.
-(defun square-can-combine-now (sqrx sqry) ; -> bool
-    (assert (square-p sqrx))
-    (assert (square-p sqry))
-    (assert (state-ne (square-state sqrx) (square-state sqry)))
-
-    (let ((pnx (square-pn sqrx)) (pny (square-pn sqry))
-          (rulsx (square-rules sqrx)) (rulsy (square-rules sqry)))
-
-      ;; Three possibilities. 1/1, 2/2, 3/3.
-      (if (neq pnx pny)
-  	    (return-from square-can-combine-now nil))
-
-      (if (eq *pn-none* pnx) (return-from square-can-combine-now t))
-  
-      (if (rulestore-union rulsx rulsy) true false)
-  ) ; end let
-)
-
 ;;; Return true if two squares may be compatible as-is.
 (defun square-compatible (sqrx sqry) ; -> bool
     (assert (square-p sqrx))

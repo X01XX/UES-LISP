@@ -100,7 +100,6 @@
 )
 
 ;;; Return the number of bits used is elements of a non-empty stepstore.
-;;; Return the number of bits used is elements of a non-empty stepstore.
 (defun stepstore-num-bits (stpstrx) ; -> integer ge 1.
   (assert (stepstore-p stpstrx))
   (assert (stepstore-is-not-empty stpstrx))
@@ -140,6 +139,7 @@
 (defun stepstore-change-intersects (storex cngx) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (change-p cngx))
+  (assert (= (stepstore-num-bits storex) (change-num-bits cngx)))
 
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
@@ -154,6 +154,8 @@
 (defun stepstore-difference (storex storey) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (stepstore-p storey))
+  (assert (or (or (stepstore-is-empty storex) (stepstore-is-empty storey))
+              (= (stepstore-num-bits storex) (stepstore-num-bits storey))))
 
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
@@ -168,6 +170,8 @@
 (defun stepstore-union (storex storey) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (stepstore-p storey))
+  (assert (or (or (stepstore-is-empty storex) (stepstore-is-empty storey))
+              (= (stepstore-num-bits storex) (stepstore-num-bits storey))))
 
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
@@ -197,6 +201,8 @@
 (defun stepstore-intersection (storex storey) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (stepstore-p storey))
+  (assert (or (or (stepstore-is-empty storex) (stepstore-is-empty storey))
+              (= (stepstore-num-bits storex) (stepstore-num-bits storey))))
 
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
@@ -224,6 +230,8 @@
 (defun stepstore-select-step (storex glide-path) ; -> step
   (assert (stepstore-p storex))
   (assert (stepstore-is-not-empty storex))
+  (assert (or (stepstore-is-empty storex)
+              (= (stepstore-num-bits storex) (region-num-bits glide-path))))
 
   (if (= 1 (stepstore-length storex))
     (return-from stepstore-select-step (stepstore-first-step storex)))

@@ -42,7 +42,7 @@
 )
 
 ;;; Parse a string, using commas and spaces as separators, between balanced brackets.
-(defun parse-str(str) ; -> list of string tokens.
+(defun parse-str (str) ; -> list of string tokens.
     (let (ret skip (token "") (left 0) (right 0))
         (loop for char across str do
             (if (char= char #\[)

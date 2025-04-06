@@ -26,7 +26,7 @@
 )
 
 ;;; Add a square.
-(defun squarestore-add(storex sqrx) ; -> side-effect, squarestore changed.
+(defun squarestore-add (storex sqrx) ; -> side-effect, squarestore changed.
   ;(format t "~&squarestore-add ~A" (square-str sqrx))
   (assert (squarestore-p storex))
   (assert (square-p sqrx))
@@ -110,23 +110,6 @@
         (statestore-push ret (square-state sqrx))
     )
     ret
-  )
-)
-
-;;; Return ntrue it a rulestore is valid, that is, not invalidated by ony square within its initial region.
-(defun squarestore-rulestore-is-valid (storex regx rulstrx) ; -> bool
-  ;(format t "~&squarestore-rulestore-is-valid")
-  (assert (squarestore-p storex))
-  (assert (region-p regx))
-  (assert (rulestore-p rulstrx))
-
-  (let ((sqrs (squarestore-squares-in-region storex regx)))
-
-    (loop for sqrx in sqrs do
-      (if (rulestore-invalidated-by-square rulstrx sqrx)
-         (return-from squarestore-rulestore-is-valid false))
-    )
-    true
   )
 )
 

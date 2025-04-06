@@ -65,10 +65,10 @@
 (defun domainstore-str (storex) ; -> string.
   (assert (domainstore-p storex))
 
-  (let ((ret "#S(DOMAINSTORE ") (start t))
+  (let ((ret "(DS ") (start t))
 
     (loop for domx in (domainstore-domains storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
       (setf ret (concatenate 'string ret (domain-str domx)))
     )
 

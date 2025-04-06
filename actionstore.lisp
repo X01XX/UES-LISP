@@ -64,23 +64,16 @@
 (defun actionstore-str (storex) ; -> string.
   (assert (actionstore-p storex))
 
-  (let ((ret "#S(ACTIONSTORE ") (start t))
+  (let ((ret "(AS ") (start t))
 
     (loop for actx in (actionstore-actions storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
 
       (setf ret (concatenate 'string ret (format nil " ~&  ~A" (action-str actx))))
     )
 
     ret
   )
-)
-
-(defun actionstore-first-action (storex) ; -> action
-  (assert (actionstore-p storex))
-  (assert (actionstore-is-not-empty storex))
-
-  (car (actionstore-actions storex))
 )
 
 ;  Return possible steps, given a rule.
@@ -152,13 +145,5 @@
     ;(format t "~&actionstore-change-surface: ~A" (regionstore-str ret))
     ret
   )
-)
-
-;;; Return the number of bits used by actionstores in a non-empty actionstorestore.
-(defun actionstorestore-num-bits (storex) ; -> number                                                          
-  (assert (actionstorestore-p storex))
-  (assert (actionstorestore-is-not-empty storex))
-
-  (actionstore-num-bits (actionstorestore-first-action storex))
 )
 

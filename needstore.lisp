@@ -44,41 +44,6 @@
     )
 )
 
-;;; Returns true if a need of a given kind and target are in a needstore.
-(defun needstore-find-kind-target (needs kind target) ; -> bool
-    (assert (needstore-p needs))
-    (assert (integerp kind))
-    (assert (or (zerop kind) (plusp kind)))
-
-    (loop for needx in needs do
-        (if (and (= (need-kind needx) kind) (region-eq (need-target needx) target))
-            (return-from needstore-find-kind-target t))
-    )
-    nil
-)
-
-;;; Returns the number of a given kind of need in a needstore.
-(defun needstore-number-kind (needs kind)
-    (assert (needstore-p needs))
-    (assert (integerp kind))
-    (assert (or (zerop kind) (plusp kind)))
-
-    (let ((cnt 0))
-        (loop for needx in needs do
-            (if (= (need-kind needx) kind)
-                (incf cnt))
-        )
-        cnt
-    )
-)
-
-;;; Do various tests
-(defun needstore-tests ()
-
-    (format t "~&needstore-tests OK")
-    'OK
-)
-
 ;;; Append two needstores.
 ;;; Preserve order.
 (defun needstore-append (store1 store2) ; -> needstore

@@ -206,7 +206,7 @@
             (when grpx
               ;(format t "~&replacing group region ~A with ~A"
               ;       (region-str (group-region grpx)) (region-str (region-new (list stax sta-far))))
-              (setf (group-region grpx) (region-new (list stax sta-far)))
+              (group-set-region grpx (region-new (list stax sta-far)))
             )
             (return-from action-structure-group-needs (needstore-new nil))
           )
@@ -230,6 +230,15 @@
               (= (action-num-bits actx) (regionstore-num-bits change-surface))))
 
   (let ((needs (needstore-new nil)))
+
+   ;; Check for groups not supported by the logical structure.
+   (when (and (action-logical-structure actx) (> (regionstore-length (action-logical-structure actx)) 1))
+      (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
+        (if (groupstore-is-not-empty invalidated-groups)
+          (action-process-invalidated-groups actx invalidated-groups))
+      )
+    )
+
     ;; Generate need for a cur-state that is not in a group.
     (when (not (groupstore-state-in-group (action-groups actx) cur-state))
       (let ((sqrx (squarestore-find (action-squares actx) cur-state)))
@@ -434,12 +443,17 @@
 
       ;; Generate far sample needs.
       (when sqr-far
-        (if (not (square-pnc sqr-far))
+        (if (square-pnc sqr-far)
+          (progn
+            (group-set-region grpx (region-new (list sta-first sta-far)))
+            (return-from action-confirm-group-needs (needstore-new nil))
+          )
           (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group*
-             (format nil "~A" (region-str grp-reg)))))
+             (format nil "~A" (region-str grp-reg))))
+        )
 
-            ;(format t "~&action-confirm-group-needs: return 3 Act: ~D Group: ~A needs: ~A"
-            ;  (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+        ;(format t "~&action-confirm-group-needs: return 3 Act: ~D Group: ~A needs: ~A"
+        ;  (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
 
         (return-from action-confirm-group-needs needs)
       )
@@ -450,8 +464,8 @@
 
       ;(format t "~&action-confirm-group-needs: return 4 Act: ~D Group: ~A needs: ~A"
       ;      (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
-      needs
     )
+    needs
   )
 )
 
@@ -918,7 +932,6 @@
     (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
 
   ;; Check for invalidated groups.
-  (setf invalidated-groups (groupstore-union invalidated-groups (action-groups-invalidated-by-structure actx)))
   (if (groupstore-is-not-empty invalidated-groups)
     (action-process-invalidated-groups actx invalidated-groups))
 
@@ -948,9 +961,7 @@
   )
 
   ;; Check for invalidated groups.
-  (let (invalidated-groups)
-     (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
-     (setf invalidated-groups (groupstore-union invalidated-groups (action-groups-invalidated-by-structure actx)))
+  (let ((invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx)))
      (if (groupstore-is-not-empty invalidated-groups)
        (action-process-invalidated-groups actx invalidated-groups))
   )
@@ -1039,10 +1050,11 @@
   (assert (action-p actx))
 
   (let ((ret (groupstore-new nil)))
-    (when (and (not (null (action-logical-structure actx))) (not (regionstore-is-empty (action-logical-structure actx))))
+    (when (and (action-logical-structure actx) (> (regionstore-length (action-logical-structure actx)) 1))
       (loop for grpx in (groupstore-groups (action-groups actx)) do
-        (when (not (regionstore-any-superset-of (action-logical-structure actx) (group-region grpx)))
-          (format t "~&Act ~D Group region too big ~A structure ~A"
+        (when (and (not (regionstore-any-superset-of (action-logical-structure actx) (group-region grpx)))
+                   (regionstore-any-intersection-of (action-logical-structure actx) (group-region grpx)))
+          (format t "~&Act ~D Group ~A region incongruent with structure ~A"
             (action-id actx)
             (region-str (group-region grpx))
             (regionstore-str (action-logical-structure actx)))

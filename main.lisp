@@ -149,14 +149,7 @@
     )
 )
 
-(defun generate-and-display-needs (sessx) ; -> side-effect, sessiondata instance changed.
-  ;(format t "~&generate-and-display-needs ~A" (type-of sessx))
-  (assert (sessiondata-p sessx))
-
-  (sessiondata-get-needs sessx)
-  (display-needs sessx)
-)
-
+;;; Generate and display need, take commands from the user.
 (defun command-loop (sessx)
   ;(format t "~& ~&command-loop ~A" (type-of sessx))
   ;(format t "~&~A" (sessiondata-str sessx))

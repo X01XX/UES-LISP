@@ -63,7 +63,7 @@
   (let ((ret "(") (start t))
 
     (loop for stax in (statestore-states storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (state-str stax)))
     )
@@ -118,32 +118,6 @@
        (setf ret (value-or ret (state-xor stax first-state)))
     )
     (mask-new ret)
-  )
-)
-
-;;; Return the Boolean "or" of all states.
-(defun statestore-or-all (storex) ; -> state
-  (assert (statestore-p storex))
-  (assert (statestore-is-not-empty storex))
-
-  (let ((ret (statestore-first-state storex)))
-    (loop for stax in (cdr (statestore-states storex)) do
-      (state-or ret stax)
-    )
-    ret
-  )
-)
-
-;;; Return the Boolean "and" of all states.
-(defun statestore-and-all (storex) ; -> state
-  (assert (statestore-p storex))
-  (assert (statestore-is-not-empty storex))
-
-  (let ((ret (statestore-first-state storex)))
-    (loop for stax in (cdr (statestore-states storex)) do
-      (state-and ret stax)
-    )
-    ret
   )
 )
 

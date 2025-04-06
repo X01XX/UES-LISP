@@ -120,7 +120,7 @@
 )
 
 ; Return true if two groups are equal.
-(defun group-eq (grp1 grp2) ; -> bool
+(defun group-eq (grp1 grp2) ; -> bool                                                                             
   (region-eq (group-region grp1) (group-region grp2))
 )
 

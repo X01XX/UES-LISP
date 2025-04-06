@@ -28,11 +28,6 @@
   (make-selectregions :regionscorr regions :rate ratex)
 )
 
-;;; Return a list of regions.
-(defun selectregions-region-list (sregsx) ; -> A list ogf regions.
-  (regionscorr-region-list (selectregions-regionscorr sregsx))
-)
-
 ;;; Return a string for a selectregions.
 (defun selectregions-str (sregsx)  ; -> string.
   (assert (selectregions-p sregsx))
@@ -56,15 +51,6 @@
   (assert (selectregions-p sregs2))
 
   (not (selectregions-eq sregs1 sregs2))
-)
-
-;;; Return true if two selectregions are equal in regions, not considering rates.
-(defun selectregions-eq-regions (sregs1 sregs2) ; -> bool
-  ;(format t "~&selectregions-eq: ~A ? ~A" sregs1 sregs2)
-  (assert (selectregions-p sregs1))
-  (assert (selectregions-p sregs2))
-
-  (regionscorr-eq (selectregions-regionscorr sregs1) (selectregions-regionscorr sregs1))
 )
 
 ;;; Return true if a list is a list of selectregionss.
