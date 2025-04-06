@@ -1,11 +1,12 @@
 ;;;; Implement the Action type.
 ;;;;
 (defstruct action
-  id		  ; A number id, GE zero.
-  groups	  ; A groupstore.
-  squares     ; A Squarestore.
-  base-rules  ; A list of rulestores to use in generating samples.
+  id		        ; A number id, GE zero.
+  groups	        ; A groupstore.
+  squares           ; A Squarestore.
+  base-rules        ; A list of rulestores to use in generating samples.
   logical-structure ; A regionstore.
+  structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -51,7 +52,12 @@
       )
     )
 
-    (setf actx (make-action :id id :groups (groupstore-new nil) :squares (squarestore-new) :base-rules rules :logical-structure nil))
+    (setf actx (make-action :id id
+                            :groups (groupstore-new nil) 
+                            :squares (squarestore-new)
+                            :base-rules rules
+                            :logical-structure nil
+                            :structure-pairs (regionstore-new nil)))
     ;(format t "~&returning act: ~A" (action-str actx))
     actx
   )
@@ -165,6 +171,54 @@
   )
 )
 
+;; Return group needs, based on logical-structure regions and structure-pairs.
+(defun action-structure-group-needs (actx regx) ; -> needstore.
+  (assert (action-p actx))
+  (assert (region-p regx))
+
+  (let ((needs (needstore-new nil)) (stas-in (statestore-new nil)) grpx sta-far sqr-far)
+
+    ;; Find states in structure pairs also in the passed region.
+    (loop for regy in (regionstore-regions (action-structure-pairs actx)) do
+      (if (region-superset-of-state regx (region-first-state regy))
+        (statestore-push stas-in (region-first-state regy)))
+
+      (if (region-superset-of-state regx (region-second-state regy))
+        (statestore-push stas-in (region-second-state regy)))
+    )
+
+    ;; Find the group, if any exists.
+    (setf grpx (groupstore-find (action-groups actx) regx))
+
+    (when grpx
+      (when (or (statestore-member stas-in (region-first-state (group-region grpx)))      
+                (statestore-member stas-in (region-second-state (group-region grpx))))      
+        ;(format t "~&group ~A defined by structure-pairs" (region-str (group-region grpx)))
+        (return-from action-structure-group-needs needs))
+    )
+
+    (loop for stax in (statestore-states stas-in) do
+      (setf sta-far (region-far-state regx stax))
+      (setf sqr-far (action-find-square actx sta-far))
+      (if sqr-far
+        (progn
+          (when (square-pnc sqr-far)
+            (when grpx
+              ;(format t "~&replacing group region ~A with ~A"
+              ;       (region-str (group-region grpx)) (region-str (region-new (list stax sta-far))))
+              (setf (group-region grpx) (region-new (list stax sta-far)))
+            )
+            (return-from action-structure-group-needs (needstore-new nil))
+          )
+          (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group* " group implied by structure"))
+        )
+        (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group* " group implied by structure"))
+      )
+    ) ; next stax
+    (return-from action-structure-group-needs needs)
+  )
+)
+
 ;;; Return action needs to improve the understanding of the logic behind the samples, so far.
 (defun action-get-needs (actx cur-state change-surface) ; -> NeedStore.
   ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
@@ -274,12 +328,10 @@
         (setf needs (needstore-append needs structure-needs))
       )
       (when (and (not (null (action-logical-structure actx))) (needstore-is-empty structure-needs))
-        ;; Check calculated regions are groups.
+        ;; Check calculated regions are groups, and group regions are defined by a state in structure-pairs.
         (loop for regx in (regionstore-regions (action-logical-structure actx)) do
-          (when (null (groupstore-find (action-groups actx) regx))
-            (setf needs2 (action-needs-for-region actx regx *confirm-group* " group implied by structure"))
+            (setf needs2 (action-structure-group-needs actx regx))
             (setf needs (needstore-append needs needs2))
-          )
         )
       )
     )
@@ -551,6 +603,8 @@
         (regionstore-push adj-pairs prx)
         (regionstore-push non-adj-pairs prx))
     )
+    ;; Store adjacent pairs.
+    (setf (action-structure-pairs actx) adj-pairs)
 
     ;; Calc logical structure.
 
@@ -1042,6 +1096,9 @@
 )
 
 ;;; Process new, or orphaned, square into groups.
+;;; Single-sample squares are used, to bootstrap the group forming procees.
+;;; The first groups are unreliable, but improve with use, some work and some are invalidated.
+;;; Also bootstrap the structure calculations.
 (defun action-make-groups-from-square (actx sqrx) ; side-effect, action changed.
   (assert (action-p actx))
   (assert (square-p sqrx))
