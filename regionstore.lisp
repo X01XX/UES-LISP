@@ -409,3 +409,18 @@
   (region-num-bits (regionstore-first-region storex))
 )
 
+;;; Return true if a state is in only one region.
+(defun regionstore-state-in-exactly-one (regions stax) ; -> bool
+  ;(format t "~&regionstore-state-in-exactly-one: ~A ~A" (type-of regions) (type-of stax))
+  (assert (regionstore-p regions))
+  (assert (state-p stax))
+
+  (let ((cnt 0)) 
+    (loop for regx in (regionstore-regions regions) do  
+      (if (region-superset-of-state regx stax)
+         (incf cnt))
+    )
+    (= cnt 1)
+  )
+)
+

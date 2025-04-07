@@ -495,7 +495,7 @@
     ;; DGet first state and square of group region.
     (setf sta-first (region-first-state (group-region grpx)))
 
-    (if (not (groupstore-state-in-exactly-one-group (action-groups actx) sta-first))
+    (if (not (regionstore-state-in-exactly-one (action-logical-structure actx) sta-first))
       (return-from action-confirm-unused-group-needs needs))
 
     (setf sqr-first (action-find-square actx sta-first))
