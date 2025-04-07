@@ -397,7 +397,8 @@
 
         ;(format t "~&  square ~A found" (square-str sqr-first))
         ;; Check if more samples needed.
-        (if (not (square-pnc sqr-first))
+        (if (square-pnc sqr-first)
+          (if (not (group-pnc grpx)) (group-set-pnc grpx true))
           (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
                (format nil "~A" (region-str grp-reg)))))
 
@@ -432,6 +433,9 @@
 
         ;(format t "~&action-confirm-group-needs: return 2 Act: ~D Group: ~A needs: ~A"
         ;    (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+
+        (if (and (square-pnc sqr-first) (square-pnc sqr-far))
+          (if (not (group-pnc grpx)) (group-set-pnc grpx true)))
 
         (return-from action-confirm-group-needs needs)
       )
@@ -629,17 +633,12 @@
         (non-adj-pairs2 (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
         (logical-structure change-surface)          ; Best guess for logical structure.
         (max-regionstore change-surface)            ; Regionstore with one region, with all bit positions set to X.
-        )
+        (needs (needstore-new nil)))                ; Needstore to return.
 
     (if (regionstore-is-empty max-regionstore)
       (return-from action-structure-needs (needstore-new nil)))
 
-    ;; Make a list of all squares.
-    (let (sqrs sqr-y)
-      (loop for sqrx in (squarestore-squares (action-squares actx)) do
-        (if (square-pnc sqrx)
-          (push sqrx sqrs))
-      )
+    (let ((sqrs (squarestore-squares (action-squares actx))) sqr-y)
 
       ;; Check each pair of squares.
       ;; Store incompatible pairs, with no incompatible pairs between them.
@@ -653,7 +652,19 @@
           (when (not (square-compatible sqr-x sqr-y))
               ;(format t "~&Act ~D sqr-x ~A not compatible sqr-y ~A" (action-id actx)
               ;   (square-str sqr-x) (square-str sqr-y))
-             (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y)))))
+             (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y))))
+
+             (when (square-is-adjacent sqr-x sqr-y)
+               (if (not (square-pnc sqr-x))
+                 (needstore-push needs (action-get-need-resample-state actx (square-state sqr-x) *confirm-adj-ip*
+                     (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-y)))))
+               )
+               (if (not (square-pnc sqr-y))
+                 (needstore-push needs (action-get-need-resample-state actx (square-state sqr-y) *confirm-adj-ip*
+                     (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-x)))))
+               )
+             )
+          )
         ) ; next iny.
       ) ; next inx.
 
@@ -672,6 +683,7 @@
     )
     ;; Store adjacent pairs.
     (setf (action-structure-pairs actx) adj-pairs)
+
 
     ;; Calc logical structure.
 
@@ -702,8 +714,11 @@
 
     ;(format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
 
-    ;; Check for non-adjacent incompatible square between needs.
-    (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2)
+    (if (needstore-is-not-empty needs)
+      needs
+      ;; Check for non-adjacent incompatible square between needs.
+      (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2)
+    )
   )
 )
 

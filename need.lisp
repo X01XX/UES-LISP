@@ -12,17 +12,19 @@
 (defvar *confirm-group* 2007)
 (defvar *contradictory-intersection* 2011)
 (defvar *between-ip* 2017)
-(defvar *expand-group* 2019)
 (defvar *avoid-negative-selectregions* 2023)
 (defvar *seek-positive-selectregions* 2027)
+(defvar *confirm-ip* 2029)
+(defvar *confirm-adj-ip* 2031)
 (defvar *reasons* (list *state-not-in-group*
                         *confirm-group*
                         *contradictory-intersection*
-                        *expand-group*
                         *between-ip*
+                        *confirm-ip*
+                        *confirm-adj-ip*
                         *avoid-negative-selectregions*
                         *seek-positive-selectregions*)
-   )
+)
 
 (defstruct need
     (dom-id 0)      ; Domain ID, integer GE 0.
@@ -89,13 +91,15 @@
               ((= (need-reason needx) *contradictory-intersection*)
                 (setf str (concatenate 'string str (format nil " :reason Contradictory intersection"))))
               ((= (need-reason needx) *between-ip*)
-                (setf str (concatenate 'string str (format nil " :reason Between Incompatible Pair "))))
-              ((= (need-reason needx) *expand-group*)
-                (setf str (concatenate 'string str (format nil " :reason To expand group"))))
+                (setf str (concatenate 'string str (format nil " :reason Between Incompatible Pair"))))
               ((= (need-reason needx) *avoid-negative-selectregions*)
                 (setf str (concatenate 'string str (format nil " :reason Avoid staying in a negative selectregion"))))
               ((= (need-reason needx) *seek-positive-selectregions*)
                 (setf str (concatenate 'string str (format nil " :reason Seek a positive selectregion"))))
+              ((= (need-reason needx) *confirm-ip*)
+                (setf str (concatenate 'string str (format nil " :reason Confirm Incompatible Pair"))))
+              ((= (need-reason needx) *confirm-adj-ip*)
+                (setf str (concatenate 'string str (format nil " :reason Confirm adjacent Incompatible Pair"))))
         )
 
         (cond ((state-p (need-target needx))
