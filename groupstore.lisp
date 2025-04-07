@@ -320,3 +320,17 @@
   (car (groupstore-groups storex))
 )
 
+;;; Return true if a state is in only one group.
+(defun groupstore-state-in-exactly-one-group (groups stax) ; -> bool
+  ;(format t "~&groupstore-state-in-exactly-one-group: ~A ~A" (type-of groups) (type-of stax))
+  (assert (groupstore-p groups))
+  (assert (state-p stax))
+
+  (let ((cnt 0))
+    (loop for grpx in (groupstore-groups groups) do 
+      (if (region-superset-of-state (group-region grpx) stax)
+         (incf cnt))
+    )
+    (= cnt 1)
+  )
+)

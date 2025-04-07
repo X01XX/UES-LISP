@@ -181,7 +181,8 @@
   (assert (region-eq regx (group-region grpx)))
 
   (when (or (/= (region-number-states regx) (region-number-states (group-region grpx)))
-            (state-ne (region-first-state regx) (region-first-state grpx)))
+            (state-ne (region-first-state regx) (region-first-state (group-region grpx))))
+
     (format t "~&group ~A region changed from ~A to ~A" (region-str regx)
                                                         (statestore-str (region-states (group-region grpx)))
                                                         (statestore-str (region-states regx)))

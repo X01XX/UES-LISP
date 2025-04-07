@@ -191,8 +191,7 @@
     (setf grpx (groupstore-find (action-groups actx) regx))
 
     (when grpx
-      (when (or (statestore-member stas-in (region-first-state (group-region grpx)))      
-                (statestore-member stas-in (region-second-state (group-region grpx))))      
+      (when (statestore-member stas-in (region-first-state (group-region grpx)))      
         ;(format t "~&group ~A defined by structure-pairs" (region-str (group-region grpx)))
         (return-from action-structure-group-needs needs))
     )
@@ -286,6 +285,22 @@
       ) ; next grpx
     ) ; end let
 
+    ;; Generate needs to further confirm unused pnc groups.
+    (let (grp-needs)
+      (loop for grpx in (groupstore-groups (action-groups actx)) do
+
+        (when (and (group-pnc grpx)
+                   (not (group-makes-predictable-change grpx))               ; Group will not be tested through use.
+                   (> (mask-num-ones (region-x-mask (group-region grpx))) 1) ; Two non-adjacent states.
+              )
+
+          (setf grp-needs (action-confirm-unused-group-needs actx grpx))
+          (when (needstore-is-not-empty grp-needs)
+            (setf needs (needstore-append needs grp-needs)))
+        )
+      ) ; next grpx
+    ) ; end let
+
     ;; Generate needs for resolving contradictory intersections.
     (let (grpx grpy reg-int rules-int reg-far)
       (loop for inx from 0 below (1- (groupstore-length (action-groups actx))) do
@@ -332,18 +347,19 @@
     ) ; end let
 
     ;; Get structure needs.
-    (let ((structure-needs (action-structure-needs actx change-surface)) needs2)
-      (when (needstore-is-not-empty structure-needs)
+    (let ((structure-needs (action-structure-needs actx change-surface)))
+ 
+      (if (needstore-is-not-empty structure-needs)
         (setf needs (needstore-append needs structure-needs))
-      )
-      (when (and (not (null (action-logical-structure actx))) (needstore-is-empty structure-needs))
-        ;; Check calculated regions are groups, and group regions are defined by a state in structure-pairs.
-        (loop for regx in (regionstore-regions (action-logical-structure actx)) do
-            (setf needs2 (action-structure-group-needs actx regx))
-            (setf needs (needstore-append needs needs2))
+
+        (when (not (null (action-logical-structure actx)))
+          (loop for regx in (regionstore-regions (action-logical-structure actx)) do
+            (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
+          )
         )
       )
     )
+
     needs
   )
 )
@@ -464,6 +480,43 @@
 
       ;(format t "~&action-confirm-group-needs: return 4 Act: ~D Group: ~A needs: ~A"
       ;      (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
+    )
+    needs
+  )
+)
+
+;;; Return needs to further confirm a group that will not be further confirmed by use.
+(defun action-confirm-unused-group-needs (actx grpx) ; -> needstore
+  (assert (action-p actx))
+  (assert (group-p grpx))
+
+  (let ((needs (needstore-new nil)) sta-first sqr-first x-bit-masks sta-adj sqr-adj)
+
+    ;; DGet first state and square of group region.
+    (setf sta-first (region-first-state (group-region grpx)))
+
+    (if (not (groupstore-state-in-exactly-one-group (action-groups actx) sta-first))
+      (return-from action-confirm-unused-group-needs needs))
+
+    (setf sqr-first (action-find-square actx sta-first))
+    (if (null sqr-first)
+      (error "action-confirm-unused-group-needs: square of first state ~A defining group ~A region not found"
+          (state-str sta-first) (region-str (group-region grpx))))
+
+    (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
+
+    ;; Check each square inside the region is pnc.
+    (loop for maskx in x-bit-masks do
+      (setf sta-adj (state-new (state-xor sta-first maskx)))
+
+      (setf sqr-adj (action-find-square actx sta-adj))
+
+      (if sqr-adj
+        (if (not (square-pnc sqr-adj))
+          (needstore-push needs (action-get-need-resample-state actx sta-adj *confirm-group* (format nil "unused group ~A" (region-str (group-region grpx)))))
+        )
+        (needstore-push needs (action-get-need-sample-state actx sta-adj *confirm-group* (format nil "unused group ~A" (region-str (group-region grpx)))))
+      )
     )
     needs
   )

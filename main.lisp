@@ -385,7 +385,8 @@
                   (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
                     (progn
                       (setf regx (region-from-str (fourth tokens)))
-                      (if regx
+                      (if (err-p regx)
+                        (format t "~&~A" (err-str regx))
                         (progn
                           (setf actx (actionstore-nth
                                           (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
@@ -401,7 +402,7 @@
                             )
                             (format t "~&Group not found in grp-sqrs command"))
                         )
-                        (format t "~&Did not understand region in grp-sqrs command"))
+                      )
                     )
                     (format t "~&Did not understand action id in grp-sqrs command")
                   )
@@ -425,7 +426,8 @@
                   (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
                     (progn
                       (setf regx (region-from-str (fourth tokens)))
-                      (if regx
+                      (if (err-p regx)
+                        (format t "~&~A" (err-str regx))
                         (progn
                           (setf actx (actionstore-nth
                                           (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
@@ -434,7 +436,7 @@
                             (format t "~&~A" (square-str sqrx))
                           )
                         )
-                        (format t "~&Did not understand region in reg-sqrs command"))
+                      )
                     )
                     (format t "~&Did not understand action id in reg-sqrs command")
                   )
