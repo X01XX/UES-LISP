@@ -94,7 +94,11 @@
           (setf str (concatenate 'string str " ")))
 
         (setf str (concatenate 'string str (format nil " pnc ~A" (group-pnc agrp))))
-        (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp)))))
+
+        (if (pn-eq (group-pn agrp) *pn-none*)
+          (setf str (concatenate 'string str (format nil " unpredictable")))
+          (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp))))))
+
         (setf str (concatenate 'string str ")"))
         str
     )
