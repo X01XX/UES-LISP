@@ -296,13 +296,23 @@
 )
 
 ;;; Return the union of two regions.
-(defun region-union (reg1 reg2) ; -> region, or nil?
+(defun region-union (reg1 reg2) ; -> region
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
   (region-new (list (state-new (state-or  (region-high-state reg1) (region-high-state reg2)))
                     (state-new (state-and (region-low-state reg1) (region-low-state reg2)))))
+)
+
+;;; Return the union of two regions.
+(defun region-union-state (reg1 stax) ; -> region
+  (assert (region-p reg1))
+  (assert (state-p stax))
+  (assert (= (region-num-bits reg1) (state-num-bits stax)))
+
+  (region-new (list (state-new (state-or  (region-high-state reg1) stax))
+                    (state-new (state-and (region-low-state reg1) stax))))
 )
 
 ;;; Return a mask of edge bit positions.

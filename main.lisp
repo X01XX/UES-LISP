@@ -7,6 +7,18 @@
 ;;;; For use outside of the GPL-3.0 license, contact the Wisconsin Alumni Research Foundation (WARF).
 ;;;;
 
+;; Compatibility vars.
+(defvar *compatible* 2323)
+(defvar *not-compatible* 2324)
+(defvar *more-samples-needed* 2325)
+
+;; Bool vars.
+(defvar true t)
+(defvar false nil)
+
+(load #p "pn.lisp")
+(load #p "need.lisp")
+
 (load #p "err.lisp")
 (load #p "tools.lisp")
 
@@ -87,8 +99,6 @@
 (load #p "selectregionsstore.lisp")
 (load #p "selectregionsstore_t.lisp")
 
-(load #p "pn.lisp")
-
 (load #p "square.lisp")
 (load #p "square_t.lisp")
 
@@ -98,7 +108,6 @@
 (load #p "planscorrstore.lisp")
 (load #p "planscorrstore_t.lisp")
 
-(load #p "need.lisp")
 (load #p "need_t.lisp")
 
 (load #p "needstore.lisp")
@@ -107,8 +116,6 @@
 (load #p "sessiondata.lisp")
 (load #p "statescorr.lisp")
 (load #p "squarestore.lisp")
-
-
 
 
 (defun main ()
@@ -389,18 +396,24 @@
                         (format t "~&~A" (err-str regx))
                         (progn
                           (setf actx (actionstore-nth
-                                          (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
-                          (setf grpx (groupstore-find (action-groups actx) regx))
-                          (if grpx
+                                     (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
+                          (if (/= (action-num-bits actx) (region-num-bits regx))
+                            (format t "~&The number of bits used by the region do not match the number of bits used by the action")
                             (progn
-                              (loop for stax in (region-state-list (group-region grpx)) do
-                                (setf sqrx (squarestore-find (action-squares actx) stax))
-                                (if sqrx
-                                   (format t "~&~A" (square-str sqrx))
-                                   (format t "~&Square ~A not found?" (state-str sqrx)))
+                              (setf grpx (groupstore-find (action-groups actx) regx))
+                              (if grpx
+                                (progn
+                                  (loop for stax in (region-state-list (group-region grpx)) do
+                                    (setf sqrx (squarestore-find (action-squares actx) stax))
+                                    (if sqrx
+                                       (format t "~&~A" (square-str sqrx))
+                                       (format t "~&Square ~A not found?" (state-str sqrx)))
+                                  )
+                                )
+                                (format t "~&Group not found in grp-sqrs command")
                               )
                             )
-                            (format t "~&Group not found in grp-sqrs command"))
+                          )
                         )
                       )
                     )
@@ -430,10 +443,15 @@
                         (format t "~&~A" (err-str regx))
                         (progn
                           (setf actx (actionstore-nth
-                                          (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
-                          (setf sqrs (squarestore-squares-in-region (action-squares actx) regx))
-                          (loop for sqrx in sqrs do
-                            (format t "~&~A" (square-str sqrx))
+                                     (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
+                          (if (/= (action-num-bits actx) (region-num-bits regx))
+                            (format t "~&The number of bits used by the region do not match the number of bits used by the action")
+                            (progn
+                              (setf sqrs (squarestore-squares-in-region (action-squares actx) regx))
+                              (loop for sqrx in sqrs do
+                                (format t "~&~A" (square-str sqrx))
+                              )
+                            )
                           )
                         )
                       )
@@ -445,6 +463,42 @@
               )
             )
             (format t "~&Did not understand reg-sqrs command")
+          )
+        )
+      )
+
+      (if (string-equal (car tokens) "sample")
+        (let (dom-id act-id stax actx)
+          (if (= (length tokens) 4)
+            (progn
+              (setf dom-id (read-from-string (second tokens)))
+              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
+                (progn
+                  (setf act-id (read-from-string (third tokens)))
+                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
+                    (progn
+                      (setf stax (state-from-str (fourth tokens)))
+                      (if (err-p stax)
+                        (format t "~&~A" (err-str stax))
+                        (progn
+                          (setf actx (actionstore-nth
+                                     (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
+                          (if (/= (action-num-bits actx) (state-num-bits stax))
+                            (format t "~&The number of bits used by the state do not match the number of bits used by the action")
+                            (progn
+                              (action-take-sample-arbitrary actx stax)
+                            )
+                          )
+                        )
+                      )
+                    )
+                    (format t "~&Did not understand action id in sample command")
+                  )
+                )
+                (format t "~&Did not understand domain id in sample command")
+              )
+            )
+            (format t "~&Did not understand sample command")
           )
         )
       )

@@ -531,8 +531,9 @@
   (assert (action-p actx))
   (assert (regionstore-p pairs))
   (assert (or (regionstore-is-empty pairs) (= (action-num-bits actx) (regionstore-num-bits pairs))))
+  ;(format t "~&action-non-adjacent-incompatible-square-needs: pairs ~A" (regionstore-str pairs))
 
-    (let ((needs (needstore-new nil)) sta-x sta-y sqr-x sqr-y dist sqrs sqrs-max-results max-results seek-regs mask-lists)
+    (let ((needs (needstore-new nil)) sta-x sta-y sqr-x sqr-y dist sqrs-max-results max-results seek-regs mask-lists sqrs-in)
       (loop for prx in (regionstore-regions pairs) do
 
         (setf sta-x (region-first-state prx))
@@ -543,74 +544,70 @@
           (setf sqr-x (action-find-square actx sta-x))
           (if (null sqr-x) (error "sqr-x not found?"))
 
-          (when (square-pnc sqr-x)
+          (setf sqr-y (action-find-square actx sta-y))
+          (if (null sqr-y) (error "sqr-y not found?"))
 
-            (setf sqr-y (action-find-square actx sta-y))
-            (if (null sqr-y) (error "sqr-y not found?"))
+          (setf sqrs-in (squarestore-squares-in-region (action-squares actx) prx))
 
-            (when (square-pnc sqr-y)
+          ;; When only sqr-x and sqr-y in region, seek first sample between them.
+          (when (= (length sqrs-in) 2)
+            (setf dist (state-distance sta-x sta-y))
 
-              (setf sqrs (squarestore-squares-in-region (action-squares actx) prx))
+            ;; Seek a first sample anywhere between two close disimilar squares.
+            (when (< dist 4) ; So 2 or 3.
+              ;; Subtract the two dissimilar states.
 
-              ;; When only sqr-x and sqr-y in region, seek first sample between them.
-              (when (= (length sqrs) 2)
-                (setf dist (state-distance sta-x sta-y))
+              (setf seek-regs (regionstore-subtract-state (regionstore-new (list prx)) sta-x))
 
-                ;; Seek a first sample anywhere between two close disimilar squares.
-                (when (< dist 4) ; So 2 or 3.
-                  ;; Subtract the two dissimilar states.
-                  (setf seek-regs (regionstore-subtract-region (regionstore-new (list prx)) (region-new sta-x)))
-                  (setf seek-regs (regionstore-subtract-region seek-regs (region-new sta-y)))
+              (setf seek-regs (regionstore-subtract-state seek-regs sta-y))
 
-                  ;; Generate a need for each region between the two dissimilar states.
-                  (loop for regx in (regionstore-regions seek-regs) do
-                    (needstore-push needs
-                          (action-get-needs-sample-region actx regx *between-ip* (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
-                  )
-                )
-                (when (> dist 3)
-                  ;; The dissimilar states are not close, find equidistant states to sample.
-
-                  ;; For the bit differences between sta-x and sta-y, make different combinations of distance/2 bits.
-                  (setf mask-lists (any-x-of-n (ash dist -1) (mask-split (mask-new (state-xor sta-x sta-y)))))
-
-                  (loop for msklx in mask-lists do
-                    (needstore-push needs
-                          (action-get-need-sample-state actx
-                                (state-new (state-xor sta-x (mask-list-or msklx)))
-                                *between-ip*
-                                (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
-                  )
-                )
+              ;; Generate a need for each region between the two dissimilar states.
+              (loop for regx in (regionstore-regions seek-regs) do
+                (needstore-push needs
+                      (action-get-needs-sample-region actx regx *between-ip* (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
               )
+            )
+            (when (> dist 3)
+              ;; The dissimilar states are not close, find equidistant states to sample.
 
-              ;; When more than sqr-x and sqr-y are in the region, presumably non-pnc squares,
-              ;; seek the resample of squares with the highest number of previous samples.
-              ;; If there is more than one such square, satisfying one need will make 
-              ;; that need-square the only square with the highest number of samples.
-              (when (> (length sqrs) 2)
-                ;; Init vars.
-                (setf sqrs-max-results nil)
-                (setf max-results 1)
+              ;; For the bit differences between sta-x and sta-y, make different combinations of distance/2 bits.
+              (setf mask-lists (any-x-of-n (ash dist -1) (mask-split (mask-new (state-xor sta-x sta-y)))))
 
-                (setf sqrs (remove sqr-x sqrs :test #'square-eq))
-                (setf sqrs (remove sqr-y sqrs :test #'square-eq))
-
-                (setf sqrs (square-list-sample-next sqrs))
-
-                ;; Make need for each square.
-                (loop for sqrx in sqrs do
-                  (if (square-pnc sqrx)
-                    (format t "~&Problem: pnc square ~A between ~A and ~A ?"
-                       (state-str (square-state sqrx)) (state-str sta-x) (state-str sta-y))
-
-                  (needstore-push needs
-                        (action-get-need-sample-state actx
-                              (square-state sqrx)
-                              *between-ip*
-                             (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y)))))
-                )
+              (loop for msklx in mask-lists do
+                (needstore-push needs
+                      (action-get-need-sample-state actx
+                            (state-new (state-xor sta-x (mask-list-or msklx)))
+                            *between-ip*
+                            (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
               )
+            )
+          )
+
+          ;; When more than sqr-x and sqr-y are in the region, presumably non-pnc squares,
+          ;; seek the resample of squares with the highest number of previous samples.
+          ;; If there is more than one such square, satisfying one need will make 
+          ;; that need-square the only square with the highest number of samples.
+          (when (> (length sqrs-in) 2)
+            ;; Init vars.
+            (setf sqrs-max-results nil)
+            (setf max-results 1)
+
+            (setf sqrs-in (remove sqr-x sqrs-in :test #'square-eq))
+            (setf sqrs-in (remove sqr-y sqrs-in :test #'square-eq))
+
+            (setf sqrs-in (square-list-sample-next sqrs-in))
+
+            ;; Make need for each square.
+            (loop for sqrx in sqrs-in do
+              (if (square-pnc sqrx)
+                (format t "~&Problem: pnc square ~A between ~A and ~A ?"
+                   (state-str (square-state sqrx)) (state-str sta-x) (state-str sta-y))
+
+              (needstore-push needs
+                    (action-get-need-sample-state actx
+                          (square-state sqrx)
+                          *between-ip*
+                         (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y)))))
             )
           )
         )
@@ -632,13 +629,22 @@
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (non-adj-pairs2 (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
         (logical-structure change-surface)          ; Best guess for logical structure.
-        (max-regionstore change-surface)            ; Regionstore with one region, with all bit positions set to X.
-        (needs (needstore-new nil)))                ; Needstore to return.
+        max-regionstore                             ; A Regionstore of one region.
+        (needs (needstore-new nil))                 ; Needstore for adjacent incompatible squares to return.
+        (needs2 (needstore-new nil)))               ; Needstore for non-adjacent incompatible squares to return.
 
-    (if (regionstore-is-empty max-regionstore)
-      (return-from action-structure-needs (needstore-new nil)))
+    (let ((sqrs (squarestore-squares (action-squares actx))) sqr-y (revisit-pairs (regionstore-new nil)) max-region)
 
-    (let ((sqrs (squarestore-squares (action-squares actx))) sqr-y)
+      (when (< (length sqrs) 2)
+        (return-from action-structure-needs needs))
+
+      ;; Calc the max region.
+      (setf max-region (region-new (list (square-state (car sqrs)))))
+      (loop for sqrx in (cdr sqrs) do
+        (if (not (region-superset-of-state max-region (square-state sqrx)))
+          (setf max-region (region-union-state max-region (square-state sqrx))))
+      )
+      (setf max-regionstore (regionstore-new (list max-region)))
 
       ;; Check each pair of squares.
       ;; Store incompatible pairs, with no incompatible pairs between them.
@@ -649,30 +655,51 @@
 
           (setf sqr-y (nth iny sqrs))
 
-          (when (not (square-compatible sqr-x sqr-y))
-              ;(format t "~&Act ~D sqr-x ~A not compatible sqr-y ~A" (action-id actx)
-              ;   (square-str sqr-x) (square-str sqr-y))
-             (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y))))
-
-             (when (square-is-adjacent sqr-x sqr-y)
-               (if (not (square-pnc sqr-x))
-                 (needstore-push needs (action-get-need-resample-state actx (square-state sqr-x) *confirm-adj-ip*
-                     (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-y)))))
+          (when (= (square-compatible sqr-x sqr-y) *not-compatible*)
+             (if (and (square-pnc sqr-x) (square-pnc sqr-y))
+               (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y))))
+               (when (square-is-adjacent sqr-x sqr-y)
+                 (if (not (square-pnc sqr-x))
+                   (needstore-push needs (action-get-need-resample-state actx (square-state sqr-x) *confirm-adj-ip*
+                       (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-y)))))
+                 )
+                 (if (not (square-pnc sqr-y))
+                   (needstore-push needs (action-get-need-resample-state actx (square-state sqr-y) *confirm-adj-ip*
+                       (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-x)))))
+                 )
                )
-               (if (not (square-pnc sqr-y))
-                 (needstore-push needs (action-get-need-resample-state actx (square-state sqr-y) *confirm-adj-ip*
-                     (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-x)))))
+             )
+             (when (not (square-is-adjacent sqr-x sqr-y))
+               (if (or (not (square-pnc sqr-x)) (not (square-pnc sqr-y)))
+                 (regionstore-push-nosups revisit-pairs (region-new (list (square-state sqr-x) (square-state sqr-y))))
                )
              )
           )
         ) ; next iny.
       ) ; next inx.
 
+      ;; Check possible non-adjacent pairs for needs.
+      (loop for regx in (regionstore-regions revisit-pairs) do
+        (when (not (regionstore-any-subset-of pairs regx))
+          (if (not (square-pnc (action-find-square actx (region-first-state regx))))
+                   (needstore-push needs2 (action-get-need-resample-state actx (region-first-state regx) *confirm-ip*
+                       (format nil "for non-adjacent dissimilar pair with ~A" (state-str (region-second-state regx)))))
+          )
+          (if (not (square-pnc (action-find-square actx (region-second-state regx))))
+                   (needstore-push needs2 (action-get-need-resample-state actx (region-second-state regx) *confirm-ip*
+                       (format nil "for non-adjacent dissimilar pair with ~A" (state-str (region-first-state regx)))))
+          )
+        )
+      )
+
       ;; Check if at least one disimilar pair was found.
       (when (regionstore-is-empty pairs)
          (setf (action-logical-structure actx) change-surface)
-         (return-from action-structure-needs (needstore-new nil))
-       )
+         (when (needstore-is-not-empty needs)
+           (return-from action-structure-needs needs))
+
+         (return-from action-structure-needs needs2)
+      )
     )
 
     ;; Seperate adjacent from non-adjacent pairs.
@@ -684,10 +711,10 @@
     ;; Store adjacent pairs.
     (setf (action-structure-pairs actx) adj-pairs)
 
-
     ;; Calc logical structure.
 
     ;; First pass at calculating structure.
+    (setf logical-structure max-regionstore)
     (loop for prx in (regionstore-regions adj-pairs) do
       (setf logical-structure (regionstore-intersection logical-structure
          (regionstore-union
@@ -701,24 +728,17 @@
         (regionstore-push non-adj-pairs2 prx))
     )
     
-    ;; Second pass at calculating structure.
-    (loop for prx in (regionstore-regions non-adj-pairs2) do
-      (setf logical-structure (regionstore-intersection logical-structure
-         (regionstore-union
-             (Regionstore-subtract-state max-regionstore (region-first-state prx))
-             (Regionstore-subtract-state max-regionstore (region-second-state prx)))))
-    )
-
     ;; Store structure.
     (setf (action-logical-structure actx) logical-structure)
 
-    ;(format t "~&Act ~D pairs ~A LS: ~A" (action-id actx) (regionstore-str pairs) (regionstore-str logical-structure))
-
     (if (needstore-is-not-empty needs)
-      needs
-      ;; Check for non-adjacent incompatible square between needs.
-      (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2)
-    )
+      (return-from action-structure-needs needs))
+
+    (if (needstore-is-not-empty needs2)
+      (return-from action-structure-needs needs2))
+
+    ;; Check for non-adjacent incompatible square between needs.
+    (action-non-adjacent-incompatible-square-needs actx non-adj-pairs2)
   )
 )
 
@@ -1200,7 +1220,7 @@
          ;(format t "~&checking sqr ~A and ~A compatible ~A" (state-str (square-state sqrx)) (state-str (square-state sqr-k)) (square-compatible sqrx sqr-k))
            
          (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
-           (when (square-compatible sqrx sqr-k)
+           (when (= (square-compatible sqrx sqr-k) *compatible*)
 
              (setf reg-t (region-new (list stax (square-state sqr-k))))
 

@@ -196,33 +196,62 @@
     (state-eq (square-state sqr1) (square-state sqr2))
 )
 
-;;; Return true if two squares may be compatible as-is.
-(defun square-compatible (sqrx sqry) ; -> bool
+;;; Return compatibility of two squares.
+(defun square-compatible (sqrx sqry) ; -> compatibility 
     (assert (square-p sqrx))
     (assert (square-p sqry))
 
     ; Trying to combine the same square is probably an error in logic.
     (assert (state-ne (square-state sqrx) (square-state sqry)))
-    (if (pn-ne (square-pn sqrx) (square-pn sqry))
-        (return-from square-compatible nil))
 
-    (if (pn-gt (square-pn sqry) (square-pn sqrx))
-        (return-from square-compatible nil))
+    ;; Test pnc squares.
+    (when (and (square-pnc sqrx) (square-pnc sqry))
+      (if (not (pn-eq (square-pn sqrx) (square-pn sqry)))
+        (return-from square-compatible *not-compatible*))
 
-    (if (and (pn-lt (square-pn sqry) (square-pn sqrx)) (square-pnc sqry))
-        (return-from square-compatible nil))
+      (if (pn-eq *pn-none* (square-pn sqrx))
+        (return-from square-compatible *compatible*))
 
-    (if (pn-eq (square-pn sqrx) *pn-none*)
-        (return-from square-compatible t))
+      (if (rulestore-union (square-rules sqrx) (square-rules sqry))
+        (return-from square-compatible *compatible*)
+        (return-from square-compatible *not-compatible*))
+    )
 
-    ;(format t "~&about to compare ~A and ~A" (rulestore-str (square-rules sqrx)) (rulestore-str (square-rules sqry)))
-    (if (rulestore-union (square-rules sqrx) (square-rules sqry))
-        (return-from square-compatible t))
+    ;; Check if both squares are non-pnc, need more samples.
+    (when (and (not (square-pnc sqrx)) (not (square-pnc sqry)))
+      ;; Carve-out for bootstrapping groups.
+      (when (and (pn-eq (square-pn sqrx) *pn-one*) (pn-eq (square-pn sqry) *pn-one*))
+        (if (rulestore-union (square-rules sqrx) (square-rules sqry))
+          (return-from square-compatible *compatible*))
+      )
+      (return-from square-compatible *more-samples-needed*)
+    )
 
-    nil
+    ;; Check pnc vs non-pnc squares.
+    (let (pncsqr nonsqr)
+      ;; Figure out which square is pnc, which is not.
+      (if (square-pnc sqrx)
+        (setf pncsqr sqrx nonsqr sqry) 
+        (setf pncsqr sqry nonsqr sqrx))
+
+      (if (pn-eq (square-pn pncsqr) *pn-none*)
+        (return-from square-compatible *more-samples-needed*))
+
+      (if (pn-gt (square-pn nonsqr) (square-pn pncsqr)) ; like non-pnc *pn-two* vs pnc *pn-one*.
+        (return-from square-compatible *not-compatible*))
+
+      (if (pn-eq (square-pn pncsqr) (square-pn nonsqr)) ; both have the same number of rules, 1/1 or 2/2.
+        (if (rulestore-union (square-rules sqrx) (square-rules sqry))
+          (return-from square-compatible *compatible*)
+          (return-from square-compatible *not-compatible*)))
+
+      ;; Check non-pnc square with one rule, vs pnc square with two rules.
+      (if (rulestore-subset-of :sup (square-rules pncsqr) :sub (square-rules nonsqr))
+          (return-from square-compatible *more-samples-needed*)
+          (return-from square-compatible *not-compatible*))
+    )
 )
 
-;; Return true if two squares are adjacent.
 (defun square-is-adjacent (sqr1 sqr2) ; -> bool
   (state-is-adjacent (square-state sqr1) (square-state sqr2))
 )

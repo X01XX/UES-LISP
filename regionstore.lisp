@@ -86,6 +86,18 @@
   false
 )
 
+;;; Return true if any region in a store is a subset (or eq) of a given region.
+(defun regionstore-any-subset-of (storex regx) ; -> bool
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+
+  (loop for regy in (regionstore-regions storex) do
+    (if (region-superset-of :sub regy :sup regx)
+      (return-from regionstore-any-subset-of true))
+  )
+  false
+)
+
 ;;; Return true if any region in a store intersects a passed region.
 (defun regionstore-any-intersection-of (storex regx) ; -> bool
   (assert (regionstore-p storex))
