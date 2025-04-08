@@ -126,7 +126,7 @@
   (assert (actionstore-p storex))
 
   (loop for actx in (actionstore-actions storex) do
-    (format t "~&    ")
+    ;(format t "~&    ")
     (action-print actx)
   )
 )

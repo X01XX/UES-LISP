@@ -89,7 +89,7 @@
     (assert (group-p agrp))
 
     (let ((str "("))
-        (setf str (concatenate 'string str (format nil "region ~A" (region-str (group-region agrp)))))
+        (setf str (concatenate 'string str (format nil "group ~A" (region-str (group-region agrp)))))
         (if (< (region-number-states (group-region agrp)) 3)
           (setf str (concatenate 'string str " ")))
 

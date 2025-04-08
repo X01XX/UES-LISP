@@ -1373,10 +1373,27 @@
 (defun action-print (actx)
   (assert (action-p actx))
 
-  (format t "Act: ~D " (action-id actx))
-  (if (groupstore-is-empty (action-groups actx))
+  (let ((start (format nil "    Act: ~D " (action-id actx))) prefix (first true))
+    (format t "~&~A" start)
+    (setf prefix (make-string (length start) :initial-element #\ ))
+
+    (if (groupstore-is-empty (action-groups actx))
       (format t "(no groups)") 
-      (groupstore-print (action-groups actx)))
+      (loop for grpx in (groupstore-groups (action-groups actx)) do
+        (if first
+          (progn
+            (setf first false)
+            (format t "~A" (group-str grpx))
+          )
+          (format t "~&~A~A" prefix (group-str grpx))
+        )
+      )
+    )
+  )
+; (format t "~&    Act: ~D " (action-id actx))
+; (if (groupstore-is-empty (action-groups actx))
+;     (format t "(no groups)") 
+;     (groupstore-print (action-groups actx)))
   (if (not (null (action-logical-structure actx)))
     (format t " calced structure: ~A" (regionstore-str (action-logical-structure actx))))
 

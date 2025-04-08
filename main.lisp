@@ -537,17 +537,17 @@
             (setf nedx nedy))
         )
 
-        ;; Check for *between-ip*
-        (loop for nedy in (needstore-needs can-do)
-              while (null nedx) do
-          (if (= (need-reason nedy) *between-ip*)
-            (setf nedx nedy))
-        )
-
         ;; Check for *contradictory-intersection*
         (loop for nedy in (needstore-needs can-do)
               while (null nedx) do
           (if (= (need-reason nedy) *contradictory-intersection*)
+            (setf nedx nedy))
+        )
+
+        ;; Check for *between-ip*
+        (loop for nedy in (needstore-needs can-do)
+              while (null nedx) do
+          (if (= (need-reason nedy) *between-ip*)
             (setf nedx nedy))
         )
 

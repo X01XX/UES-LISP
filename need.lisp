@@ -4,7 +4,8 @@
 (defvar *first-sample-of-state* 1009) ; There should be no square stored with this state.
 (defvar *resample-state*        1013) ; There should be a non-pnc square stored with this state.
 (defvar *sample-in-region*      1019) ; There should be no square with a state in the region.
-(defvar *change-position*       1023) ; hange the current position.
+(defvar *change-position*       1023) ; Change the current position.
+
 (defvar *kinds* (list *first-sample-of-state* *resample-state* *sample-in-region* *change-position*))
 
 ;;; Define need reasons
@@ -16,6 +17,7 @@
 (defvar *seek-positive-selectregions* 2027)
 (defvar *confirm-ip* 2029)
 (defvar *confirm-adj-ip* 2031)
+
 (defvar *reasons* (list *state-not-in-group*
                         *confirm-group*
                         *contradictory-intersection*
