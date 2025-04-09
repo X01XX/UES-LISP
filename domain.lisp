@@ -347,20 +347,28 @@
     (format t "~&Domain: ~D, running plan: ~A" (domain-id domx) (plan-str planx))
     (loop for stepx in (plan-step-list planx) do
 
-      (if (region-superset-of-state (step-initial-region stepx) (domain-current-state domx))
-        (progn
-          (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
-          (setf (domain-current-state domx) (sample-result smpl))
-          (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
-            (format t "~&step result region unexpected.")
+      (when (> (step-act-id stepx) 0) ; Skip no change, other steps are expected to make a change.
+        (if (region-superset-of-state (step-initial-region stepx) (domain-current-state domx))
+          (progn
+            (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
+  
+            ;; Resample-on-no-change heuristic.
+            (when (sample-no-change smpl)
+              (format t "~&step result region unexpected, retrying.")
+              (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx))))
+  
+            (setf (domain-current-state domx) (sample-result smpl))
+            (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
+              (format t "~&step result region unexpected.")
+              (return-from domain-run-plan false)
+            )
+          )
+          (progn
+            (format t "~&step initial region is not a superset of the current state")
             (return-from domain-run-plan false)
           )
         )
-        (progn
-          (format t "~&step initial region is not a superset of the current state")
-          (return-from domain-run-plan false)
-        )
-      ) 
+      )
     ) ; next stepx
     true
   )

@@ -37,3 +37,9 @@
   (state-num-bits (sample-initial smpl))
 )
 
+;;; Return true if the sample does not contain a change.
+(defun sample-no-change (smpl) ; -> bool
+  (assert (sample-p smpl))
+
+  (state-eq (sample-initial smpl) (sample-result smpl))
+)

@@ -1000,7 +1000,7 @@
 ;;; Presumably, Pn == *pn-one*, pnc == nil.
 ;;; Invalidated groups may be nil, that is not yet checked for, or otherwise a groupstore, which may be empty. 
 (defun action-new-square (actx sqrx invalidated-groups) ; -> side effect, action instance is changed.
-  (format t "~&action-new-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
+  ;(format t "~&action-new-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
   (assert (action-p actx))
   (assert (square-p sqrx))
   (assert (= (action-num-bits actx) (square-num-bits sqrx)))
@@ -1011,6 +1011,7 @@
     (error "Readding a square?"))
 
   ;; Add the square.
+  (format t "~&Act: ~D Adding square: ~A" (action-id actx) (square-str sqrx))
   (squarestore-add (action-squares actx) sqrx)
 
   ;; Process added square.
@@ -1156,12 +1157,13 @@
 
 ;;; Process groups invalidated by a square, or sample.
 (defun action-process-invalidated-groups (actx invalidated-groups) ; side-effect, action changed.
-  (format t "~&action-process-invalidated-groups: Act ~D groups ~A" (action-id actx) (groupstore-str invalidated-groups))
+  ;(format t "~&action-process-invalidated-groups: Act ~D groups ~A" (action-id actx) (groupstore-str invalidated-groups))
   (assert (action-p actx))
   (assert (and (groupstore-p invalidated-groups) (= (action-num-bits actx) (groupstore-num-bits invalidated-groups))))
 
   ;; Remove the groups.
   (loop for grpx in (groupstore-groups invalidated-groups) do
+    (format t "~&Act: ~D ~A invalidated" (action-id actx) (group-str grpx))
     (setf (action-groups actx) (groupstore-remove-group (action-groups actx) grpx))
   )
 
@@ -1240,14 +1242,14 @@
    ;(format t "~&Largest regions are: ~A" (regionstore-str regstr-t))
    (loop for regx in (regionstore-regions regstr-t) do
      (setf grpx (action-make-group actx regx))
-     (format t "~&Act: ~D Adding group: ~A" (action-id actx) (group-str grpx))
+     (format t "~&Act: ~D Adding: ~A" (action-id actx) (group-str grpx))
      (groupstore-push-nosubs (action-groups actx) grpx)
    )
     ;; Create a one-state group.
     (if (and (regionstore-is-empty regstr-t) (not (groupstore-state-in (action-groups actx) stax)))
       ;(format t "~&Act: ~D Groups: ~A" (action-id actx) (groupstore-str (action-groups actx)))
       (let ((grpx (action-make-group actx (region-new stax))))            
-        (format t "~&Act: ~D Adding group: ~A" (action-id actx) (group-str grpx))
+        (format t "~&Act: ~D Adding: ~A" (action-id actx) (group-str grpx))
         (groupstore-add-end (action-groups actx) grpx)
         ;(format t "~&Act: ~D Groups: ~A" (action-id actx) (groupstore-str (action-groups actx)))
       )

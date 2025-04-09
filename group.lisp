@@ -139,24 +139,58 @@
 
   (let ((ret-steps (stepstore-new nil)) restricted-rules)
 
-    ;; TODO Handle *pn-two* groups.
-    (if (pn-ne (group-pn grpx) *pn-one*)
+    ;; Skip unpredictable groupxs.
+    (if (pn-eq (group-pn grpx) *pn-none*)
       (return-from group-get-steps ret-steps))
 
+    ;; Skip group that does not apply to the within resriction.
     (if (not (region-intersects (group-region grpx) within))
       (return-from group-get-steps ret-steps))
 
-    (loop for rulx in (rulestore-rules (group-rules grpx)) do
-      ;(format t "~&rulx ~A" rulx)
+    ;; Handle *pn-one* group.
+    (when (pn-eq (group-pn grpx) *pn-one*)
 
-      (setf restricted-rules (rule-restrict-by rulx from-reg to-reg within))
+      (let (rulx)
+        (setf rulx (rulestore-first (group-rules grpx)))
+        ;(format t "~&rulx ~A" rulx)
+  
+        (setf restricted-rules (rule-restrict-by rulx from-reg to-reg within))
+  
+        (loop for ruly in (rulestore-rules-list restricted-rules) do
+  
+          (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
+                                              :rule ruly))
+        ) ; next ruly
+        (return-from group-get-steps ret-steps)
+      )
+    )
 
-      (loop for ruly in (rulestore-rules-list restricted-rules) do
+    ;; Handle *pn-two* group.
+    (when (pn-eq (group-pn grpx) *pn-two*)
+      (let (rulx)
+        (if (and (rule-makes-change (rulestore-first (group-rules grpx)))
+                 (not (rule-makes-change (rulestore-second (group-rules grpx)))))
+          (setf rulx (rulestore-first (group-rules grpx)))
+        )
+        (if (and (rule-makes-change (rulestore-second (group-rules grpx)))
+                 (not (rule-makes-change (rulestore-first (group-rules grpx)))))
+          (setf rulx (rulestore-second (group-rules grpx)))
+        )
 
-        (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
-                                            :rule ruly))
-      ) ; next ruly
-    ) ; next rulx
+        (when rulx
+          (setf restricted-rules (rule-restrict-by rulx from-reg to-reg within))
+    
+          (loop for ruly in (rulestore-rules-list restricted-rules) do
+    
+            (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
+                                                :rule ruly))
+          ) ; next ruly
+        )
+      )
+    )
+
+    ;; TODO more on *pn-two* group.
+
     ret-steps
   ) ; end-let
 )
