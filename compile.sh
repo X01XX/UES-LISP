@@ -6,10 +6,10 @@
 # illegal binding in let.
 # Run (load #p "compile.lisp") in gcl to start to resolve the problem.
 
-/usr/bin/gcl -eval "(progn (load #p \"compile.lisp\") (quit))" > ./tmp.txt 2>&1
+/usr/bin/gcl -eval "(progn (load #p \"compile.lisp\") (quit))" > ./tmp9.txt 2>&1
 
-/usr/bin/egrep -i "Compiling|Warning:|Error:|undefined" ./tmp.txt | /usr/bin/grep -v DEPTH | /usr/bin/egrep -i -B 1 "Warning:|Error:|undefined"
-/usr/bin/rm ./*.o ./tmp.txt
+/usr/bin/egrep -i "Compiling|Warning:|Error:|undefined" ./tmp9.txt | /usr/bin/grep -v DEPTH | /usr/bin/egrep -i -B 1 "Warning:|Error:|undefined"
+/usr/bin/rm ./*.o ./tmp9.txt
 
 # Check some things.
 if [ `/usr/bin/grep -c -- squarestore-add action.lisp` -ne 1 ]

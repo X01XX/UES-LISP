@@ -137,9 +137,9 @@
   (assert (region-p to-reg))
   (assert (region-p within))
 
-  (let ((ret-steps (stepstore-new nil)) restricted-rules)
+  (let ((ret-steps (stepstore-new nil)))
 
-    ;; Skip unpredictable groupxs.
+    ;; Skip unpredictable groups.
     (if (pn-eq (group-pn grpx) *pn-none*)
       (return-from group-get-steps ret-steps))
 
@@ -154,43 +154,45 @@
         (setf rulx (rulestore-first (group-rules grpx)))
         ;(format t "~&rulx ~A" rulx)
   
-        (setf restricted-rules (rule-restrict-by rulx from-reg to-reg within))
+        (setf rulx (rule-restrict-by rulx from-reg to-reg within))
   
-        (loop for ruly in (rulestore-rules-list restricted-rules) do
-  
+        (when rulx
           (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
-                                              :rule ruly))
-        ) ; next ruly
+                                              :rule rulx))
+          (return-from group-get-steps ret-steps)
+        )
         (return-from group-get-steps ret-steps)
       )
     )
 
     ;; Handle *pn-two* group.
     (when (pn-eq (group-pn grpx) *pn-two*)
+
       (let (rulx)
+        ;; Check first rule.
         (if (and (rule-makes-change (rulestore-first (group-rules grpx)))
                  (not (rule-makes-change (rulestore-second (group-rules grpx)))))
           (setf rulx (rulestore-first (group-rules grpx)))
         )
+        ;; Check second rule.
         (if (and (rule-makes-change (rulestore-second (group-rules grpx)))
                  (not (rule-makes-change (rulestore-first (group-rules grpx)))))
           (setf rulx (rulestore-second (group-rules grpx)))
         )
 
         (when rulx
-          (setf restricted-rules (rule-restrict-by rulx from-reg to-reg within))
+          (setf rulx (rule-restrict-by rulx from-reg to-reg within))
     
-          (loop for ruly in (rulestore-rules-list restricted-rules) do
-    
+          (if rulx
             (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
-                                                :rule ruly))
-          ) ; next ruly
+                                                :rule rulx))
+          )
         )
+        (return-from group-get-steps ret-steps)
       )
     )
 
     ;; TODO more on *pn-two* group.
-
     ret-steps
   ) ; end-let
 )

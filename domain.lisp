@@ -354,12 +354,12 @@
   
             ;; Resample-on-no-change heuristic.
             (when (sample-no-change smpl)
-              (format t "~&step result region unexpected, retrying.")
+              (format t "~&step result unexpected, retrying.")
               (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx))))
   
             (setf (domain-current-state domx) (sample-result smpl))
             (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
-              (format t "~&step result region unexpected.")
+              (format t "~&step result unexpected.")
               (return-from domain-run-plan false)
             )
           )
