@@ -53,13 +53,14 @@
 (defun maskstore-str (storex) ; -> string.
   (assert (maskstore-p storex))
 
-  (let ((ret "(MS ") (start t))
+  (let ((ret "(") (start t))
 
     (loop for mskx in (maskstore-masks storex) do
       (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
 
       (setf ret (concatenate 'string ret (mask-str mskx)))
     )
+    (setf ret (concatenate 'string ret ")"))
 
     ret
   )

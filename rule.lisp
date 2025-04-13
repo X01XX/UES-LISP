@@ -580,47 +580,197 @@
 )
 
 
-;;;; Return a list of rules based a a number or restrictions.
-(defun rule-restrict-by (rulx from-reg to-reg within) ; -> rule, or nil.
+;;;; Return a rule based a number or restrictions.
+(defun rule-restrict-by (rulx rule-from-to within) ; -> rule, or nil.
   (assert (rule-p rulx))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p within))
 
-  (let ((wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
-        rule-wanted-changes
-       )
-
-    ;; Restrict rulx initial region to the within region.
-    (if (not (region-intersects (rule-initial-region rulx) within))
-      (return-from rule-restrict-by nil)
+  (let ((ruly rulx) wanted-changes)
+    (setf ruly (rule-restrict-by-within ruly within))
+    (when ruly
+      (setf wanted-changes (rule-changes rule-from-to))
+      (setf ruly (rule-restrict-by-change ruly wanted-changes))
     )
-    (if (not (region-superset-of :sup within :sub (rule-initial-region rulx)))
-      (setf rulx (rule-restrict-initial-region rulx within))
+    ruly
+  )
+)
+
+;;;; Return a rule based a region it must stay within.
+(defun rule-restrict-by-within (rulx within) ; -> rule, or nil.
+  (assert (rule-p rulx))
+  (assert (region-p within))
+
+  (let ((ruly rulx))
+
+    ;; Restrict ruly initial region to the within region.
+    (if (not (region-intersects (rule-initial-region ruly) within))
+      (return-from rule-restrict-by-within nil)
+    )
+    (if (not (region-superset-of :sup within :sub (rule-initial-region ruly)))
+      (setf ruly (rule-restrict-initial-region ruly within))
     )
 
-    ;; Restrict rulx result region to the within region.
-    (if (not (region-intersects (rule-result-region rulx) within))
-      (return-from rule-restrict-by nil)
+    ;; Restrict ruly result region to the within region.
+    (if (not (region-intersects (rule-result-region ruly) within))
+      (return-from rule-restrict-by-within nil)
     )
-    (if (not (region-superset-of :sup within :sub (rule-result-region rulx)))
-      (setf rulx (rule-restrict-result-region rulx within)))
+    (if (not (region-superset-of :sup within :sub (rule-result-region ruly)))
+      (setf ruly (rule-restrict-result-region ruly within)))
 
-    ;; Calc wanted changes in rulx.
-    (setf rule-wanted-changes (change-and (rule-changes rulx) wanted-changes))
+    ruly
+  )
+)
+
+;;;; Return a rule based needed changes.
+(defun rule-restrict-by-change (rulx wanted-changes) ; -> rule, or nil.
+  (assert (rule-p rulx))
+  (assert (change-p wanted-changes))
+
+  (let ((ruly rulx) wanted-changes2 rule-wanted-changes)
+
+    (setf wanted-changes2 (change-remove-x-x-not wanted-changes))
+
+    (setf rule-wanted-changes (change-and (rule-changes rulx) wanted-changes2))
+
+    ;; Calc wanted changes in ruly.
     (if (change-is-low rule-wanted-changes)
-      (return-from rule-restrict-by nil))
+      (return-from rule-restrict-by-change nil))
 
     ;; Restrict rule by 0->1 wanted changes.
     (if (mask-is-not-low (change-m01 rule-wanted-changes))
-  	  (setf rulx (rule-mask-off-ones rulx (change-m01 rule-wanted-changes))) ; X->x, X->1, to 0->1.
+  	  (setf ruly (rule-mask-off-ones ruly (change-m01 rule-wanted-changes))) ; X->x, X->1, to 0->1.
     )
 
     ;; Restrict rule by 1->0 wanted changes.
     (if (mask-is-not-low (change-m10 rule-wanted-changes))
-  	  (setf rulx (rule-mask-off-zeros rulx (change-m10 rule-wanted-changes))) ; X->x, X->0, to 1->0.
+  	  (setf ruly (rule-mask-off-zeros ruly (change-m10 rule-wanted-changes))) ; X->x, X->0, to 1->0.
     )
 
-    rulx
+    ruly
   )
 )
+
+;;; Return a rule that reverses a rules' changes, except X->0 and X->1.
+;;; So applying the result of a rule to its reverse, will result in a region equal, or subset, to the
+;;; the original rule.
+(defun rule-reverse (rulx) ; -> rule
+  (assert (rule-p rulx))
+
+  (let (initial result i-0 i-1 i-x r-0 r-1 xx x-not-x m00 m01 m11 m10)
+
+    (setf initial (rule-initial-region rulx))
+    (setf result  (rule-result-region rulx))
+
+    (setf i-0 (region-0-mask initial))
+    (setf i-1 (region-1-mask initial))
+    (setf i-x (region-x-mask initial))
+
+    (setf r-0 (region-0-mask result))
+    (setf r-1 (region-1-mask result))
+
+    (setf xx (mask-new (mask-and (rule-m00 rulx) (rule-m11 rulx))))
+    (setf x-not-x (mask-new (mask-and (rule-m10 rulx) (rule-m01 rulx))))
+
+    (if (mask-is-not-low (mask-new-and i-x r-0))
+      (error "Rule with x->0 bit position cannot be reversed"))
+
+    (if (mask-is-not-low (mask-new-and i-x r-1))
+      (error "Rule with x->1 bit position cannot be reversed"))
+
+    (setf m00 (mask-new-or (mask-new-and i-0 r-0) xx))
+    (setf m01 (mask-new-or (mask-new-and i-1 r-0) x-not-x))
+    (setf m11 (mask-new-or (mask-new-and i-1 r-1) xx))
+    (setf m10 (mask-new-or (mask-new-and i-0 r-1) x-not-x))
+
+    (make-rule :m00 m00 :m01 m01 :m11 m11 :m10 m10)
+  )
+)
+
+;; Return rules split by x->0, x->1 positions.
+;; To enable return to the original state, after an alternate result.
+;;
+;; Splitting an X->b position, where b is 0 or 1, produces two rule fragments, one with a 0->b position, and one with a 1->b position,
+;; which allows knowing the exact original state to return to, to sample again to get the desired result.
+;;
+;; Unfortunately, multiple X->b positions results in 2 to the number positions power rule fragments.
+(defun rule-split-xb (rulx) ; -> a rulestore of 2 to power number of x->0, x->1, positions.
+  (assert (rule-p rulx))
+
+  (let (initial result xb-mask xb-positions (ret-rules (rulestore-new nil)) tmp-initial
+       position-masks
+       pattern-masks
+       num-positions
+       to-0-mask to-1-mask mrul)
+    (setf initial (rule-initial-region rulx))
+    (setf result  (rule-result-region rulx))
+
+    ;; For 00/x0/xx/x1, this will be m0101.
+    (setf xb-mask (mask-new-and (region-x-mask initial) (region-edge-mask result)))
+
+    ;; Check if no xb positions.
+    (if (mask-is-low xb-mask)
+      (return-from rule-split-xb (rulestore-new (list rulx))))
+
+    ;; Get masks with a single bit set to one for each xb position.
+    ;; For m0101, this will be (m0100, m0001).
+    (setf xb-positions (mask-split xb-mask))
+    ;(format t "~&xp-positions: ~A" (maskstore-str (maskstore-new xb-positions)))
+
+    (setf num-positions (length xb-positions))
+
+    ;; Get a list masks for each bit position.
+    ;; if there are two positions, this will be (m01 m10).
+    (loop for bit-position from 0 below num-positions do
+      (push (mask-new (value-new :num-bits num-positions :bits (expt 2 bit-position))) position-masks)
+    )
+    ;(format t "~&position-masks: ~A" (maskstore-str (maskstore-new position-masks)))
+
+    ;; Get list of each possible bit pattern, with positions to be set to 0 or 1.
+    ;; If there are two xb positions, this will be (m00 m01 m10 m11).
+    (loop for bit-pattern from 0 below (expt 2 num-positions) do
+      (push (mask-new (value-new :num-bits num-positions :bits bit-pattern)) pattern-masks)
+    )
+    ;(format t "~&pattern-masks: ~A" (maskstore-str (maskstore-new pattern-masks)))
+
+    ;; For each pattern mask, like (m00 m01 m10 m11),
+    ;; For each position pattern (m0010, m0001), for each prob mask (m00 m01 m10 m11),
+    ;; Set xb positions .x.x to .0.0 for m00.
+    ;; Set xb positions .x.x to .0.1 for m01.
+    ;; Set xb positions .x.x to .1.0 for m10.
+    ;; Set xb positions .x.x to .1.1 for m11.
+    (loop for pattern-mask in pattern-masks do
+      ;(format t "~& ~&pattern-mask: ~A" (mask-str pattern-mask))
+
+      ;; Init masks for changing the original rule initial region.
+      (setf to-0-mask (mask-new (value-new :num-bits (region-num-bits initial) :bits 0)))
+      (setf to-1-mask (mask-new (value-new :num-bits (region-num-bits initial) :bits 0)))
+
+      ;; For each position mask, like (m01 m10),
+      (loop for position-mask in position-masks
+            for inx from 0 below num-positions do
+
+        ;; If pattern mask is zero, accumulate xb-positions to set to zero.
+        ;; If pattern mask is one , accumulate xb-positions to set to one.
+        (if (mask-is-low (mask-new-and position-mask pattern-mask))
+           (setf to-0-mask (mask-new-or to-0-mask (nth inx xb-positions)))
+           (setf to-1-mask (mask-new-or to-1-mask (nth inx xb-positions)))
+        )
+      )
+      ;(format t "  to-0-mask: ~A" (mask-str to-0-mask))
+      ;(format t "  to-1-mask: ~A" (mask-str to-1-mask))
+
+      ;; Alter original rule initial region.
+      (setf tmp-initial (region-set-to-zeros initial to-0-mask))
+      (setf tmp-initial (region-set-to-ones tmp-initial to-1-mask))
+
+      ;; Restrict original rule to new initial region.
+      (setf mrul (rule-restrict-initial-region rulx tmp-initial))
+
+      ;; Save rule fragment.
+      (rulestore-push ret-rules mrul)
+    )
+    ret-rules
+  )
+)
+

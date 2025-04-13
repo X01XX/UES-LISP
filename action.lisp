@@ -5,6 +5,8 @@
   groups	        ; A groupstore.
   squares           ; A Squarestore.
   base-rules        ; A list of rulestores to use in generating samples.
+  base-memory       ; A list of items corresponding to items in base-rules.
+                    ; An item will be a hash table for a rulestore with GT 1 rules, otherwise the item will be nil.
   logical-structure ; A regionstore.
   structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
 )
@@ -31,12 +33,25 @@
   (assert (rulestore-list-p rules))
   (assert (and (integerp id) (>= id 0)))
 
-  (let (rulsx rulsy actx)
+  (let (rulsx rulsy actx memory)
 
-    ;; Check each rule, within each rulestore, has the same initial region.
+    ;; Check each rulestore, populate memory list.
     (loop for rulsx in rules do
-        (assert (and (rulestore-p rulsx) (rulestore-is-not-empty rulsx)))
+        (assert (and (rulestore-p rulsx) (rulestore-is-not-empty rulsx) (< (rulestore-length rulsx) 4)))
+
+        (when (> (rulestore-length rulsx) 1)
+          (let ((reg1 (rule-initial-region (rulestore-first rulsx))))
+            (loop for rulx in (cdr (rulestore-rules rulsx)) do
+              (assert (region-eq reg1 (rule-initial-region rulx)))
+            )
+          )
+        )
+
+        (if (> (rulestore-length rulsx) 1)
+          (push (make-hash-table :test #'equalp) memory)
+          (push nil memory))
     )
+    (setf memory (reverse memory))
 
     ;; Check rules for consistency.
     (loop for inx from 0 below (1- (length rules)) do
@@ -56,6 +71,7 @@
                             :groups (groupstore-new nil) 
                             :squares (squarestore-new)
                             :base-rules rules
+                            :base-memory memory
                             :logical-structure nil
                             :structure-pairs (regionstore-new nil)))
     ;(format t "~&returning act: ~A" (action-str actx))
@@ -108,15 +124,14 @@
 )
 
 ;;; Return possible steps given a rule to satisfy.
-(defun action-get-steps (actx from-reg to-reg within) ; -> stepstore.
+(defun action-get-steps (actx rule-from-to within &optional no-alt) ; -> stepstore.
   (assert (action-p actx))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p within))
 
   ;(format t "~&action-get-steps")
   (let ((ret-steps (stepstore-new nil)) group-steps)
-    (setf group-steps (groupstore-get-steps (action-groups actx) from-reg to-reg within))
+    (setf group-steps (groupstore-get-steps (action-groups actx) rule-from-to within no-alt))
     (loop for stpx in (stepstore-steps group-steps) do
       (setf (step-act-id stpx) (action-id actx))
       (stepstore-push ret-steps stpx)
@@ -866,8 +881,9 @@
   (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (let ((rslt stax) ; If no rule found, default to no change.
-        smpl sqrx rslt0 rslt1 rslt2)
-    (loop for rulsx in (action-base-rules actx) do
+        smpl sqrx rslt0 rslt1 rslt2 memx)
+    (loop for rulsx in (action-base-rules actx)
+          for htable in (action-base-memory actx) do
 
         (when (region-superset-of-state (rule-initial-region (rulestore-nth rulsx 0)) stax) ; All rules in a rulestore should have the same initial region.
 
@@ -875,34 +891,33 @@
                   (setf rslt (rule-result-from-state (rulestore-nth rulsx 0) stax)))
 
                  ((= 2 (rulestore-length rulsx))
-                   (setf sqrx (action-find-square actx stax))
-                   (cond (sqrx
-                           (setf rslt0 (rule-result-from-state (rulestore-nth rulsx 0) stax))
-                           (if (state-eq rslt0 (square-most-recent-result sqrx))
-                               (setf rslt (rule-result-from-state (rulestore-nth rulsx 1) stax))
-                               (setf rslt rslt0))
+                   (setf memx (gethash stax htable))
+
+                   (cond (memx
+                           (setf memx (mod (+ 1 memx) 2))
+                           (setf (gethash stax htable) memx)
+                           (setf rslt (rule-result-from-state (rulestore-nth rulsx memx) stax))
                          )
-                         (t (setf rslt (rule-result-from-state (rulestore-nth rulsx (random 2)) stax)))
+                         (t (setf memx (random 2))
+                            (setf (gethash stax htable) memx)
+                            (setf rslt (rule-result-from-state (rulestore-nth rulsx memx) stax))
+                         )
                    )
                  )
                  ((= 3 (rulestore-length rulsx))
-                   (setf sqrx (action-find-square actx stax))
-                   (cond (sqrx
-                          (setf rslt0 (rule-result-from-state (rulestore-nth rulsx 0) stax))
-                          (setf rslt1 (rule-result-from-state (rulestore-nth rulsx 1) stax))
-                          (setf rslt2 (rule-result-from-state (rulestore-nth rulsx 2) stax))
-                          (cond ((state-eq rslt0 (square-most-recent-result sqrx))
-                                 (setf rslt (rule-result-from-state (rulestore-nth rulsx 1) stax)))
-                                ((state-eq rslt1 (square-most-recent-result sqrx))
-                                 (setf rslt (rule-result-from-state (rulestore-nth rulsx 2) stax)))
-                                ((state-eq rslt2 (square-most-recent-result sqrx))
-                                 (setf rslt (rule-result-from-state (rulestore-nth rulsx 0) stax)))
-                           ))
-                         (t
-                            (setf rslt (rule-result-from-state (rulestore-nth rulsx (random 3)) stax))
+                   (setf memx (gethash stax htable))
+
+                   (cond (memx
+                           (setf memx (mod (+ 1 memx) 3))
+                           (setf (gethash stax htable) memx)
+                           (setf rslt (rule-result-from-state (rulestore-nth rulsx memx) stax))
+                         )
+                         (t (setf memx (random 3))
+                            (setf (gethash stax htable) memx)
+                            (setf rslt (rule-result-from-state (rulestore-nth rulsx memx) stax))
                          )
                    )
-                )
+                 )
            )
         )
     )

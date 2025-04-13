@@ -10,13 +10,13 @@
     (assert (planscorrstore-p store1))
 
     ; Test non-empty planscorrx store.
-    (setf step1 (step-new :act-id 0 :rule (rule-from "[00/00/01/XX]")))
-    (setf step2 (step-new :act-id 2 :rule (rule-from "[00/00/10/X0]")))
+    (setf step1 (step-new 0 (rule-from "[00/00/01/XX]")))
+    (setf step2 (step-new 2 (rule-from "[00/00/10/X0]")))
     (setf plan1 (plan-new (list step1 step2)))
     ;(format t "~&plan1 ~A" (plan-str plan1))
 
-    (setf step1 (step-new :act-id 0 :rule (rule-from "[01/01/XX]")))
-    (setf step2 (step-new :act-id 1 :rule (rule-from "[11/10/X0]")))
+    (setf step1 (step-new 0 (rule-from "[01/01/XX]")))
+    (setf step2 (step-new 1 (rule-from "[11/10/X0]")))
     (setf plan2 (plan-new (list step1 step2)))
     ;(format t "~&plan2 ~A" (plan-str plan2))
 

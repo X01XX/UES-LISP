@@ -320,7 +320,7 @@
 	  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 	  (setf rulx (rule-region-to-region reg1 reg2))
 	  ;(format t "~&rule is: ~A" rulx)
-	  (setf stepx (step-new :act-id actx :rule rulx))
+	  (setf stepx (step-new actx rulx))
 	  ;(format t "~&step ~A" (step-str stepx))
 	  (push stepx steps)
 
@@ -347,5 +347,29 @@
       (return-from plan-act0-steps-valid false))
   )
   true
+)
+
+;;; Return a rule that makes the same changes as running a plan.
+(defun plan-as-rule (plnx) ; -> rule
+  (assert (plan-p plnx))
+  (assert (plan-is-not-empty plnx))
+ 
+  (let ((rulx (step-rule (plan-first-step plnx))))
+    (loop for stepx in (cdr (plan-step-list plnx)) do
+      (setf rulx (rule-combine-sequence2 rulx (step-rule stepx)))
+    )
+    rulx
+  )
+)
+
+;;; Return true if two plans are effectively equal.
+(defun plan-eq (pln1 pln2) ; -> bool
+  (assert (plan-p pln1))
+  (assert (plan-p pln2))
+
+  (if (not (region-eq (plan-initial-region pln1) (plan-initial-region-pln2)))
+    (return-from plan-eq false))
+
+  (rule-eq (plan-as-rule pln1) (plan-as-rule pln2))
 )
 

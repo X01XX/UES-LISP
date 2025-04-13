@@ -5,7 +5,7 @@
   ;; Test step-new
   (let (stp1)
     ;; Test minimum arguments.
-    (setf stp1 (step-new :act-id 0 :rule (rule-from "[00/XX/01/Xx]")))
+    (setf stp1 (step-new 0 (rule-from "[00/XX/01/Xx]")))
     (assert (eq (type-of stp1) 'STEP))
 
     ;(format t "~&stp1: ~A" (step-str stp1))
@@ -18,8 +18,8 @@
 
   ;; Test step-eq.
   (let (stp1 stp2)
-    (setf stp1 (step-new :act-id 0 :rule (rule-from "[00/XX/01/Xx]")))
-    (setf stp2 (step-new :act-id 0 :rule (rule-from "[00/XX/01/Xx]")))
+    (setf stp1 (step-new 0 (rule-from "[00/XX/01/Xx]")))
+    (setf stp2 (step-new 0 (rule-from "[00/XX/01/Xx]")))
 
     (assert (step-eq stp1 stp2))
     (format t "~&  step-eq OK")
@@ -27,7 +27,7 @@
 
   ;; Test step-restrict-initial-region.
   (let (stp1 reg1 stp2)
-    (setf stp1 (step-new :act-id 2 :rule (rule-from "[00/01/11/10_X1/X1/X1_X0/X0/X0_Xx/Xx/Xx_XX/XX/XX]")))
+    (setf stp1 (step-new 2 (rule-from "[00/01/11/10_X1/X1/X1_X0/X0/X0_Xx/Xx/Xx_XX/XX/XX]")))
     (setf reg1 (region-from 'r0011_01X_01X_01X_01X))
     (setf stp2 (step-restrict-initial-region stp1 reg1))
 
@@ -41,7 +41,7 @@
 
   ;; Test step-restrict-result-region.
   (let (stp1 reg1 stp2)
-    (setf stp1 (step-new :act-id 2 :rule (rule-from "[00/01/11/10_X1_X0_Xx/Xx/Xx_XX/XX/XX]")))
+    (setf stp1 (step-new 2 (rule-from "[00/01/11/10_X1_X0_Xx/Xx/Xx_XX/XX/XX]")))
     (setf reg1 (region-from 'r0110_1_0_01X_01X))
     (setf stp2 (step-restrict-result-region stp1 reg1))
 

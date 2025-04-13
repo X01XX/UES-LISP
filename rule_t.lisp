@@ -171,8 +171,7 @@
     (setf rul2 (rule-from "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X1/XX/Xx]"))
 
     ; Test valid subsets.
-    (setf boolx (rule-subset-of :sub rul2 :sup rul1))
-    (assert boolx)
+    (assert (setf boolx (rule-subset-of :sub rul2 :sup rul1)))
 
     ; Test 16 invalid subsets.
     (setf rul1 (rule-from "[01]"))
@@ -455,6 +454,65 @@
     (assert bx)
 
     (format t "~&  rule-mutually-excusive OK")
+  )
+
+  ;; Test rule-reverse.
+  (let (rul1 rul2)
+    (setf rul1 (rule-from "[00/01/11/10/XX/Xx]"))
+    (setf rul2 (rule-reverse rul1))
+    ;(format t "~&rul2 ~A" (rule-str rul2))
+
+    (assert (rule-eq rul2 (rule-from "[00/10/11/01/XX/Xx]")))
+
+    (format t "~&  rule-reverse OK")
+  )
+
+  ;; Test rule-initial-region, rule-result-region.
+  (let (rul1 reg-initial reg-result)
+    (setf rul1 (rule-from "[XX/Xx/xX/xx]"))
+
+    (setf reg-initial (rule-initial-region rul1))
+    ;(format t "~&reg-initial ~A" (region-str reg-initial))
+    (assert (string= (region-str reg-initial) "rXXXX"))
+
+    (setf reg-result (rule-result-region rul1))
+    ;(format t "~&reg-result  ~A" (region-str reg-result))
+    (assert (string= (region-str reg-result) "rXxxX"))
+
+    (format t "~&  rule-result-region OK")
+  )
+
+  ;; Test rule-split-xb.
+  (let (rul1 rules)
+    (setf rul1 (rule-from "[00/01/11/10/XX/Xx]"))
+    (setf rules (rule-split-xb rul1))
+    ;(format t "~&rules: ~A" (rulestore-str rules))
+    (assert (= 1 (rulestore-length rules)))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx]")))
+
+    (setf rul1 (rule-from "[00/01/11/10/XX/Xx/X1]"))
+    (setf rules (rule-split-xb rul1))
+    ;(format t "~&rules: ~A" (rulestore-str rules))
+    (assert (= 2 (rulestore-length rules)))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/01]")))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/11]")))
+
+    (setf rul1 (rule-from "[00/01/11/10/XX/Xx/X1/X0]"))
+    (setf rules (rule-split-xb rul1))
+    ;(format t "~&rules: ~A" (rulestore-str rules))
+    (assert (= 4 (rulestore-length rules)))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/01/00]")))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/01/10]")))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/11/00]")))
+    (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/11/10]")))
+
+    (setf rul1 (rule-from "[00/01/11/10/XX/Xx/X0/X1/X0]"))
+    (setf rules (rule-split-xb rul1))
+    ;(format t "~&rules: ~A" (rulestore-str rules))
+    (assert (= 8 (rulestore-length rules)))
+
+
+    (format t "~&  rule-split-xb OK")
   )
 
   (format t "~&rule-tests done")

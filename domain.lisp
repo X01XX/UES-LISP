@@ -82,16 +82,14 @@
 )
 
 ;;; Return possible steps, given a rule.
-(defun domain-get-steps (domx from-reg to-reg within) ; -> stepstore.
+(defun domain-get-steps (domx rule-from-to within &optional no-alt) ; -> stepstore.
   (assert (domain-p domx))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p within))
-  (assert (= (domain-num-bits domx) (region-num-bits from-reg)))
-  (assert (= (domain-num-bits domx) (region-num-bits to-reg)))
+  (assert (= (domain-num-bits domx) (rule-num-bits rule-from-to)))
   (assert (= (domain-num-bits domx) (region-num-bits within)))
 
-  (actionstore-get-steps (domain-actions domx) from-reg to-reg within)
+  (actionstore-get-steps (domain-actions domx) rule-from-to within no-alt)
 )
 
 ;;; Return the number of bits used by a domain.
@@ -108,23 +106,27 @@
 
 ;;; Return a plan to change a current region to a goal region.
 ;;; Since a random-depth-first process is used, try more than once, if needed.
-(defun domain-get-plan (domx from-reg to-reg with-reg) ; -> plan, or nil.
+(defun domain-get-plan (domx rule-from-to with-reg &optional no-alt) ; -> plan, or nil.
   ;(format t "~&domain-get-plan: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg) (region-str to-reg) (region-str with-reg) depth)
   (assert (domain-p domx))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p with-reg))
-  (assert (= (domain-num-bits domx) (region-num-bits from-reg)))
-  (assert (= (domain-num-bits domx) (region-num-bits to-reg)))
+  (assert (= (domain-num-bits domx) (rule-num-bits rule-from-to)))
   (assert (= (domain-num-bits domx) (region-num-bits with-reg)))
-  (assert (region-superset-of :sup with-reg :sub from-reg))
-  (assert (region-superset-of :sup with-reg :sub to-reg))
+  (assert (region-superset-of :sup with-reg :sub (rule-initial-region rule-from-to)))
+  (assert (region-superset-of :sup with-reg :sub (rule-result-region rule-from-to)))
 
-  (let (plan
-       (num-changes (rule-num-changes (rule-region-to-region from-reg to-reg)))) ; adjust depth limit by number chnages needed.
+  (let (plan plan-rule
+       (num-changes (rule-num-changes rule-from-to))) ; adjust depth limit by number chnages needed.
     (loop for i from 0 to 2
           while (null plan) do
-      (setf plan (domain-get-plan2 domx from-reg to-reg with-reg (* 2 num-changes)))
+      (setf plan (domain-get-plan2 domx rule-from-to with-reg (* 2 num-changes) no-alt))
+    )
+    (when plan 
+      (setf plan-rule (plan-as-rule plan))
+      (if (not (change-eq (rule-changes plan-rule) (rule-changes rule-from-to)))
+        (format t "~&plan ~A rule ~A changes NOT equal changes of wanted rule ~A" (plan-str plan) (rule-str plan-rule) (rule-str rule-from-to))
+      )
     )
     plan
   )
@@ -133,22 +135,57 @@
 ;;; Return a plan to change a current region to a goal region.
 ;;; Choose one step randomly, then recurse.
 ;;; So random forward-chaining, backward-chaining, with each step.
-(defun domain-get-plan2 (domx from-reg to-reg with-reg depth) ; -> plan, or nil.
-  ;(format t "~&domain-get-plan2: domx ~D from ~A to ~A within ~A depth ~D" (domain-id domx) (region-str from-reg)
-  ;  (region-str to-reg) (region-str with-reg) depth)
+(defun domain-get-plan2 (domx rule-from-to with-reg depth &optional no-alt) ; -> plan, or nil.
+  ;(format t "~&domain-get-plan2: domx ~D from ~A to ~A within ~A depth ~D no-alt ~A" (domain-id domx) (region-str from-reg)
+  ;  (region-str to-reg) (region-str with-reg) depth no-alt)
 
-  (if (region-intersects to-reg from-reg)
-    (let ((int-reg (region-intersection to-reg from-reg)))
-      ;(format t "~&domain-get-plan2: returning 1 act 0 plan")
-      (return-from domain-get-plan2 (plan-new (list (step-new :act-id 0 :rule (rule-region-to-region int-reg int-reg)))))))
+  (if (change-is-low (rule-changes rule-from-to))
+    (return-from domain-get-plan2 (plan-new (list (step-new 0 rule-from-to)))))
 
   (when (zerop depth)
     ;(format t "~&domain-get-plan2: returning 2 nil")
     (return-from domain-get-plan2 nil))
 
-  (let ((steps (domain-get-steps domx from-reg to-reg with-reg))
-        (wanted-changes (rule-changes (rule-region-to-region from-reg to-reg)))
-        steps-from steps-to steps-both)
+  (let (steps
+        wanted-changes
+        steps-from steps-to steps-both
+        (from-reg (rule-initial-region rule-from-to))
+        (to-reg (rule-result-region rule-from-to))
+       )
+
+    (setf steps (domain-get-steps domx rule-from-to with-reg no-alt))
+
+    (setf wanted-changes (rule-changes rule-from-to))
+
+    (when (stepstore-is-empty steps)
+      (return-from domain-get-plan2 nil))
+
+    ;; Develop steps with alt-rule step, if any.
+    (let ((steps2 (stepstore-new nil)) planx plan-result)
+
+      (loop for stpx in (stepstore-steps steps) do
+        (if (step-alt-rule stpx)
+          (progn
+            ;; Get plan to return to the step initial region.
+            (setf planx (domain-get-plan domx (rule-reverse (step-alt-rule stpx)) with-reg true))
+            (when planx
+              ;(format t "~&step ~A alt plan found ~A" (step-str stpx) (plan-str planx))
+              (setf plan-result (plan-result-region planx))
+  
+              (when (not (region-eq (step-initial-region stpx) plan-result))
+                (setf (step-rule stpx) (rule-restrict-initial-region (step-rule stpx) plan-result))
+                (setf (step-alt-rule stpx) (rule-restrict-initial-region (step-alt-rule stpx) plan-result))
+              )
+              (setf (step-alt-plan stpx) planx)
+              ;(format t "~&pushing massaged step ~A" (step-str stpx))
+              (stepstore-push steps2 stpx)
+            )
+          )
+          (stepstore-push steps2 stpx)
+        )
+      ) ; next stpx
+      (setf steps steps2)
+    )
 
     (when (stepstore-is-empty steps)
       (return-from domain-get-plan2 nil))
@@ -210,11 +247,11 @@
           ;; Choose a random step.
           (setf stepy (stepstore-select-step steps-intermediate glide-path))
   
-          (setf plan1 (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+          (setf plan1 (domain-get-plan2 domx (rule-region-to-region from-reg (step-initial-region stepy)) with-reg (1- depth) no-alt))
           (if (null plan1) (return-from domain-get-plan2 nil))
           (setf plan2 (plan-link plan1 (plan-new (list stepy))))
           (if (null plan2) (return-from domain-get-plan2 nil))
-          (setf plan3 (domain-get-plan2 domx (plan-result-region plan2) to-reg with-reg (1- depth)))
+          (setf plan3 (domain-get-plan2 domx (rule-region-to-region (plan-result-region plan2) to-reg) with-reg (1- depth) no-alt))
           (if (null plan3) (return-from domain-get-plan2 nil))
           (setf plan4 (plan-link plan2 plan3))
           ;(if plan4
@@ -235,7 +272,7 @@
 	      (setf stepy (step-restrict-initial-region stepy from-reg))
 	      (if stepy
 	        (progn
-	          (setf planx (domain-get-plan2 domx (step-result-region stepy) to-reg with-reg (1- depth)))
+	          (setf planx (domain-get-plan2 domx (rule-region-to-region (step-result-region stepy) to-reg) with-reg (1- depth) no-alt))
               ;(format t "~&domain-get-plan2: returning 4 plan/nil")
 	          (if planx
                 (return-from domain-get-plan2 (plan-link (plan-new (list stepy)) planx))
@@ -252,7 +289,7 @@
 		;                                                (region-intersects (rule-result-region (step-rule stepy)) to-reg))
 	    (when (region-intersects (rule-result-region (step-rule stepy)) to-reg)
 	      (setf stepy (step-restrict-result-region stepy to-reg))
-          (setf planx (domain-get-plan2 domx from-reg (step-initial-region stepy) with-reg (1- depth)))
+          (setf planx (domain-get-plan2 domx from-reg (rule-region-to-regiot (step-initial-region stepy) with-reg) (1- depth) no-alt))
           ;(format t "~&domain-get-plan2: returning 6 plan/nil")
 	      (if planx
             (return-from domain-get-plan2 (plan-link planx (plan-new (list stepy)))) 
@@ -278,16 +315,16 @@
         (cond ((state-p (need-target needx))
                 (if (state-eq (need-target needx) (domain-current-state domx))
                   (setf (need-plan needx) (plan-new nil))
-                  (setf (need-plan needx) (domain-get-plan domx (region-new (domain-current-state domx))
-                                                               (region-new (need-target needx))
-                                                               (domain-max-region domx))))
+                  (setf (need-plan needx) (domain-get-plan domx 
+                                                   (rule-region-to-region (region-new (domain-current-state domx)) (region-new (need-target needx)))
+                                                   (domain-max-region domx))))
               )
               ((region-p (need-target needx))
                 (if (region-superset-of-state (need-target needx) (domain-current-state domx))
                   (setf (need-plan needx) (plan-new nil))
-                  (setf (need-plan needx) (domain-get-plan domx (region-new (domain-current-state domx))
-                                                               (need-target needx)
-                                                               (domain-max-region domx))))
+                  (setf (need-plan needx) (domain-get-plan domx
+                                                  (rule-region-to-region  (region-new (domain-current-state domx)) (need-target needx))
+                                                  (domain-max-region domx))))
               )
               (t (error "Unrecognized target type"))
         )
@@ -355,12 +392,33 @@
             ;; Resample-on-no-change heuristic.
             (when (sample-no-change smpl)
               (format t "~&step result unexpected, retrying.")
-              (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx))))
-  
+              (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
+            )
             (setf (domain-current-state domx) (sample-result smpl))
             (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
-              (format t "~&step result unexpected.")
-              (return-from domain-run-plan false)
+
+              (when (step-alt-rule stepx)
+
+                (when (region-superset-of-state (rule-result-region (step-alt-rule stepx)) (sample-result smpl))
+
+                  (format t "~&step ~A result unwanted, running alt plan." (step-str stepx))
+                  (if (domain-run-plan domx (step-alt-plan stepx))
+                    (progn
+                      (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
+                      (setf (domain-current-state domx) (sample-result smpl))
+                    )
+                    (progn
+                      (format t "~&Alt plan failed")
+                      (return-from domain-run-plan false)
+                    )
+                  )
+                )
+              )
+
+              (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
+                (format t "~&step result unexpected.")
+                (return-from domain-run-plan false)
+              )
             )
           )
           (progn

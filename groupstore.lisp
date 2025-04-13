@@ -87,16 +87,15 @@
 )
 
 ; Return possible steps to satisfy a rule.
-(defun groupstore-get-steps (storex from-reg to-reg within) ; -> stepstore.
+(defun groupstore-get-steps (storex rule-from-to within &optional no-alt) ; -> stepstore.
   ;(format t "~&groupstore-get-steps")
   (assert (groupstore-p storex))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p within))
 
   (let ((ret-steps (stepstore-new nil)) steps)
     (loop for grpx in (groupstore-groups storex) do
-        (setf steps (group-get-steps grpx from-reg to-reg within))
+        (setf steps (group-get-steps grpx rule-from-to within no-alt))
 
 	  (loop for stpx in (stepstore-steps steps) do
 	    (if (not (stepstore-member ret-steps stpx))

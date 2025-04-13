@@ -77,16 +77,15 @@
 )
 
 ;  Return possible steps, given a rule.
-(defun actionstore-get-steps (storex from-reg to-reg within) ; -> stepstore.
+(defun actionstore-get-steps (storex rule-from-to within &optional no-alt) ; -> stepstore.
   ;(format t "~&actionstore-get-steps")
   (assert (actionstore-p storex))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p within))
   
   (let ((ret-steps (stepstore-new nil)) act-steps)
     (loop for actx in (actionstore-actions storex) do
-      (setf act-steps (action-get-steps actx from-reg to-reg within))
+      (setf act-steps (action-get-steps actx rule-from-to within no-alt))
       (loop for stpx in (stepstore-steps act-steps) do
         (stepstore-push ret-steps stpx) 
       )

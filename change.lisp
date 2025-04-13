@@ -152,3 +152,14 @@
   (change-is-not-low (change-and cng1 cng2)) 
 )
 
+;;; Remove x-x-not changes from a change.
+(defun change-remove-x-x-not (cngx) ; -> change
+  (assert (change-p cngx))
+
+  (let ((mask-x-x-not (mask-new-and (change-m01 cngx) (change-m10 cngx))))
+  
+    (change-new :m01 (mask-new (mask-and-not (change-m01 cngx) mask-x-x-not)) 
+                :m10 (mask-new (mask-and-not (change-m10 cngx) mask-x-x-not)))
+  )
+)
+

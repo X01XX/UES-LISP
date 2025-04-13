@@ -128,13 +128,12 @@
   (region-eq (group-region grp1) (group-region grp2))
 )
 
-; Return possible steps, given group, rule, from-region, to-region.
-(defun group-get-steps (grpx from-reg to-reg within) ; -> stepstore.
+; Return possible steps, given group, rule from-region to-region.
+(defun group-get-steps (grpx rule-from-to within &optional no-alt) ; -> stepstore.
   ;(format t "~&group-get-steps")
   ;(format t "~&group-get-steps group ~A" grpx)
   (assert (group-p grpx))
-  (assert (region-p from-reg))
-  (assert (region-p to-reg))
+  (assert (rule-p rule-from-to))
   (assert (region-p within))
 
   (let ((ret-steps (stepstore-new nil)))
@@ -154,11 +153,11 @@
         (setf rulx (rulestore-first (group-rules grpx)))
         ;(format t "~&rulx ~A" rulx)
   
-        (setf rulx (rule-restrict-by rulx from-reg to-reg within))
+        (setf rulx (rule-restrict-by rulx rule-from-to within))
   
         (when rulx
-          (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
-                                              :rule rulx))
+          (stepstore-push ret-steps (step-new 0   ; Caller to change. By convention, act 0 does not do anything.
+                                              rulx))
           (return-from group-get-steps ret-steps)
         )
         (return-from group-get-steps ret-steps)
@@ -181,18 +180,74 @@
         )
 
         (when rulx
-          (setf rulx (rule-restrict-by rulx from-reg to-reg within))
+          (setf rulx (rule-restrict-by rulx rule-from-to within))
     
           (if rulx
-            (stepstore-push ret-steps (step-new :act-id 0   ; Caller to change. By convention, act 0 does not do anything.
-                                                :rule rulx))
+            (stepstore-push ret-steps (step-new 0   ; Caller to change. By convention, act 0 does not do anything.
+                                                rulx))
+          )
+          (return-from group-get-steps ret-steps)
+        )
+      )
+    )
+
+    ;; Handle more complicated *pn-two* groups.
+    (when (and (pn-eq (group-pn grpx) *pn-two*) (null no-alt)) ; Avoid an infinite loop of using alternate rules.
+      (let ((rule1 (rulestore-first (group-rules grpx)))
+            (rule2 (rulestore-second (group-rules grpx)))
+            initial-int
+            wanted-changes
+            rulex rulexs
+           )
+
+        ;; Both rules have to fit, initial-region/result-region, at least partially, into the within region.
+        (if (not (region-intersects (rule-result-region rule1) within))
+          (return-from group-get-steps ret-steps))
+
+        (if (not (region-intersects (rule-result-region rule2) within))
+          (return-from group-get-steps ret-steps))
+
+        ;; Alter rules to fit within the within region, if there is a partial intersection.
+        (setf rule1 (rule-restrict-by-within rule1 within))
+        (when (null rule1)
+          (return-from group-get-steps ret-steps)
+        )
+
+        (setf rule2 (rule-restrict-by-within rule2 within))
+        (if (null rule2)
+          (return-from group-get-steps ret-steps))
+
+        ;; Check if the two, possibly altered, rules can be put in sync.
+        (if (not (region-intersects (rule-initial-region rule1) (rule-initial-region rule2)))
+          (return-from group-get-steps ret-steps))
+
+        ;; Check if the two, possibly altered, rules need no be put in sync.
+        (when (not (region-eq (rule-initial-region rule1) (rule-initial-region rule2)))
+          (setf initial-int (region-intersection (rule-initial-region rule1) (rule-initial-region rule2)))
+          (setf rule1 (rule-restrict-initial-region rule1 initial-int))
+          (setf rule2 (rule-restrict-initial-region rule2 initial-int))
+        )
+
+        ;; Alter rules based on the changes needed.
+        (setf wanted-changes (rule-changes rule-from-to))
+
+        (setf rulex (rule-restrict-by-change rule1 wanted-changes))
+        (when rulex
+
+          ;; Split rule if needed, to insure a return-to-state is calculable.
+          (setf rulexs (rule-split-xb rulex))
+  
+          (loop for rulez in (rulestore-rules rulexs) do
+            (stepstore-push ret-steps (step-new 0   ; Caller to change. By convention, act 0 does not do anything.
+                                                rulez
+                                                (rule-restrict-initial-region rule2 (rule-initial-region rulez))))
           )
         )
+
         (return-from group-get-steps ret-steps)
       )
     )
 
-    ;; TODO more on *pn-two* group.
     ret-steps
   ) ; end-let
 )
