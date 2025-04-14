@@ -131,10 +131,12 @@
 ; Return possible steps, given group, rule from-region to-region.
 (defun group-get-steps (grpx rule-from-to within &optional no-alt) ; -> stepstore.
   ;(format t "~&group-get-steps")
-  ;(format t "~&group-get-steps group ~A" grpx)
+  ;(format t "~&group-get-steps: group ~A" grpx)
   (assert (group-p grpx))
   (assert (rule-p rule-from-to))
   (assert (region-p within))
+  ;(format t "~&group-get-steps: group ~A rule ~A within ~A no-alt ~A" (region-str (group-region grpx))
+  ;            (rule-str rule-from-to) (region-str within) no-alt)
 
   (let ((ret-steps (stepstore-new nil)))
 
@@ -151,7 +153,6 @@
 
       (let (rulx)
         (setf rulx (rulestore-first (group-rules grpx)))
-        ;(format t "~&rulx ~A" rulx)
   
         (setf rulx (rule-restrict-by rulx rule-from-to within))
   

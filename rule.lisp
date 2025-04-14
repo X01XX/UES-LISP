@@ -580,11 +580,12 @@
 )
 
 
-;;;; Return a rule based a number or restrictions.
+;;;; Return a rule based on a number or restrictions.
 (defun rule-restrict-by (rulx rule-from-to within) ; -> rule, or nil.
   (assert (rule-p rulx))
   (assert (rule-p rule-from-to))
   (assert (region-p within))
+  ;(format t "~&rule-restrict-by: rule: ~A rule-from-to ~A within ~A" (rule-str rulx) (rule-str rule-from-to) (region-str within))
 
   (let ((ruly rulx) wanted-changes)
     (setf ruly (rule-restrict-by-within ruly within))
@@ -626,16 +627,17 @@
 (defun rule-restrict-by-change (rulx wanted-changes) ; -> rule, or nil.
   (assert (rule-p rulx))
   (assert (change-p wanted-changes))
+  ;(format t "~&rule-restrict-by-change: rulx: ~A wanted-changes: ~A" (rule-str rulx) (change-str wanted-changes))
 
-  (let ((ruly rulx) wanted-changes2 rule-wanted-changes)
+  (let ((ruly rulx) rule-wanted-changes)
 
-    (setf wanted-changes2 (change-remove-x-x-not wanted-changes))
-
-    (setf rule-wanted-changes (change-and (rule-changes rulx) wanted-changes2))
+    (setf rule-wanted-changes (change-and (rule-changes rulx) wanted-changes))
 
     ;; Calc wanted changes in ruly.
     (if (change-is-low rule-wanted-changes)
       (return-from rule-restrict-by-change nil))
+
+    (setf rule-wanted-changes (change-remove-x-x-not rule-wanted-changes))
 
     ;; Restrict rule by 0->1 wanted changes.
     (if (mask-is-not-low (change-m01 rule-wanted-changes))

@@ -136,8 +136,8 @@
 ;;; Choose one step randomly, then recurse.
 ;;; So random forward-chaining, backward-chaining, with each step.
 (defun domain-get-plan2 (domx rule-from-to with-reg depth &optional no-alt) ; -> plan, or nil.
-  ;(format t "~&domain-get-plan2: domx ~D from ~A to ~A within ~A depth ~D no-alt ~A" (domain-id domx) (region-str from-reg)
-  ;  (region-str to-reg) (region-str with-reg) depth no-alt)
+  ;(format t "~&domain-get-plan2: domx ~D rule ~A within ~A depth ~D no-alt ~A" (domain-id domx) (rule-str rule-from-to)
+  ;   (region-str with-reg) depth no-alt)
 
   (if (change-is-low (rule-changes rule-from-to))
     (return-from domain-get-plan2 (plan-new (list (step-new 0 rule-from-to)))))
@@ -177,7 +177,7 @@
                 (setf (step-alt-rule stpx) (rule-restrict-initial-region (step-alt-rule stpx) plan-result))
               )
               (setf (step-alt-plan stpx) planx)
-              ;(format t "~&pushing massaged step ~A" (step-str stpx))
+              ;(format t "~&pushing step with alt plan ~A" (step-str stpx))
               (stepstore-push steps2 stpx)
             )
           )
