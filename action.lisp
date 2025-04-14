@@ -881,7 +881,7 @@
   (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (let ((rslt stax) ; If no rule found, default to no change.
-        smpl sqrx rslt0 rslt1 rslt2 memx)
+        smpl memx)
     (loop for rulsx in (action-base-rules actx)
           for htable in (action-base-memory actx) do
 

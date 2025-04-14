@@ -41,7 +41,8 @@
 
         (when (not (null (step-alt-rule stpx)))
           (setf str (concatenate 'string str (format nil " alt-rule ~A" (rule-str (step-alt-rule stpx)))))
-          (if (not (null (step-alt-plan stpx)))
+          (if (null (step-alt-plan stpx))
+            (setf str (concatenate 'string str (format nil " alt-plan?")))
             (setf str (concatenate 'string str (format nil " alt-plan ~A" (plan-str (step-alt-plan stpx))))))
         )
 
@@ -118,14 +119,23 @@
   (if (region-superset-of :sup regx :sub (step-initial-region stepx))
     (return-from step-restrict-initial-region stepx))
 
-  (let ((new-rule (rule-restrict-initial-region (step-rule stepx) regx)) alt-rule alt-plan)
+  (let ((new-rule (rule-restrict-initial-region (step-rule stepx) regx)) alt-rule alt-plan new-step)
 
-    (if (step-alt-rule stepx)
+    (when (step-alt-rule stepx)
        (setf alt-rule (rule-restrict-initial-region (step-alt-rule stepx) regx))
-       (if (step-alt-plan stepx)
-         (setf alt-plan (plan-restrict-initial-region (step-alt-plan stepx) regx))))
+       (if (null alt-rule)
+         (error "step ~A restricting alt rule initial to ~A failed" (step-str stepx) (region-str regx)))
+       (setf alt-plan (plan-restrict-result-region (step-alt-plan stepx) (rule-initial-region new-rule)))
+       (if (null alt-plan)
+         (error "step ~A restricting alt-plan result to ~A failed" (step-str stepx) (region-str (rule-initial-region new-rule)))
+       )
+    )
 
-    (step-new (step-act-id stepx) new-rule alt-rule alt-plan)
+    (setf new-step (step-new (step-act-id stepx) new-rule alt-rule alt-plan))
+    ;(if alt-rule
+    ;  (format t "~&step ~A restricted initial to ~A giving ~A" (step-str stepx) (region-str regx) (step-str new-step))
+    ;)
+    new-step
   )
 )
 
@@ -139,14 +149,23 @@
   (if (region-superset-of :sup regx :sub (step-result-region stepx))
     (return-from step-restrict-result-region stepx))
 
-  (let ((new-rule (rule-restrict-result-region (step-rule stepx) regx)) alt-rule alt-plan)
+  (let ((new-rule (rule-restrict-result-region (step-rule stepx) regx)) alt-rule alt-plan new-step)
 
-    (if (step-alt-rule stepx)
-       (setf alt-rule (rule-restrict-result-region (step-alt-rule stepx) regx))
-       (if (step-alt-plan stepx)
-         (setf alt-plan (plan-restrict-result-region (step-alt-plan stepx) regx))))
+    (when (step-alt-rule stepx)
+       (setf alt-rule (rule-restrict-initial-region (step-alt-rule stepx) (rule-initial-region new-rule)))
+       (if (null alt-rule)
+         (error "step ~A restricting alt rule initial to ~A failed" (step-str stepx) (region-str (rule-initial-region new-rule))))
+       (setf alt-plan (plan-restrict-result-region (step-alt-plan stepx) (rule-initial-region new-rule)))
+       (if (null alt-plan)
+         (error "step ~A restricting alt-plan result to ~A failed" (step-str stepx) (region-str (rule-initial-region new-rule)))
+       )
+   )
 
-    (step-new (step-act-id stepx) new-rule alt-rule alt-plan)
+    (setf new-step (step-new (step-act-id stepx) new-rule alt-rule alt-plan))
+    ;(if alt-rule
+    ;  (format t "~&step ~A restricted result to ~A giving ~A" (step-str stepx) (region-str regx) (step-str new-step))
+    ;)
+    new-step
   )
 )
 

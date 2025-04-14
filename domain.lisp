@@ -116,16 +116,16 @@
   (assert (region-superset-of :sup with-reg :sub (rule-initial-region rule-from-to)))
   (assert (region-superset-of :sup with-reg :sub (rule-result-region rule-from-to)))
 
-  (let (plan plan-rule
+  (let (plan
        (num-changes (rule-num-changes rule-from-to))) ; adjust depth limit by number chnages needed.
     (loop for i from 0 to 2
           while (null plan) do
       (setf plan (domain-get-plan2 domx rule-from-to with-reg (* 2 num-changes) no-alt))
     )
     (when plan 
-      (setf plan-rule (plan-as-rule plan))
-      (if (not (change-eq (rule-changes plan-rule) (rule-changes rule-from-to)))
-        (format t "~&plan ~A rule ~A changes NOT equal changes of wanted rule ~A" (plan-str plan) (rule-str plan-rule) (rule-str rule-from-to))
+      (if (not (and (region-superset-of :sub (plan-initial-region plan) :sup (rule-initial-region rule-from-to))
+                    (region-superset-of :sub (plan-result-region plan)  :sup (rule-result-region rule-from-to))))
+        (error "~&plan ~A NOT correct for rule ~A" (plan-str plan) (rule-str rule-from-to))
       )
     )
     plan
