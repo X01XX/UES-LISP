@@ -125,7 +125,7 @@
 (defun statestore-same-num-bits (storex) ; -> bool
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
-  
+
   (if (< (statestore-length storex) 2)
     (return-from statestore-same-num-bits true))
 
@@ -141,7 +141,7 @@
 ;;; Return a statestore with only states required to make a region.
 (defun statestore-remove-unneeded (storex) ; -> statestore.
   (assert (statestore-p storex))
-  
+
   (if (< (statestore-length storex) 3)
     (return-from statestore-remove-unneeded storex))
 
@@ -154,11 +154,11 @@
       (setf options (any-x-of-n num (statestore-states storex)))
       (loop for optx in options do
 
-	    (setf storey (statestore-new optx))
+        (setf storey (statestore-new optx))
         (setf opt-x (statestore-x-mask storey))
 
-	    (if (mask-eq opt-x targ-x)
-	      (return-from statestore-remove-unneeded storey))
+        (if (mask-eq opt-x targ-x)
+          (return-from statestore-remove-unneeded storey))
       )
     )
   )
@@ -169,7 +169,7 @@
 ;;; Ruturn a statestore instance from a list of symbols.
 (defun statestore-from (symbols) ; -> statestore
     ;(format t "~&statestore-from ~A" symbols)
-    (assert (listp symbols))                                                                                                                    
+    (assert (listp symbols))
 
     ;(assert (eq (car symbols) 'QUOTE))
     ;(setf symbols (second symbols))
@@ -178,7 +178,7 @@
         (loop for tokx in symbols do
             ;(format t "~&statestore-from ~A ~A" (type-of tokx) tokx)
             (push (state-from tokx) states)
-        ) 
+        )
         (statestore-new (reverse states))
     )
 )

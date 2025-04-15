@@ -56,7 +56,7 @@
   (let ((ret "(") (start t))
 
     (loop for mskx in (maskstore-masks storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (mask-str mskx)))
     )

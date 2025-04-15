@@ -62,10 +62,10 @@
 ;;; Like (RT 0 -1)
 (defun rate-from (symbols) ; -> rate
   ;(format t "~&rate-from ~A" (type-of symbols))
-  (assert (listp symbols))                                                                                                         
+  (assert (listp symbols))
   (assert (not (null symbols)))
   (assert (symbolp (car symbols)))
-  (assert (eq (car symbols) 'RT))     
+  (assert (eq (car symbols) 'RT))
 
   (setf symbols (cdr symbols))
 
@@ -77,12 +77,12 @@
 
     (setf pos (car symbols))
     ;(format t "~&rate-from3 pos: ~A ~A" (type-of pos) pos)
-           
+
     (setf neg (second symbols))
     ;(format t "~&rate-from4 neg: ~A ~A" (type-of neg) neg)
-            
+
     (rate-new :positive pos :negative neg)
-  )   
+  )
 )
 
 ;;; Return the union of two rates.

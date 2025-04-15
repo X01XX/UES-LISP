@@ -30,7 +30,7 @@
   (assert (statestore-p states))
   (assert (> (statestore-length states) 0))
   (assert (statestore-same-num-bits states))
-  
+
   (make-region :states (statestore-remove-unneeded states))
 )
 
@@ -405,7 +405,7 @@
 	    (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
       )
     )
-    ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" (region-str min-reg) (region-str sub-reg) (regionstore-str ret)) 
+    ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" (region-str min-reg) (region-str sub-reg) (regionstore-str ret))
     ret
   )
 )
@@ -431,11 +431,11 @@
 	    (regionstore-push-nosubs ret (region-set-to-zeros regx bitx))
       )
     )
-    ;(format t "~&region-subtract-state ~A minus ~A returns ~A" (region-str regx) (state-str stax) (regionstore-str ret)) 
+    ;(format t "~&region-subtract-state ~A minus ~A returns ~A" (region-str regx) (state-str stax) (regionstore-str ret))
     ret
   )
 )
- 
+
 ;;; Return true if a list is a list of regions of the same number of bits.
 ;;; An empty list will return true.
 (defun region-list-same-num-bits-p (reglst) ; -> bool
@@ -460,13 +460,13 @@
 ;;; Return the distance between a region and a state.
 (defun region-distance-state (regx stax) ; -> integer.
   (assert (region-p regx))
-  (assert (state-p stax)) 
+  (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
-  
+
   (mask-num-ones (mask-new (value-and
                   (state-xor (region-first-state regx) stax)
                   (state-xor (region-second-state regx) stax))))
-) 
+)
 
 ;;; Return true if a region intersects a state.
 (defun region-intersects-state (regx stax) ; -> bool.
@@ -514,3 +514,14 @@
   )
 )
 
+;; Return true if a state is needed to define a region.
+(defun region-state-needed (regx stax) ; -> bool
+  (assert (region-p regx))
+  (assert (state-p stax))
+
+  (loop for stay in (region-state-list regx) do
+    (if (state-eq stay stax)
+      (return-from region-state-needed true))
+  )
+  false
+)

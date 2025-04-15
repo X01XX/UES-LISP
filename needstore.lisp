@@ -56,9 +56,9 @@
     ;; Add store2 needs.
     (loop for nedx in (needstore-needs store2) do
       (needstore-add-end ret nedx)
-    )   
+    )
     ;(format t "~&needstore-append: result ~A" (needstore-str ret))
-    ret 
+    ret
   )
 )
 

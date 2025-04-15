@@ -66,8 +66,8 @@
         (return-from selectregions-list-p false))
 
       (if last-item
-	(if (not (regionscorr-congruent (selectregions-regionscorr sregsx) (selectregions-regionscorr last-item)))
-	  (return-from selectregions-list-p false))
+        (if (not (regionscorr-congruent (selectregions-regionscorr sregsx) (selectregions-regionscorr last-item)))
+          (return-from selectregions-list-p false))
         (setf last-item sregsx)
       )
     )
@@ -89,7 +89,7 @@
    (assert (listp symbols))
    (assert (not (null symbols)))
    (assert (symbolp (car symbols)))
-   (assert (eq (car symbols) 'SR))     
+   (assert (eq (car symbols) 'SR))
 
    (setf symbols (cdr symbols))
 
@@ -102,7 +102,7 @@
         (setf rc (car symbols))
         ;(format t "~&selectregions-from3 rc: ~A ~A" (type-of rc) rc)
         (setf rc (regionscorr-from rc))
-            
+
         (setf rate (rate-from (second symbols)))
 
         ;(format t "~&selectregions-from4 rate: ~A ~A" (type-of rate) (rate-str rate))

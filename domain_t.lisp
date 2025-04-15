@@ -3,7 +3,7 @@
   (format t "~&domain-tests beginning")
 
   ;; Test domain-new
-  (let (domx) 
+  (let (domx)
     (setf domx (domain-new :id 0 :initial-state (state-from 's0010)))
     (assert (domain-p domx))
     (assert (= 0 (domain-id domx)))
@@ -13,7 +13,7 @@
   )
 
   ;; Test domain-set-id
-  (let (domx) 
+  (let (domx)
     (setf domx (domain-new :id 0 :initial-state (state-from 's0010)))
     (domain-set-id domx 2)
     (assert (= 2 (domain-id domx)))

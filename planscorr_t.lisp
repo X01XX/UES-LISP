@@ -93,7 +93,7 @@
 
   ;; Test planscorr-link.
   (let (plnsc1 plnsc2 step1 plan1 lnk plnsc1a plnsc2a)
-     
+
     (setf step1 (step-new 0 (rule-from "[00/00/01/XX]")))
     (setf plan1 (plan-new (list step1)))
 

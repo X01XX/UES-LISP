@@ -8,7 +8,7 @@
     (setf mskx (mask-new (value-from 'v0000_0011)))
     (assert (mask-p mskx))
     (assert (and (mask-p mskx) (= (value-bits (mask-value mskx)) 3)))
- 
+
     (format t "~&  mask-new OK")
   )
 
@@ -17,18 +17,18 @@
      (setf mskx (mask-from 'm0001))
      (setf strx (mask-str mskx))
      (assert (and (stringp strx) (string= strx "m0001")))
- 
+
      (format t "~&  mask-str OK")
   )
 
   ; Test mask-num-bits.
   (let (numx msk1)
      (setf msk1 (mask-from 'm0101))
- 
+
      ; Test a valid mask.
      (setf numx (mask-num-bits msk1))
      (assert (and (integerp numx) (= numx 4)))
- 
+
      (format t "~&  mask-num-bits OK")
   )
 
@@ -49,14 +49,14 @@
     (format t "~&  mask-eq OK")
   )
 
- 
+
   ; Test mask-from.
   (let (mskx)
      (setf mskx (mask-from 'm0010_0011))
      (assert (mask-p mskx))
      (assert (= (value-num-bits (mask-value mskx)) 8))
      (assert (= (value-bits (mask-value mskx)) #x23))
- 
+
      (format t "~&  mask-from OK")
   )
 

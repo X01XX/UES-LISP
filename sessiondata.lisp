@@ -60,7 +60,7 @@
 
       strs
     )
-) 
+)
 
 ;;; Print sessiondata.
 (defun sessiondata-print (sessx)
@@ -84,7 +84,7 @@
     (assert (not (null symbols)))
     (assert (typep (car symbols) 'SYMBOL))
     (assert (eq (car symbols) 'SD))
-    
+
     (let (sdx key ds sr sc rest-symbols)
         (cond ((string= (symbol-name (car symbols)) "SD")
                 (setf rest-symbols (cdr symbols))
@@ -171,19 +171,19 @@
     ;; Calc and save fragments as selectregions.
     (setf fragments
           (regionscorrstore-split-by-intersections (selectregionsstore-regionscorrs (sessiondata-selectregions-store sdx))))
-    
+
     (loop for rcx in (regionscorrstore-regionscorrs fragments) do
       (selectregionsstore-push (sessiondata-selectregions-fragments sdx)
          (selectregions-new rcx (selectregionsstore-rate (sessiondata-selectregions-store sdx) rcx)))
     )
-                
+
     ;; Print fragments.
     (format t "~& ~&Fragments:")
     (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do
       (format t "~&    ~A" (selectregions-str selx))
     )
 
-    ;; Create, sort and save a list of negative levels. 
+    ;; Create, sort and save a list of negative levels.
     (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-store sdx)) do
       (if (not (member (rate-negative (selectregions-rate selx)) nums))
         (push (rate-negative (selectregions-rate selx)) nums))
@@ -204,7 +204,7 @@
         ;(format t "~&  levx ~D" levx)
         (setf next-paths (regionscorrstore-new (list max-regs)))
 
-        (loop for selx in  (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do    
+        (loop for selx in  (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do
           (setf nrate (rate-negative (selectregions-rate selx)))
           (when (not (zerop nrate))
             (if (< nrate levx)
@@ -234,7 +234,7 @@
 (defun sessiondata-domain-current-regions (sessx) ; -> RegionsCorr
   (let ((ret (regionscorr-new nil)))
     (loop for stax in (statescorr-state-list (domainstore-all-current-states (sessiondata-domains sessx))) do
-      (regionscorr-add-end ret (region-new stax)) 
+      (regionscorr-add-end ret (region-new stax))
     )
     ret
   )
@@ -262,16 +262,16 @@
 
     (loop for nedx in (needstore-need-list (sessiondata-can-do sessx)) do
 
-      (when (plan-is-not-empty (need-plan nedx)) 
-      
+      (when (plan-is-not-empty (need-plan nedx))
+
         (let (targetx)
- 
+
           (if (state-p (need-target nedx))
             (setf targetx (region-new (list (need-target nedx))))
             (setf targetx (need-target nedx)))
- 
+
           (let (new-target plans)
-  
+
             ;; Calc all-domains target.
             (setf new-target (regionscorr-new nil))
             (loop for domx in (domainstore-domains dmxs) do
@@ -280,10 +280,10 @@
                 (regionscorr-add-end new-target (domain-max-region domx))
               )
             ) ; next domx
- 
+
             ;; Get plans
             (setf plans (sessiondata-get-plans sessx new-target))
- 
+
             (when (not (null plans))
               ;(format t "~&planxx: ~A vs ~A" (plan-str (need-plan nedx)) (planscorrstore-str plans))
               (setf (need-plan nedx) plans)
@@ -305,7 +305,7 @@
       (when (needstore-is-not-empty needs)
 
         (loop for nedx in (needstore-needs needs) do
-  
+
           (if (need-plan nedx)
             (progn
               (incf neg-needs-can-do)
@@ -316,7 +316,7 @@
           (needstore-push (sessiondata-needs sessx) nedx)
         ) ; next nedx
         (if (> neg-needs-can-do 0)
-          (return-from sessiondata-get-needs) 
+          (return-from sessiondata-get-needs)
         )
       ) ; end when
 
@@ -324,7 +324,7 @@
       (setf needs (sessiondata-move-to-positive-selectregions sessx))
       (when (needstore-is-not-empty needs)
         (loop for nedx in (needstore-needs needs) do
-  
+
           (if (need-plan nedx)
             (needstore-push (sessiondata-can-do sessx) nedx)
             (needstore-push (sessiondata-cant-do sessx) nedx)
@@ -358,7 +358,7 @@
 (defun sessiondata-num-actions (sessx dom-id) ; -> integer
   (assert (sessiondata-p sessx))
   (assert (and (integerp dom-id) (< dom-id (sessiondata-num-domains sessx))))
- 
+
   (actionstore-length (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)))
 )
 
@@ -421,7 +421,7 @@
     (if (null le0-position)
       (error "min-rate not found?"))
 
-    ;; From the maximum le0 rate, on down, try finding a path.  
+    ;; From the maximum le0 rate, on down, try finding a path.
     (loop for inx from le0-position below (length (sessiondata-le0-levels sessx))
           while (null path) do
 
@@ -471,12 +471,12 @@
 
       (when (< dist min-dist)
         (assert (plusp dist))
-        (setf min-dist dist close-rcs nil)) 
+        (setf min-dist dist close-rcs nil))
 
       (if (= dist min-dist)
         (push rcsx close-rcs))
     )
-   
+
     ;; Collect closest regionstorecorrs from least negative in regionscorrstore-paths.
     (loop for rcsx in (regionscorrstore-regionscorrs (car (sessiondata-regionscorrstore-paths sessx))) do
 
@@ -484,7 +484,7 @@
 
       (when (< dist min-dist)
         (assert (plusp dist))
-        (setf min-dist dist close-rcs nil)) 
+        (setf min-dist dist close-rcs nil))
 
       (if (= dist min-dist)
         (push rcsx close-rcs))
@@ -522,13 +522,13 @@
     (when (and (plusp (rate-positive cur-rate)) (< (sessiondata-num-cycles-at sessx) (rate-positive cur-rate)))
       (return-from sessiondata-move-to-positive-selectregions needs))
 
-    ;; Collect selectregions that are positive, not superset current states. 
+    ;; Collect selectregions that are positive, not superset current states.
     (loop for selx in (selectregionsstore-selectregions (sessiondata-selectregions-fragments sessx)) do
 
       (if (and (> (rate-positive (selectregions-rate selx)) 0) (not (regionscorr-superset-of :sup (selectregions-regionscorr selx) :sub cur-regs)))
         (push (selectregions-regionscorr selx) pos-rcs))
     )
-   
+
     ; Generate needs.
     (loop for rcsx in pos-rcs do
       (setf nedx (need-new :kind *change-position*

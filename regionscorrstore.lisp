@@ -112,7 +112,7 @@
   (let ((ret "#S(REGIONCORRSTORE ") (start t))
 
     (loop for regx in (regionscorrstore-regionscorrs storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (regionscorr-str regx)))
     )
@@ -191,7 +191,7 @@
     (if (regionscorr-intersects regy regx)
       (return-from regionscorrstore-any-intersection true))
   )
-  false 
+  false
 )
 
 ;;; Append two regionscorrstores.
@@ -297,7 +297,7 @@
       ;; Choose a region to split the problem in two.
       (setf middle-region (nth (random (length links)) links))
       ;(format t "~&regionscorrstore-find-path2: middle-region ~A" (regionscorr-str middle-region))
- 
+
       ;(format t "~&regionscorrstore-find-path2: try left-middle")
       (setf left-path (regionscorrstore-find-path2
             (regionscorrstore-remove pathscorr-options middle-region) left-reg middle-region))
@@ -307,7 +307,7 @@
         (return-from regionscorrstore-find-path2 nil))
 
       ;(format t "~&regionscorrstore-find-path2: try middle-right")
-      (setf right-path (regionscorrstore-find-path2 
+      (setf right-path (regionscorrstore-find-path2
          (regionscorrstore-remove pathscorr-options middle-region) middle-region right-reg))
 
       (when (null right-path)
@@ -376,7 +376,7 @@
         (return-from regionscorrstore-find-path2 left-path)
       )
     )
-  ) 
+  )
   ;; Default return.
   (format t "~&regionscorrstore-find-path2: return 10")
   nil
@@ -406,18 +406,18 @@
 
         (loop for regscorrx in (regionscorrstore-regionscorrs store2) do
           (setf ints-not-found true)
-  
+
 	      (setf tmpstore (regionscorrstore-new (list regscorrx)))
 
           (loop for regscorry in (regionscorrstore-regionscorrs store2) do
-    
+
             (if (regionscorr-ne regscorrx regscorry)
-  
+
               (when (regionscorrstore-any-intersection tmpstore regscorry)
-  
+
                 (setf ints-not-found false)
                 (setf any-change true)
-  
+
                 (setf tmpstore (regionscorrstore-subtract-regionscorr tmpstore regscorry))
               )
      	   )

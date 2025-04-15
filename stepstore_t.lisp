@@ -114,7 +114,7 @@
 
     ;(format t "~&cngx ~A" (change-str cngx))
     (assert (change-eq cngx (change-new :m01 (mask-from 'm0110) :m10 (mask-from 'm0101))))
-    
+
     (format t "~&  stepstore-aggregate-changes OK")
   )
 

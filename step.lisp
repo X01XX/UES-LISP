@@ -1,8 +1,8 @@
 ;;;; Implement the Step type.
 ;;;;
 (defstruct step
-  act-id	    ; An action ID, GE zero.
-  rule		    ; A rule.
+  act-id        ; An action ID, GE zero.
+  rule          ; A rule.
   alt-rule      ; A second result is possible, based on this rule.
   alt-plan      ; Plan to go from alt result back to the beginning region to rerun the action.
 )

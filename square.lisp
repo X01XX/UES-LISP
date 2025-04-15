@@ -30,9 +30,9 @@
     (assert (sample-p smpl))
 
     (let (ary)
-        (setf ary (make-array '(4)))	; Make a four element array, filled with nils.
+        (setf ary (make-array '(4)))  ; Make a four element array, filled with nils.
         (setf (aref ary 0) (sample-result smpl))
-    
+
         (make-square
             :state (sample-initial smpl)
             :count 1
@@ -73,15 +73,15 @@
         ;; Try to disprove pn-two
         (when (> (square-count square) 2)
 
-	      (if (state-ne result0 (aref (square-results square) 2))
+          (if (state-ne result0 (aref (square-results square) 2))
             (return-from square-calc-pn *pn-none*))
 
           (when (> (square-count square) 3)
 
-	        (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
+            (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
                     (return-from square-calc-pn *pn-none*))
-	      )
-	   )
+          )
+       )
 
        *pn-two*
     ) ; end-let
@@ -127,34 +127,34 @@
             (format t "~&square ~A pn  changed from ~A to ~A" (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
             (setf (square-pn square) pnnew) ; set new pn, so subsequent pnc calc works correctly.
 
-	    (cond ((eq pnnew *pn-one*)
-	           (setf (square-rules square) (rulestore-new (list (rule-new smpl)))))
+            (cond ((eq pnnew *pn-one*)
+                   (setf (square-rules square) (rulestore-new (list (rule-new smpl)))))
 
-	          ((eq pnnew *pn-two*)
-	           (setf (square-rules square)
-			 (rulestore-new (list (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 0)))
-	                                      (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 1)))))))
+                  ((eq pnnew *pn-two*)
+                   (setf (square-rules square)
+                   (rulestore-new (list (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 0)))
+                                        (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 1)))))))
 
-	          ((eq pnnew *pn-none*)
-	           (setf (square-rules square) (rulestore-new nil)))
+                  ((eq pnnew *pn-none*)
+                   (setf (square-rules square) (rulestore-new nil)))
 
-		  (t (error "unrecognized pn value"))
+                  (t (error "unrecognized pn value"))
             )
 
-	    (setf ret t)
+          (setf ret t)
         )
 
         (setf pncnew (square-calc-pnc square))
-	;(format t "~& sqr ~A pncnew ~A pnc ~A" (state-str (square-state square)) pncnew (square-pnc square))
+        ;(format t "~& sqr ~A pncnew ~A pnc ~A" (state-str (square-state square)) pncnew (square-pnc square))
 
         (when  (not (eq pncnew (square-pnc square)))
             (format t "~&square ~A pn ~A pnc changed from ~A to ~A"
-		    (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
+            (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
             (setf (square-pnc square) pncnew)
             (return-from square-add-sample t)
         )
         ; (if (null ret)
-	;    (format t "~&square ~A nothing changed pn ~A pnc ~A" (state-str(square-state square)) (pn-str (square-pn square)) (square-pnc square)))
+        ;    (format t "~&square ~A nothing changed pn ~A pnc ~A" (state-str(square-state square)) (pn-str (square-pn square)) (square-pnc square)))
         ret
     ) ; end let
 ) ; end square-add-sample
@@ -167,7 +167,7 @@
 ;;; Return a string representing a square.
 (defun square-str (asqr)  ; -> string
     (assert (square-p asqr))
- 
+
     (let ((str "["))
         (setf str (concatenate 'string str (state-str (square-state asqr))))
         (setf str (concatenate 'string str (format nil " :pn ~D :pnc ~A" (pn-str (square-pn asqr)) (square-pnc asqr))))
@@ -197,7 +197,7 @@
 )
 
 ;;; Return compatibility of two squares.
-(defun square-compatible (sqrx sqry) ; -> compatibility 
+(defun square-compatible (sqrx sqry) ; -> compatibility
     (assert (square-p sqrx))
     (assert (square-p sqry))
 
@@ -231,7 +231,7 @@
     (let (pncsqr nonsqr)
       ;; Figure out which square is pnc, which is not.
       (if (square-pnc sqrx)
-        (setf pncsqr sqrx nonsqr sqry) 
+        (setf pncsqr sqrx nonsqr sqry)
         (setf pncsqr sqry nonsqr sqrx))
 
       (if (pn-eq (square-pn pncsqr) *pn-none*)
@@ -271,7 +271,7 @@
 )
 
 ;;; Return a list of squares with the highest number of results.
-(defun square-list-sample-next (sqrs) ; -> list of squares. 
+(defun square-list-sample-next (sqrs) ; -> list of squares.
   (assert (square-list-p sqrs))
 
   (let ((ret nil) (max-results 1))
@@ -279,9 +279,9 @@
     ;; Generate list of squares with the highest number of previous samples.
     (loop for sqrx in sqrs do
       (when (> (square-results-length sqrx) max-results)
-        (setf ret nil) 
+        (setf ret nil)
         (setf max-results (square-results-length sqrx))
-      )    
+      )
       (if (= (square-results-length sqrx) max-results)
         (push sqrx ret))
     ) ; next sqrx

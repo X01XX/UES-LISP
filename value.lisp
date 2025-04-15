@@ -71,14 +71,14 @@
     (loop for chr across strx do
       (when (char/= chr #\_)
         (incf num-bits)
-	    (if (or (char= chr #\0) (char= chr #\1))
-	      (setf str2 (concatenate 'string str2 (princ-to-string chr)))
-		  (return-from value-from-str (err-new (format nil "value-from-str: Invalid binary digit ~A" chr))))
+        (if (or (char= chr #\0) (char= chr #\1))
+          (setf str2 (concatenate 'string str2 (princ-to-string chr)))
+          (return-from value-from-str (err-new (format nil "value-from-str: Invalid binary digit ~A" chr))))
       )
     ) ; end loop
 
     (if (zerop num-bits)
-	  (return-from value-from-str (err-new (format nil "value-from-str: At least one bit must be given ~A" strx))))
+      (return-from value-from-str (err-new (format nil "value-from-str: At least one bit must be given ~A" strx))))
 
     ;; Translate string to integer.
     (setf valx (read-from-string str2))
@@ -94,8 +94,8 @@
 
   (let ((ret (string-add-underscores-na str)))
     (cond ((err-p ret) (error (err-str ret)))
-	  ((stringp ret) ret)
-	  (t (error "Result is not a string"))))
+          ((stringp ret) ret)
+          (t (error "Result is not a string"))))
 )
 ;;; Add underscores no-abort (na).
 (defun string-add-underscores-na (str) ; -> string, or err.
@@ -161,8 +161,8 @@
 (defun value-is-adjacent (val1 val2) ; -> bool.
   (let ((ret (value-is-adjacent-na val1 val2)))
     (cond ((err-p ret) (error (err-str ret)))
-	  ((bool-p ret) ret)
-	  (t (error "Result is not a bool"))))
+          ((bool-p ret) ret)
+          (t (error "Result is not a bool"))))
 )
 ;;; value-is-adjacent no-abort (na).
 (defun value-is-adjacent-na (val1 val2) ; -> bool, or err.
@@ -174,7 +174,7 @@
 
   (if (not (= (value-num-bits val1) (value-num-bits val2)))
     (return-from value-is-adjacent-na
-		 (err-new "Argument 1 and 2 use a different number of bits")))
+      (err-new "Argument 1 and 2 use a different number of bits")))
 
   (= 1 (value-num-ones (value-xor val1 val2)))
 )
@@ -194,14 +194,14 @@
   (assert (value-p (car vals)))
 
   (let* ((first-val (car vals))
-	 (num-bits (value-num-bits first-val))
-	 (ret-bits (value-bits first-val)))
+         (num-bits (value-num-bits first-val))
+         (ret-bits (value-bits first-val)))
 
     (loop for valx in (cdr vals) do
-        (assert (value-p valx))
-	(assert (= (value-num-bits valx) num-bits))
+      (assert (value-p valx))
+      (assert (= (value-num-bits valx) num-bits))
 
-	(setf ret-bits (logior ret-bits (value-bits valx)))
+      (setf ret-bits (logior ret-bits (value-bits valx)))
     )
     (value-new :num-bits num-bits :bits ret-bits)
   )
@@ -213,14 +213,14 @@
   (assert (value-p (car vals)))
 
   (let* ((first-val (car vals))
-	 (num-bits (value-num-bits first-val))
-	 (ret-bits (value-bits first-val)))
+         (num-bits (value-num-bits first-val))
+         (ret-bits (value-bits first-val)))
 
     (loop for valx in (cdr vals) do
-        (assert (value-p valx))
-	(assert (= (value-num-bits valx) num-bits))
+      (assert (value-p valx))
+      (assert (= (value-num-bits valx) num-bits))
 
-	(setf ret-bits (logand ret-bits (value-bits valx)))
+      (setf ret-bits (logand ret-bits (value-bits valx)))
     )
     (value-new :num-bits num-bits :bits ret-bits)
   )
@@ -295,7 +295,7 @@
 
   (let ((new-bits (ash (value-bits val) num)))
       (if (plusp new-bits)
-	(setf new-bits (logand new-bits (1- (expt 2 (value-num-bits val))))) ; Some zero bits may have shifted too far left.
+        (setf new-bits (logand new-bits (1- (expt 2 (value-num-bits val))))) ; Some zero bits may have shifted too far left.
       )
       (value-new :num-bits (value-num-bits val) :bits new-bits)
   )
@@ -346,7 +346,7 @@
       (if first
         (setf first nil)
         (setf ret (concatenate 'string ret " ")))
-      
+
       (setf ret (concatenate 'string ret (value-str valx)))
     )
     (setf ret (concatenate 'string ret ")"))

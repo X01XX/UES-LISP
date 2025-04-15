@@ -20,7 +20,7 @@
   (assert (action-list-p actions))
 
   (let ((ret (make-actionstore :actions nil)))
-    (loop for actx in actions do 
+    (loop for actx in actions do
         (actionstore-push ret actx)
     )
     ret
@@ -67,7 +67,7 @@
   (let ((ret "(AS ") (start t))
 
     (loop for actx in (actionstore-actions storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (format nil " ~&  ~A" (action-str actx))))
     )
@@ -82,12 +82,12 @@
   (assert (actionstore-p storex))
   (assert (rule-p rule-from-to))
   (assert (region-p within))
-  
+
   (let ((ret-steps (stepstore-new nil)) act-steps)
     (loop for actx in (actionstore-actions storex) do
       (setf act-steps (action-get-steps actx rule-from-to within no-alt))
       (loop for stpx in (stepstore-steps act-steps) do
-        (stepstore-push ret-steps stpx) 
+        (stepstore-push ret-steps stpx)
       )
     )
     ret-steps

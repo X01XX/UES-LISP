@@ -18,7 +18,7 @@
 (defun groupstore-new (groups) ; -> groupstore.
   ;(format t "~&groups ~A" groups)
   (let ((ret (make-groupstore :groups nil)))
-    (loop for grpx in groups do 
+    (loop for grpx in groups do
       (groupstore-push ret grpx)
     )
     ret
@@ -61,7 +61,7 @@
   (let ((ret "(GS ") (start t))
 
     (loop for grpx in (groupstore-groups storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (format nil " ~&    ~A" (group-str grpx))))
     )
@@ -113,7 +113,7 @@
   (assert (groupstore-p groups))
   (assert (state-p stax))
 
-  (loop for grpx in (groupstore-groups groups) do 
+  (loop for grpx in (groupstore-groups groups) do
     (if (region-superset-of-state (group-region grpx) stax)
         (return-from groupstore-state-in-group true))
   )
@@ -126,7 +126,7 @@
   (assert (groupstore-p groups))
   (assert (state-p stax))
 
-  (loop for grpx in (groupstore-groups groups) do 
+  (loop for grpx in (groupstore-groups groups) do
     (if (and (> (region-number-states (group-region grpx)) 1) (region-superset-of-state (group-region grpx) stax))
         (return-from groupstore-multistate-groups-state-in true))
   )
@@ -140,7 +140,7 @@
   (assert (state-p stax))
 
   (let ((ret (groupstore-new nil)))
-    (loop for grpx in (groupstore-groups groups) do 
+    (loop for grpx in (groupstore-groups groups) do
       (if (region-superset-of-state (group-region grpx) stax)
          (groupstore-push ret grpx))
     )
@@ -154,7 +154,7 @@
   (assert (groupstore-p groups))
   (assert (state-p stax))
 
-  (loop for grpx in (groupstore-groups groups) do 
+  (loop for grpx in (groupstore-groups groups) do
     (if (region-superset-of-state (group-region grpx) stax)
        (return-from groupstore-state-in true))
   )
@@ -168,7 +168,7 @@
 
   (let ((ret (groupstore-new nil)) (rules (rulestore-new (list (rule-new smpl)))) (stax (sample-initial smpl)))
 
-    (loop for grpx in (groupstore-groups groups) do 
+    (loop for grpx in (groupstore-groups groups) do
 
       (when (region-superset-of-state (group-region grpx) stax)
 
@@ -188,13 +188,13 @@
   (assert (square-p sqrx))
 
   (let ((ret (groupstore-new nil)) (stax (square-state sqrx)))
-    (loop for grpx in (groupstore-groups groups) do 
+    (loop for grpx in (groupstore-groups groups) do
 
       (if (region-superset-of-state (group-region grpx) stax)
 
          (if (rulestore-invalidated-by-square (group-rules grpx) sqrx)
              (groupstore-push ret grpx))
-   
+
       )
     ) ; next grpx
     ;(if (groupstore-is-not-empty ret)
@@ -208,7 +208,7 @@
 (defun groupstore-add-end (storex grpx) ; -> nothing, side-effect groupstore changed.
   (assert (groupstore-p storex))
   (assert (group-p grpx))
-  
+
   (setf (groupstore-groups storex) (append (groupstore-groups storex) (list grpx)))
 )
 
@@ -261,7 +261,10 @@
 
 ;;; Return a groupstore with a group removed.
 (defun groupstore-remove-group (storex grpx) ; -> groupstore.
-  (make-groupstore :groups (remove grpx (groupstore-groups storex)))
+  (assert (groupstore-p storex))
+  (assert (group-p grpx))
+
+  (make-groupstore :groups (remove grpx (groupstore-groups storex) :test #'group-eq))
 )
 
 ;;; Returns a group, given a region.
@@ -271,9 +274,9 @@
 
     (loop for grpx in (groupstore-groups storex) do
         (if (region-eq (group-region grpx) regx)
-          (return-from groupstore-find grpx)) 
+          (return-from groupstore-find grpx))
     )
-    nil 
+    nil
 )
 
 ;;; Return the nth element of a GroupStore.
@@ -304,7 +307,7 @@
 )
 
 ;;; Return the number of bits used by groups in a non-empty groupstore.
-(defun groupstore-num-bits (storex) ; -> number                                                          
+(defun groupstore-num-bits (storex) ; -> number
   (assert (groupstore-p storex))
   (assert (groupstore-is-not-empty storex))
 
@@ -317,5 +320,17 @@
   (assert (groupstore-is-not-empty storex))
 
   (car (groupstore-groups storex))
+)
+
+;; Return true if a state is used in a groupstore.
+(defun groupstore-state-needed (storex stax) ; -> bool
+  (assert (groupstore-p storex))
+  (assert (state-p stax))
+
+  (loop for grpx in (groupstore-groups storex) do
+    (if (group-state-needed grpx stax)
+      (return-from groupstore-state-needed true))
+  )
+  false
 )
 

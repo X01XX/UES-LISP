@@ -36,7 +36,7 @@
 
   (domain-set-id domx (domainstore-length storex))
 
-  (setf (domainstore-domains storex) 
+  (setf (domainstore-domains storex)
      (append (domainstore-domains storex) (list domx)))
 )
 
@@ -68,7 +68,7 @@
   (let ((ret "(DS ") (start t))
 
     (loop for domx in (domainstore-domains storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
       (setf ret (concatenate 'string ret (domain-str domx)))
     )
 
@@ -79,7 +79,7 @@
 )
 
 ;;; Print a domainstore.
-(defun domainstore-print (doms) 
+(defun domainstore-print (doms)
   (assert (domainstore-p doms))
 
   (loop for domx in (domainstore-domains doms) do
@@ -125,7 +125,7 @@
   (assert (not (regionscorr-intersects from-regs to-regs)))
   ;(format t "~&domainstore-get-plans: from ~A to ~A within ~A" (regionscorr-str from-regs) (regionscorr-str to-regs) (pathscorr-str pathx))
 
-  (let (last-int cur-regs next-regs next-int planx (ret (planscorrstore-new nil))) 
+  (let (last-int cur-regs next-regs next-int planx (ret (planscorrstore-new nil)))
 
     (setf last-int (car (pathscorr-regionscorr-list pathx)))
 
@@ -157,7 +157,7 @@
   (assert (domainstore-congruent storex from-regs))
   (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
-  
+
   ;(if (not (regionscorr-superset-of :sup within :sub from-regs))
   ;  (format t "~&domainstore-get-plan: within ~A not superset from regs ~A" (regionscorr-str within) (regionscorr-str from-regs))
   ;)
@@ -215,32 +215,32 @@
 ;;; Return a domainstore instance, given a list of symbols.
 (defun domainstore-from (symbols) ; -> domainstore instance.
     ;(format t "~&domainstore-from: ~A" (type-of symbols))
-    (assert (listp symbols)) 
+    (assert (listp symbols))
     (assert (not (null symbols)))
     (assert (symbolp (car symbols)))
     (assert (eq (car symbols) 'DS))
 
     (setf symbols (second symbols))
 
-    (let (domains ret domx)                                                                                   
+    (let (domains ret domx)
         (loop for tokx in symbols do
             ;(format t "~&domainstore-from ~A ~A" (type-of tokx) tokx)
             (setf domx (domain-from tokx))
             (if domx
                 (push  domx domains)
                 (error (format nil "~&domain-from returned nil from ~A" (list 'quote tokx))))
-        ) 
+        )
         (setf ret (domainstore-new))
         (loop for domx in (reverse domains) do
             (domainstore-add-domain ret domx)
         )
         ret
-    )   
+    )
 )
 
 ;;; Process a need.
 (defun domainstore-process-need (dmxs nedx)
-  ;(format t "~&domainstore-process-need: ~A ~A" (type-of dmxs) (type-of nedx)) 
+  ;(format t "~&domainstore-process-need: ~A ~A" (type-of dmxs) (type-of nedx))
   (assert (domainstore-p dmxs))
   (assert (need-p nedx))
   (assert (< (need-dom-id nedx) (domainstore-length dmxs)))
@@ -252,7 +252,7 @@
       (when (or  ; If target is a regionscorr, no additional action is taken.
            (and (state-p (need-target nedx)) (state-eq (domain-current-state domx) (need-target nedx)))
            (and (region-p (need-target nedx)) (region-superset-of-state (need-target nedx) (domain-current-state domx)))
-          )   
+          )
           (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) (need-act-id nedx)) (domain-current-state domx) nedx))
           (setf (domain-current-state domx) (sample-result smpl))
       )
@@ -265,7 +265,7 @@
 
 ;;; Return the nth element of a DomainStore.
 (defun domainstore-nth (storex inx) ; -> domain instance, or nil.
-  ;(format t "~&domainstore-nth: ~A ~A" (type-of storex) (type-of inx)) 
+  ;(format t "~&domainstore-nth: ~A ~A" (type-of storex) (type-of inx))
   (assert (domainstore-p storex))
   (assert (and (integerp inx) (< inx (domainstore-length storex))))
 
@@ -302,9 +302,9 @@
   (assert (statescorr-p stacrx))
   (assert (statescorr-congruent stacrx (domainstore-all-current-states storex)))
 
-  (loop for domx in (domainstore-domains storex) 
+  (loop for domx in (domainstore-domains storex)
         for stax in (statescorr-state-list stacrx) do
-   
+
     (domain-set-state domx stax)
   )
 )

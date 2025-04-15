@@ -124,7 +124,7 @@
 )
 
 ; Return true if two groups are equal.
-(defun group-eq (grp1 grp2) ; -> bool                                                                             
+(defun group-eq (grp1 grp2) ; -> bool
   (region-eq (group-region grp1) (group-region grp2))
 )
 
@@ -153,9 +153,9 @@
 
       (let (rulx)
         (setf rulx (rulestore-first (group-rules grpx)))
-  
+
         (setf rulx (rule-restrict-by rulx rule-from-to within))
-  
+
         (when rulx
           (stepstore-push ret-steps (step-new 0   ; Caller to change. By convention, act 0 does not do anything.
                                               rulx))
@@ -182,7 +182,7 @@
 
         (when rulx
           (setf rulx (rule-restrict-by rulx rule-from-to within))
-    
+
           (if rulx
             (stepstore-push ret-steps (step-new 0   ; Caller to change. By convention, act 0 does not do anything.
                                                 rulx))
@@ -237,7 +237,7 @@
 
           ;; Split rule if needed, to insure a return-to-state is calculable.
           (setf rulexs (rule-split-xb rulex))
-  
+
           (loop for rulez in (rulestore-rules rulexs) do
             (stepstore-push ret-steps (step-new 0   ; Caller to change. By convention, act 0 does not do anything.
                                                 rulez
@@ -301,3 +301,25 @@
   (change-is-not-low (rule-changes (rulestore-first (group-rules grpx))))
 )
 
+;; Return true if a state is needed to define a group.
+(defun group-state-needed (grpx stax) ; -> bool
+  (assert (group-p grpx))
+  (assert (state-p stax))
+
+  (if (region-state-needed (group-region grpx) stax)
+      (return-from group-state-needed true))
+
+  (let (sta-first x-bit-masks sta-adj)
+    (when (not (group-makes-predictable-change grpx))
+      (setf sta-first (region-first-state (group-region grpx)))
+      (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
+
+      (loop for maskx in x-bit-masks do
+        (setf sta-adj (state-new (state-xor sta-first maskx)))
+        (if (state-eq sta-adj stax)
+          (return-from group-state-needed true))
+      )
+    )
+  )
+  false
+)

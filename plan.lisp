@@ -23,8 +23,11 @@
   (assert (step-list-p steps))
 
   (let ((planx (make-plan :stepstore (stepstore-new steps))))
-    ;(format t "~& plan-new: planx ~A" planx)
-    (assert (plan-is-valid planx))
+    (if (not (plan-is-valid planx))
+      (error "~& plan-new: plan is not valid ~A" planx)
+    )
+
+    ;(assert (plan-is-valid planx))
     planx
   )
 )
@@ -46,7 +49,7 @@
       (when at-start
         (setf at-start nil)
         (setf strs (concatenate 'string strs (format nil "~A" (region-str-bits (step-initial-region stepx))))))
-   
+
       (setf strs (concatenate 'string strs (format nil "-~D->~A" (step-act-id stepx) (region-str-bits (step-result-region stepx)))))
     )
     (setf strs (concatenate 'string strs ")"))
@@ -268,7 +271,7 @@
     ) ; next chr
     ;(format t "~&last token: ~A" token)
     (setf token-list (append token-list (list token)))
-    
+
     ; sanity checks.
 
     ; Token list should be non-nil.
@@ -302,11 +305,11 @@
 	    for inx from 0 do
 
 	(if (evenp inx)
-	  (progn 
+	  (progn
 	    ;(format t "~&  a region ~A" itemx)
 	    (push itemx regions)
 	  )
-	  (progn 
+	  (progn
 	    ;(format t "~&  an action ~A" itemx)
 	    (push itemx actions)
 	  )
@@ -326,7 +329,7 @@
 
 	  (setf regions (list (car regions)))
 	  (setf actions nil)
-	) ; end-when 
+	) ; end-when
       ) ; next itemx, inx.
       (setf planx (plan-new (reverse steps)))
       ;(format t "~&plan: ~A" planx)
@@ -338,7 +341,7 @@
 ;;; Check use of act 0 steps.
 (defun plan-act0-steps-valid (plnx) ; -> bool.
   (assert (plan-p plnx))
-  
+
   (if (< (length (plan-step-list plnx)) 2)
     (return-from plan-act0-steps-valid true))
 
@@ -353,7 +356,7 @@
 (defun plan-as-rule (plnx) ; -> rule
   (assert (plan-p plnx))
   (assert (plan-is-not-empty plnx))
- 
+
   (let ((rulx (step-rule (plan-first-step plnx))))
     (loop for stepx in (cdr (plan-step-list plnx)) do
       (setf rulx (rule-combine-sequence2 rulx (step-rule stepx)))

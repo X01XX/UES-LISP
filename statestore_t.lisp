@@ -7,7 +7,7 @@
 
     ; A state list.
     (setf ss1 (list (state-from 's0001) (state-from 's0010) (state-from 's1000)))
- 
+
     ; Test a good state list.
     (setf ssx (statestore-new ss1))
     (assert (statestore-p ssx))
@@ -15,14 +15,14 @@
     (setf len (statestore-length ssx))
     ;(format t "~&len ~A" len)
     (assert (= len 3))
- 
+
     (format t "~&  statestore-new OK")
   )
 
   ; Test statestore-length.
   (let (ssx len)
     (setf ssx (statestore-new (list (state-from 's0001) (state-from 's0010))))
- 
+
     (setf len (statestore-length ssx))
     ;(format t "~&len ~A" len)
     (assert (= len 2))

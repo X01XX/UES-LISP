@@ -17,7 +17,7 @@
     (setf regcorr1 (regionscorr-new (list (region-from 'r0X) (region-from 'r1X))))
     (setf regcorr2 (regionscorr-new (list (region-from 'r00) (region-from 'rX0))))
     (setf regcorr3 (regionscorr-new (list (region-from 'r00) (region-from 'r01))))
-  
+
     (assert (regionscorr-intersects regcorr1 regcorr2))
     (assert (not (regionscorr-intersects regcorr1 regcorr3)))
 
@@ -45,7 +45,7 @@
     (setf regcorr1 (regionscorr-new (list (region-from 'r0X) (region-from 'r1X))))
     (setf regcorr2 (regionscorr-new (list (region-from 'r0X) (region-from 'r1X))))
     (setf regcorr3 (regionscorr-new (list (region-from 'r00) (region-from 'rX0))))
-  
+
     (assert (regionscorr-eq regcorr1 regcorr2))
 
     (assert (not (regionscorr-eq regcorr1 regcorr3)))
@@ -138,7 +138,7 @@
 
     (format t "~&  regionscorr-from OK")
   )
-   
+
   (format t "~&regionscorr-tests done")
   t
 )

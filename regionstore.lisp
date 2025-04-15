@@ -176,7 +176,7 @@
 
   (let ((ret "[") (start t))
     (loop for regx in (regionstore-regions storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (region-str regx)))
     )
@@ -216,19 +216,19 @@
   (assert (region-p regx))
 
   (let ((ret (regionstore-new nil))
-	tmpstore
+        tmpstore
        )
 
     (loop for regy in (regionstore-regions storex) do
-        (cond ((region-superset-of :sup regx :sub regy) nil)
-	      ((region-intersects regy regx)
-	         (setf tmpstore (region-subtract :min-reg regy :sub-reg regx))
-		     (loop for regz in (regionstore-regions tmpstore) do
-		       (regionstore-push-nosubs ret regz)
-		     )
-	       )
-	      (t (regionstore-push-nosubs ret regy))
-	)
+      (cond ((region-superset-of :sup regx :sub regy) nil)
+            ((region-intersects regy regx)
+             (setf tmpstore (region-subtract :min-reg regy :sub-reg regx))
+             (loop for regz in (regionstore-regions tmpstore) do
+               (regionstore-push-nosubs ret regz)
+             )
+           )
+           (t (regionstore-push-nosubs ret regy))
+      )
     )
     ret
   )
@@ -243,14 +243,14 @@
 
     (loop for regy in (regionstore-regions storex) do
       (cond ((region-superset-of-state regy stax)
-	         (setf tmpstore (region-subtract-state regy stax))
+             (setf tmpstore (region-subtract-state regy stax))
 
-		     (loop for regz in (regionstore-regions tmpstore) do
-		       (regionstore-push-nosubs ret regz)
-		     )
-	       )
-	       (t (regionstore-push-nosubs ret regy))
-	  )
+             (loop for regz in (regionstore-regions tmpstore) do
+               (regionstore-push-nosubs ret regz)
+             )
+           )
+           (t (regionstore-push-nosubs ret regy))
+      )
     )
     ret
   )
@@ -283,7 +283,7 @@
     (loop for tokx in symbols do
       ;(format t "~&regionstore-from2 ~A ~A" (type-of tokx) tokx)
       (push (region-from tokx) regions)
-    )   
+    )
     (regionstore-new (reverse regions))
   )
 )
@@ -322,7 +322,7 @@
     (loop for regx in (regionstore-regions sub-store) do
       (setf ret (regionstore-subtract-region ret regx))
     )
-    
+
     ;(format t "~&regionstore-subtract returning" ret)
     ret
   )
@@ -339,7 +339,7 @@
     ;; Remove duplicates, if any.
     (loop for regx in (regionstore-regions strx) do
         (if (not (regionstore-member remaining regx))
-	  (regionstore-push remaining regx))
+          (regionstore-push remaining regx))
     )
 
     (if (< (regionstore-length remaining) 2)
@@ -361,11 +361,11 @@
       (setf remaining (regionstore-new nil))
       (loop for regx in (regionstore-regions strx) do
         (loop for regy in (regionstore-regions intersections) do
-	  (when (region-intersects regx regy)
-	    (setf intreg (region-intersection regx regy))
+          (when (region-intersects regx regy)
+            (setf intreg (region-intersection regx regy))
             (if (not (regionstore-member remaining intreg))
-	      (regionstore-push remaining intreg))
-	  )
+              (regionstore-push remaining intreg))
+          )
         )
       )
     )
@@ -427,12 +427,25 @@
   (assert (regionstore-p regions))
   (assert (state-p stax))
 
-  (let ((cnt 0)) 
-    (loop for regx in (regionstore-regions regions) do  
+  (let ((cnt 0))
+    (loop for regx in (regionstore-regions regions) do
       (if (region-superset-of-state regx stax)
          (incf cnt))
     )
     (= cnt 1)
   )
 )
+
+;; Return true if a state is used in a regionstore.
+(defun regionstore-state-needed (storex stax) ; -> bool
+  (assert (regionstore-p storex))
+  (assert (state-p stax))
+
+  (loop for regx in (regionstore-regions storex) do
+    (if (region-state-needed regx stax)
+      (return-from regionstore-state-needed true))
+  )
+  false
+)
+
 

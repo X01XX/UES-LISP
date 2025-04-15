@@ -103,7 +103,7 @@
     (return-from statescorr-congruent false))
 
   (loop for sta1 in (statescorr-state-list statescorr1)
-	for sta2 in (statescorr-state-list statescorr2) do
+        for sta2 in (statescorr-state-list statescorr2) do
 
     (if (/= (state-num-bits sta1) (state-num-bits sta2))
       (return-from statescorr-congruent false))
@@ -118,7 +118,7 @@
     (assert (listp symbols))
     (assert (not (null symbols)))
     (assert (symbolp (car symbols)))
-    (assert (eq (car symbols) 'SC))     
+    (assert (eq (car symbols) 'SC))
 
     (setf symbols (second symbols))
 

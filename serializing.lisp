@@ -1,6 +1,6 @@
 ;; Rust will not let you serialize a struct that contains a reference.
 ;; Lisp silently converts multiple links to the same structure into multiple copies of the structure.
-;; 
+;;
 (load #p "err.lisp")
 (load #p "value.lisp")
 
@@ -17,7 +17,7 @@
 (format t "~&y after changing first item  ~A" (value-list-str y))
 
 ;; Serialize list y.
-(setf str (format nil "~S~%" y)) 
+(setf str (format nil "~S~%" y))
 (format t "~&y serialized   ~A" str)
 
 ;; Deserialize list y.

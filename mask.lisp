@@ -58,8 +58,8 @@
         (if (not (string-equal (subseq mskx 0 1) "m"))
            (return-from mask-from (err "mask ~A should begin with an m character")))
 
-        (mask-from-str mskx) 
-   )   
+        (mask-from-str mskx)
+   )
 )
 
 ;;; Return a mask instance from a string.
@@ -72,7 +72,7 @@
     (if (not (string-equal (subseq mskx 0 1) "m"))
        (return-from mask-from-str (err "mask ~A should begin with an m character")))
 
-    (mask-new (value-from-str (concatenate 'string "v" (subseq mskx 1)))) 
+    (mask-new (value-from-str (concatenate 'string "v" (subseq mskx 1))))
 )
 
 ;;; Return a mask with the most significant bit set to one.
@@ -115,7 +115,7 @@
         ((value-p other)
          (assert (= (mask-num-bits msk1) (value-num-bits other)))
          (value-and (mask-value msk1) other)
-        ) 
+        )
         (t (error "~&other type not expected ~A" (type-of other)))
   )
 )
@@ -135,7 +135,7 @@
         ((value-p other)
          (assert (= (mask-num-bits msk1) (value-num-bits other)))
          (value-xor (mask-value msk1) other)
-        ) 
+        )
         (t (error "~&other type not expected ~A" (type-of other)))
   )
 )
@@ -155,7 +155,7 @@
         ((value-p other)
          (assert (= (mask-num-bits msk1) (value-num-bits other)))
          (value-and (mask-value msk1) (value-not other))
-        ) 
+        )
         (t (error "~&other type not expected ~A" (type-of other)))
   )
 )
@@ -189,7 +189,7 @@
         ((value-p other)
          (assert (= (mask-num-bits msk1) (value-num-bits other)))
          (value-or (mask-value msk1) other)
-        ) 
+        )
         (t (error "~&other type not expected ~A" (type-of other)))
   )
 )

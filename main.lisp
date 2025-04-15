@@ -177,11 +177,11 @@
 
   (let (inp tokens token (run 0) just-read-in)
 
-    (loop 
+    (loop
       ;; Update cycle and needs, unless session just read in.
       (if just-read-in
         (setf just-read-in nil)
-        (progn 
+        (progn
           (sessiondata-inc-cycle-num sessx)
           (sessiondata-get-needs sessx)
         )
@@ -245,7 +245,7 @@
             (setf inp (read-line *STANDARD-INPUT*))
           )
         )
-      ) 
+      )
 
       (if (string-equal (car tokens) "read-session")
         (let (inp (fname (second tokens)) sessx2)
@@ -504,19 +504,27 @@
       )
 
       ;; Force specific domain action state sample, print square and square-count.
-      (if (null tokens) ; An unrecognized token will cause this to be skipped. so the effect is to just rerun get-needs.
-	    ;; Process needs.
-	    (if (needstore-is-not-empty (sessiondata-can-do sessx))
-	      (do-any-need sessx)
+      (if tokens
+        (progn
+          (when (zerop run)
+            (format t "~&Did not understand command, Press Enter to continue: ")
+            (setf inp (read-line *STANDARD-INPUT*))
+          )
+        )
+        (progn
+	      ;; Process needs.
+	      (if (needstore-is-not-empty (sessiondata-can-do sessx))
+	        (do-any-need sessx)
+	      )
 	    )
       )
-      ;; Check previous states.      
+      ;; Check previous states.
       (sessiondata-check-previous-position sessx)
     ) ; end loop
   ) ; end let
 ) ; end command-loop
 
-(defun do-any-need (sessx) 
+(defun do-any-need (sessx)
   ;(format t "~&do-any-need")
   (assert (sessiondata-p sessx))
 
@@ -566,7 +574,7 @@
 )
 
 ;;; Run a new session.
-(defun run (&optional fname) 
+(defun run (&optional fname)
     (if (null fname) (setf fname "default.kmp"))
 
     (let ((in (open fname :if-does-not-exist nil)) (str "") sdx sdx-in)

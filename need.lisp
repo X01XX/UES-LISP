@@ -122,7 +122,7 @@
               ((planscorrstore-p (need-plan needx))
                  (setf str (concatenate 'string str (format nil " :plan ~A" (planscorrstore-str (need-plan needx))))))
         )
-  
+
         (setf str (concatenate 'string str "]"))
         str
     )

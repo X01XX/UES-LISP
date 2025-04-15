@@ -95,7 +95,7 @@
   (let ((ret (regionscorr-new nil)) regx)
     (loop for reg1 in (regionscorr-region-list regscorr1)
           for reg2 in (regionscorr-region-list regscorr2) do
-      
+
       (setf regx (region-intersection reg1 reg2))
       (if regx
         (regionscorr-add-end ret regx)
@@ -114,7 +114,7 @@
   (let ((ret (regionscorr-new nil)))
     (loop for reg1 in (regionscorr-region-list regscorr1)
           for reg2 in (regionscorr-region-list regscorr2) do
-      
+
        (regionscorr-add-end ret (region-union reg1 reg2))
     )
     ret
@@ -147,7 +147,7 @@
 
 ;;;; Return true if a regionscorr is a superset of another.
 (defun regionscorr-superset-of (&key sub sup) ; -> bool
-  ;(format t "~&regionscorr-superset-of: sup ~A sub ~A" sup sub) 
+  ;(format t "~&regionscorr-superset-of: sup ~A sub ~A" sup sub)
   (assert (regionscorr-p sub))
   (assert (regionscorr-p sup))
   (assert (regionscorr-congruent sup sub))
@@ -162,7 +162,7 @@
 
 ;;;; Return true if a regionscorr is a superset of a statescorr.
 (defun regionscorr-superset-of-states (rcx scx) ; -> bool
-  ;(format t "~&regionscorr-superset-of-states: ~A ~A" rcx scx) 
+  ;(format t "~&regionscorr-superset-of-states: ~A ~A" rcx scx)
   (assert (regionscorr-p rcx))
   (assert (statescorr-p scx))
   (assert (regionscorr-congruent-states rcx scx))
@@ -193,7 +193,7 @@
     (loop for regx in (regionscorr-region-list  min)
           for regy in (regionscorr-region-list  sub)
 	  for inx from 0 below (regionscorr-length min) do
-	     
+
       ; Subtract two regions.
       (setf tmp-regs (region-subtract :min-reg regx :sub-reg regy))
 
@@ -384,7 +384,7 @@
   (let ((cnt 0))
     (loop for reg1 in (regionscorr-region-list regscorr1)
   	      for reg2 in (regionscorr-region-list regscorr2) do
-  
+
       (setf cnt (+ cnt (region-distance reg1 reg2)))
     )
     cnt

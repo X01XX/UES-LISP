@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+
 /usr/bin/cat *[^_t].lisp > tmp.txt 
 /usr/bin/cat *_t.lisp > tmp2.txt 
 

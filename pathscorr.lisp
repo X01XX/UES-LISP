@@ -2,7 +2,7 @@
 ;;;;
 ;;;; A pathscorr will be used to plan a path from the from-regionscorr (within a superset regionscorr)
 ;;;; to the goal-regionscorr (within a superset regionscorr),
-;;;; within bridging (intersecting) selectregion-same-negative-rate regionscorrs. 
+;;;; within bridging (intersecting) selectregion-same-negative-rate regionscorrs.
 ;;;;
 ;;;; Hopefully avoiding negative, or at least more negative, selectregions.
 ;;;;
@@ -175,7 +175,7 @@
       (when (not (regionscorr-intersects regx last-reg))
 	(format t "~&~A does not intersect ~A" regx last-reg)
 	(return-from pathscorr-is-valid false))
- 
+
       ;; Each two successive regions cannot be the same.
       (when (regionscorr-eq regx last-reg)
 	(format t "~&~A eq ~A" regx last-reg)

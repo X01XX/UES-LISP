@@ -32,7 +32,7 @@
 ;;; Chegk if use of act 0 steps is valid.
 (defun planscorr-act0-steps-valid (plansc) ; -> bool
   (assert (planscorr-p plansc))
-  
+
   (loop for plnx in (planscorr-plan-list plansc) do
     (if (not (plan-act0-steps-valid plnx))
       (return-from planscorr-act0-steps-valid false))
@@ -78,7 +78,7 @@
   true
 )
 
-;;; Return true if two planscorrs are a sequence, that is 
+;;; Return true if two planscorrs are a sequence, that is
 ;;; The results of the first planscorr match the initial regions of the second.
 (defun planscorr-are-sequence (plnsc1 plnsc2) ; -> bool
   (assert (planscorr-p plnsc1))
@@ -93,7 +93,7 @@
   true
 )
 
-;;; Return true if two planscorrs can be linked into a sequence, that is 
+;;; Return true if two planscorrs can be linked into a sequence, that is
 ;;; The results of the first planscorr intersect the initial regions of the second.
 (defun planscorr-can-be-linked (plnsc1 plnsc2) ; -> bool
   (assert (planscorr-p plnsc1))

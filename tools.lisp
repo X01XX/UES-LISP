@@ -16,7 +16,7 @@
         (loop for char across str do
             (if (char= #\; char) (setf skip t))
 
-            (when (char= #\NewLine char) 
+            (when (char= #\NewLine char)
                 (setf skip nil)
                 (setf token (string-right-trim '(#\Space) token))
                 (when (string/= token "")
@@ -25,7 +25,7 @@
                     (setf token "")
                 )
             )
-            (when (and (not skip) (char/= #\NewLine char)) 
+            (when (and (not skip) (char/= #\NewLine char))
                 (setf token (concatenate 'string token (coerce (list char) 'string)))
             )
 

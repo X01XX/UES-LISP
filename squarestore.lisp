@@ -1,8 +1,8 @@
-;;; Implement a squarestore struct and functions.                                                                
+;;; Implement a squarestore struct and functions.
 
 ;;; The squarestore struct.
 (defstruct squarestore
-  squares        ; A list of squares.
+  squares        ; A list of squares.  This is not a hash table, to allow serialization.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -31,7 +31,7 @@
   (assert (squarestore-p storex))
   (assert (square-p sqrx))
 
-  (push sqrx (squarestore-squares storex)) 
+  (push sqrx (squarestore-squares storex))
 
   ;(format t "~&squarestore-add: find after ~A" (type-of (squarestore-find storex (square-state sqrx))))
 )
@@ -139,9 +139,9 @@
     ;; Get other squares in region.
     (setf sqrs (squarestore-squares-in-region storex regx))
     (loop for sqrx in region-defining-squares do
-       (setf sqrs (remove sqrx sqrs))
+       (setf sqrs (remove sqrx sqrs :test #'square-eq))
     )
-    
+
     ;; Check pn/pnc values of all squares that are in the region.
     (loop for sqrx in sqrs do
       (if (pn-gt (square-pn sqrx) region-pn)
@@ -186,3 +186,20 @@
     ret
   )
 )
+
+;;; Return the number of squares in a squarestore.
+(defun squarestore-length (storex) ; -> number.
+  ;(format t "~&squarestore-length: ~A" storex)
+  (assert (squarestore-p storex))
+
+  (length (squarestore-squares storex))
+)
+
+;;; Remove a square from a squarestore.
+(defun squarestore-remove (storex sqrx) ; -> squarestore.
+  (assert (squarestore-p storex))
+  (assert (square-p sqrx))
+
+  (make-squarestore :squares (remove sqrx (squarestore-squares storex) :test #'square-eq))
+)
+

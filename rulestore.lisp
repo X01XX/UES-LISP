@@ -69,8 +69,8 @@
     (loop for rulx in (rulestore-rules store1) do
       (setf found-eq false)
       (loop for ruly in (rulestore-rules store2) do
-	(if (rule-eq rulx ruly)
-	  (setf found-eq true))
+        (if (rule-eq rulx ruly)
+          (setf found-eq true))
       )
       (if (not found-eq)
         (return-from rulestore-eq false))
@@ -95,7 +95,7 @@
       (loop for ruly in (rulestore-rules sup) do
 
         (if (rule-subset-of :sub rulx :sup ruly)
-	      (setf found-sup true))
+          (setf found-sup true))
       )
       (if (not found-sup)
         (return-from rulestore-subset-of false))
@@ -142,13 +142,13 @@
 
       (if (not (string-equal (subseq rsx 0 1) "["))
         (return-from rulestore-from-str (err-new "String must begin with a [")))
-            
+
       (if (not (string-equal (subseq rsx (1- (length rsx))) "]"))
         (return-from rulestore-from-str (err-new "String must end with a ]")))
- 
+
      (if (= (length rsx) 2)
         (return-from rulestore-from-str (make-rulestore :rules nil)))
-  
+
      (setf rsx (parse-str (subseq rsx 1 (1- (length rsx)))))
    )
 
@@ -158,7 +158,7 @@
         (loop for tokx in rsx do
             (push (rule-from tokx) rules)
         )
-       
+
        (setf store (rulestore-new (reverse rules)))
        ;(format t "~&   returning store ~A" (rulestore-str store))
        store
@@ -216,14 +216,14 @@
 
   (null (rulestore-rules storex))
 )
-  
+
 ;;; Return t if a rulestore is not empty.
 (defun rulestore-is-not-empty (storex) ; -> bool
   (assert (rulestore-p storex))
 
   (not (null (rulestore-rules storex)))
 )
-  
+
 ;;; Return the nth element of a RuleStore.
 (defun rulestore-nth (storex inx) ; -> rule instance, or nil.
   (assert (rulestore-p storex))
@@ -242,7 +242,7 @@
   (assert (= (rulestore-length storex) (rulestore-length storey)))
   (assert (> (rulestore-length storex) 0))
   (assert (< (rulestore-length storex) 3))
-  
+
   (when (= 1 (rulestore-length storex))
     (let (unx)
       (setf unx (rule-union (rulestore-first storex) (rulestore-first storey)))
@@ -297,7 +297,7 @@
       ;; Check for unpredicable square.
       (if (pn-eq (square-pn sqrx) *pn-none*)
         (return-from rulestore-invalidated-by-square true)
-                     
+
         ;; Square rulestore length ge zero.
 
         ;; Check if square has more rules than the store.
@@ -317,9 +317,9 @@
 
   (rulestore-rules storex)
 )
-  
+
 ; Return true if a rulestore contains a given rule.
-(defun rulestore-member (storex rulx) ; -> bool 
+(defun rulestore-member (storex rulx) ; -> bool
   (assert (rulestore-p storex))
   (assert (rule-p rulx))
 

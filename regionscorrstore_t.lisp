@@ -6,8 +6,8 @@
   (let (store1)
 
     (setf store1 (regionscorrstore-new (list
-	 (regionscorr-new (list (region-from 'r0x) (region-from 'r10)))
-	 (regionscorr-new (list (region-from 'r1x) (region-from 'r10))))))
+     (regionscorr-new (list (region-from 'r0x) (region-from 'r10)))
+     (regionscorr-new (list (region-from 'r1x) (region-from 'r10))))))
 
     (assert (regionscorrstore-p store1))
     (assert (= (regionscorrstore-length store1) 2))
@@ -19,10 +19,10 @@
   (let (store1 store2 store3)
 
     (setf store1 (regionscorrstore-new (list (regionscorr-new (list
-	(region-from 'rXX) (region-from 'rXX))))))
+    (region-from 'rXX) (region-from 'rXX))))))
 
     (setf store2 (regionscorrstore-subtract-regionscorr store1 (regionscorr-new (list
-	(region-from 'rX1) (region-from 'r11)))))
+    (region-from 'rX1) (region-from 'r11)))))
 
     (assert (= (regionscorrstore-length store2) 3))
 
@@ -47,9 +47,9 @@
   ; Test regionscorrstore-append.
   (let (store1 store2 store3)
     (setf store1 (regionscorrstore-new (list (regionscorr-new (list (region-from 'rX0) (region-from 'r00)))
-					     (regionscorr-new (list (region-from 'rX0) (region-from 'r01))))))
+                   (regionscorr-new (list (region-from 'rX0) (region-from 'r01))))))
     (setf store2 (regionscorrstore-new (list (regionscorr-new (list (region-from 'rX0) (region-from 'r01)))
-					     (regionscorr-new (list (region-from 'rX0) (region-from 'r11))))))
+                   (regionscorr-new (list (region-from 'rX0) (region-from 'r11))))))
     (setf store3 (regionscorrstore-append store1 store2))
 
     (assert (= 4 (regionscorrstore-length store3)))
@@ -65,22 +65,22 @@
       ;; Calculate regions available to link together.
       (setf path1 (regionscorrstore-new (list (regionscorr-new (list (region-from 'rXX) (region-from 'rXX))))))
       (setf path2 (regionscorrstore-subtract-regionscorr path1
-	 (regionscorr-new (list (region-from 'r01) (region-from 'r11))))) ; Maybe squares 01 and 11 cause something bad to happen.
+        (regionscorr-new (list (region-from 'r01) (region-from 'r11))))) ; Maybe squares 01 and 11 cause something bad to happen.
 
       (setf path2 (regionscorrstore-subtract-regionscorr path2
-	 (regionscorr-new (list (region-from 'r11) (region-from 'r01))))) ; Maybe squares 11 and 01 cause something bad to happen.
+        (regionscorr-new (list (region-from 'r11) (region-from 'r01))))) ; Maybe squares 11 and 01 cause something bad to happen.
 
       ; Test two regions that cannot be linked.
       (setf path3 (regionscorrstore-find-path path2
-	 (regionscorr-new (list (region-from 'r01) (region-from 'r11)))
-	 (regionscorr-new (list (region-from 'r11) (region-from 'r01)))))
+        (regionscorr-new (list (region-from 'r01) (region-from 'r11)))
+        (regionscorr-new (list (region-from 'r11) (region-from 'r01)))))
 
       (assert (null path3))
 
       ; Test two regions that can be linked by one region.
       (setf path3 (regionscorrstore-find-path path2
-	(regionscorr-new (list (region-from 'r00) (region-from 'r00)))
-	(regionscorr-new (list (region-from 'r01) (region-from 'r01)))))
+        (regionscorr-new (list (region-from 'r00) (region-from 'r00)))
+        (regionscorr-new (list (region-from 'r01) (region-from 'r01)))))
 
       (assert (= 3 (pathscorr-length path3)))
       (assert (regionscorr-eq (pathscorr-first-region path3) (regionscorr-new (list (region-from 'r00) (region-from 'r00)))))
@@ -98,18 +98,18 @@
           )
           (loop for num from 1 to 100
             while (< (length regs-used) 2) do
-    
+
               ;; Choose an order, it should work either way.
               (setf path3
                 (if (zerop (random 2))
                   (regionscorrstore-find-path path2 reg1 reg2)
                   (regionscorrstore-find-path path2 reg2 reg1)))
-    
+
               (when (/= 5 (pathscorr-length path3))
                 (format t "~&Unexpected number of regs-used found ~A" path3)
                 (error "regionscorrstore-find-path failed")
               )
-    
+
               ;; Check path of regions.
               (when (null path3)
                 (format t "~&Path not found")
@@ -118,15 +118,15 @@
 
               ;; Check for the two options.
               (cond ((pathscorr-contains path3 link1)
-        	     (if (not (member link1 regs-used :test #'regionscorr-eq))
-        	       (push link1 regs-used))
-        	     )
+                     (if (not (member link1 regs-used :test #'regionscorr-eq))
+                       (push link1 regs-used))
+                     )
                     ((pathscorr-contains path3 link2)
-        	     (if (not (member link2 regs-used :test #'regionscorr-eq))
-        	       (push link2 regs-used))
-        	    )
-        	   (t (format t "~&Unexpected result ~A" (pathscorr-first-region path3)) 
-        	      (error "regionscorrstore-find-path failed"))
+                     (if (not (member link2 regs-used :test #'regionscorr-eq))
+                       (push link2 regs-used))
+                    )
+                   (t (format t "~&Unexpected result ~A" (pathscorr-first-region path3))
+                      (error "regionscorrstore-find-path failed"))
               )
           )
           (when (/= 2 (length regs-used))
@@ -137,8 +137,8 @@
 
     ; Test two regions that cannot be linked by one region.
     (setf path3 (regionscorrstore-find-path path2
-	(regionscorr-new (list (region-from 'r00) (region-from 'r10)))
-	(regionscorr-new (list (region-from 'r01) (region-from 'r01)))))
+      (regionscorr-new (list (region-from 'r00) (region-from 'r10)))
+      (regionscorr-new (list (region-from 'r01) (region-from 'r01)))))
 
     (assert (= 4 (pathscorr-length path3)))
 

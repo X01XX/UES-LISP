@@ -50,7 +50,7 @@
         (if (not (string-equal (subseq stax 0 1) "s"))
            (return-from state-from (err "State ~A should begin with an s character")))
 
-        (state-from-str stax) 
+        (state-from-str stax)
    )
 )
 
@@ -62,7 +62,7 @@
     (if (not (string-equal (subseq strx 0 1) "s"))
        (return-from state-from-str (err "State ~A should begin with an s character")))
 
-    (state-new (value-from-str (concatenate 'string "v" (subseq strx 1)))) 
+    (state-new (value-from-str (concatenate 'string "v" (subseq strx 1))))
 )
 
 ;;; Return a string for a state.

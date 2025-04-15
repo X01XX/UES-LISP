@@ -91,7 +91,7 @@
    ; Test three-state region.
    (setf regx (region-new (list (state-from 's1000)
                                 (state-from 's1010)
-						        (state-from 's1100))))
+                                (state-from 's1100))))
    (setf mskx (region-1-mask regx))
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm1000))))
 
@@ -113,7 +113,7 @@
    ; Test three-state region.
    (setf regx (region-new (list (state-from 's1000)
                                 (state-from 's1010)
-						        (state-from 's1100))))
+                                (state-from 's1100))))
    (setf mskx (region-0-mask regx))
    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0001))))
 
@@ -143,7 +143,7 @@
  )
 
  ; Test region-str.
- (let (strx) 
+ (let (strx)
    (setf strx (region-str (region-from 'r01Xx)))
 
    (assert (and (stringp strx) (string-equal strx "r01Xx")))
@@ -254,11 +254,11 @@
     (setf reg1 (region-from 'r0XX1))
     (setf reg2 (region-from 'rX101))
     (setf reg3 (region-from 'rXX00))
- 
+
     ; Test true condition.
     (setf boolx (region-intersects reg1 reg2))
     (assert (and (bool-p boolx) boolx))
- 
+
     ; Test false condition.
     (setf boolx (region-intersects reg1 reg3))
     (assert (and (bool-p boolx) (not boolx)))
@@ -287,7 +287,7 @@
 
     (format t "~&  region-superset-of OK")
   )
- 
+
   ; Test region-set-to-ones.
   (let (reg1 reg2 mskx)
     (setf reg1 (region-from 'r0XX1))
@@ -298,7 +298,7 @@
 
     (format t "~&  region-set-to-ones OK")
   )
- 
+
   ; Test region-set-to-zeros.
   (let (reg1 reg2 mskx)
     (setf reg1 (region-from 'r1XX1))
@@ -309,7 +309,7 @@
 
     (format t "~&  region-set-to-zeros OK")
   )
- 
+
   ; Test region-subtract.
   (let (reg1 reg2 regstr)
     (setf reg1 (region-from 'r0XX1))
@@ -345,13 +345,13 @@
 
     (format t "~&  region-subtract OK")
   )
- 
+
   ; Test region-list-p.
   (let (lst1)
     (assert (region-list-p lst1))
 
     (assert (not (region-list-p 1)))
-    
+
     (setf lst1 (list (region-from 'rXXXX)))
     (assert (region-list-p lst1))
 
@@ -372,7 +372,7 @@
     (assert (region-list-same-num-bits-p lst1))
 
     (assert (not (region-list-same-num-bits-p 1)))
-    
+
     (setf lst1 (list (region-from 'rXXXX)))
     (assert (region-list-same-num-bits-p lst1))
 

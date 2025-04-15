@@ -58,7 +58,7 @@
   (let ((ret "(SRS ") (start t))
 
     (loop for sregsx in (selectregionsstore-selectregions storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))    
+      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
 
       (setf ret (concatenate 'string ret (selectregions-str sregsx)))
     )

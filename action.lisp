@@ -1,14 +1,15 @@
 ;;;; Implement the Action type.
 ;;;;
 (defstruct action
-  id		        ; A number id, GE zero.
-  groups	        ; A groupstore.
+  id                ; A number id, GE zero.
+  groups            ; A groupstore.
   squares           ; A Squarestore.
   base-rules        ; A list of rulestores to use in generating samples.
   base-memory       ; A list of items corresponding to items in base-rules.
                     ; An item will be a hash table for a rulestore with GT 1 rules, otherwise the item will be nil.
   logical-structure ; A regionstore.
   structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
+  cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -57,7 +58,7 @@
     (loop for inx from 0 below (1- (length rules)) do
       (setf rulsx (nth inx rules))
 
-      (loop for iny from (1+ inx) below (length rules) do                                             
+      (loop for iny from (1+ inx) below (length rules) do
         (setf rulsy (nth iny rules))
 
         (when (region-intersects (rulestore-initial-region rulsx) (rulestore-initial-region rulsy))
@@ -68,12 +69,13 @@
     )
 
     (setf actx (make-action :id id
-                            :groups (groupstore-new nil) 
+                            :groups (groupstore-new nil)
                             :squares (squarestore-new)
                             :base-rules rules
                             :base-memory memory
                             :logical-structure nil
-                            :structure-pairs (regionstore-new nil)))
+                            :structure-pairs (regionstore-new nil)
+                            :cleanup-flag true))
     ;(format t "~&returning act: ~A" (action-str actx))
     actx
   )
@@ -206,7 +208,7 @@
     (setf grpx (groupstore-find (action-groups actx) regx))
 
     (when grpx
-      (when (statestore-member stas-in (region-first-state (group-region grpx)))      
+      (when (statestore-member stas-in (region-first-state (group-region grpx)))
         ;(format t "~&group ~A defined by structure-pairs" (region-str (group-region grpx)))
         (return-from action-structure-group-needs needs))
     )
@@ -258,7 +260,7 @@
       (let ((sqrx (squarestore-find (action-squares actx) cur-state)))
 
         (cond (sqrx
-               (if (square-pnc sqrx)  
+               (if (square-pnc sqrx)
                  (format t "~&square ~A pnc, not in a group?" cur-state) ; should not happen once group logic is set up.
                  (needstore-push needs (action-get-need-resample-state actx cur-state *state-not-in-group*)))
               )
@@ -363,18 +365,37 @@
 
     ;; Get structure needs.
     (let ((structure-needs (action-structure-needs actx change-surface)))
- 
+
       (if (needstore-is-not-empty structure-needs)
         (setf needs (needstore-append needs structure-needs))
 
         (when (not (null (action-logical-structure actx)))
           (loop for regx in (regionstore-regions (action-logical-structure actx)) do
-            (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
+            ;; Check if the region is defining, that is it has at least one square that is only in it.
+            (let ((any-left (regionstore-new (list regx))))
+              (loop for regy in (regionstore-regions (action-logical-structure actx)) do
+                (when (not (region-eq regy regx))
+                  (when (regionstore-any-intersection-of any-left regy)
+                    (setf any-left (regionstore-subtract-region any-left regy))
+                  )
+                )
+              )
+               
+              (if (regionstore-is-not-empty any-left)
+                (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
+              )
+            )
           )
         )
       )
     )
 
+    (if (needstore-is-empty needs)
+      (if (action-cleanup-flag actx)
+        (action-cleanup actx)
+      )
+      (setf (action-cleanup-flag actx) true)
+    )
     needs
   )
 )
@@ -511,7 +532,7 @@
 
   (let ((needs (needstore-new nil)) sta-first sqr-first x-bit-masks sta-adj sqr-adj)
 
-    ;; DGet first state and square of group region.
+    ;; Get first state and square of group region.
     (setf sta-first (region-first-state (group-region grpx)))
 
     (if (not (regionstore-state-in-exactly-one (action-logical-structure actx) sta-first))
@@ -555,7 +576,7 @@
         (setf sta-y (region-second-state prx))
 
         (when (not (state-is-adjacent sta-x sta-y))
- 
+
           (setf sqr-x (action-find-square actx sta-x))
           (if (null sqr-x) (error "sqr-x not found?"))
 
@@ -600,7 +621,7 @@
 
           ;; When more than sqr-x and sqr-y are in the region, presumably non-pnc squares,
           ;; seek the resample of squares with the highest number of previous samples.
-          ;; If there is more than one such square, satisfying one need will make 
+          ;; If there is more than one such square, satisfying one need will make
           ;; that need-square the only square with the highest number of samples.
           (when (> (length sqrs-in) 2)
             ;; Init vars.
@@ -728,7 +749,7 @@
 
     ;; Calc logical structure.
 
-    ;; First pass at calculating structure.
+    ;; Calculate structure.
     (setf logical-structure max-regionstore)
     (loop for prx in (regionstore-regions adj-pairs) do
       (setf logical-structure (regionstore-intersection logical-structure
@@ -742,7 +763,7 @@
       (if (regionstore-any-superset-of logical-structure prx)
         (regionstore-push non-adj-pairs2 prx))
     )
-    
+
     ;; Store structure.
     (setf (action-logical-structure actx) logical-structure)
 
@@ -786,7 +807,7 @@
                    (setf pos (position #\/ sname))
                    (setf stax (state-from-str (subseq sname 0 pos)))
                    (if pos
-                       (dotimes (i (read-from-string (subseq sname (1+ pos)))) 
+                       (dotimes (i (read-from-string (subseq sname (1+ pos))))
                          (action-take-sample-arbitrary actx stax))
                        (action-take-sample-arbitrary actx stax))
                        ; (format t "~&state found ~A sample ~D times" (subseq sname 0 pos)
@@ -875,7 +896,7 @@
 
 ;;; Get sample for a given state.
 (defun action-get-sample (actx stax) ; -> sample
-  ;(format t "~&action-get-sample: ~A ~A" (type-of actx) (type-of stax)) 
+  ;(format t "~&action-get-sample: ~A ~A" (type-of actx) (type-of stax))
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (= (action-num-bits actx) (state-num-bits stax)))
@@ -940,7 +961,7 @@
 ;;; from the first state. If the second state matches the passed squares' state:
 ;;;
 ;;;    If the group is *pn-one*, or the passed square is pnc,
-;;;    change the group region to be defined by the regions' first state and the passed squares' state. 
+;;;    change the group region to be defined by the regions' first state and the passed squares' state.
 ;;;
 ;;;    If the regions' first states' square and the passed square are pnc, the group becomes pnc.
 ;;;
@@ -961,21 +982,21 @@
     (cond ((= (region-number-states (group-region grpx)) 1)
             (if (not (square-pnc sqrx))
               (return-from action-check-group-pnc))
-            
+
             (if (state-eq (square-state sqrx) (region-first-state (group-region grpx)))
               (action-group-set-pnc actx grpx))
           )
           ((= (region-number-states (group-region grpx)) 2)
             (if (not (square-pnc sqrx))
               (return-from action-check-group-pnc))
-            
+
             (setf sta-f (region-first-state (group-region grpx)))
             (setf sqr-f (squarestore-find (action-squares actx) sta-f))
             (if (null sqr-f) (error "region first state square not found?"))
-    
+
             (setf sta-s (region-second-state (group-region grpx)))
-    
-            (cond 
+
+            (cond
                 ((state-eq (square-state sqrx) sta-s)
                  (setf sqr-f (squarestore-find (action-squares actx) sta-f))
                  (if (null sqr-f) (error "region first state square not found?"))
@@ -991,7 +1012,7 @@
             )
           )
           (t ; group region number states gt 2.
-            
+
             (if (and (pn-ne (group-pn grpx) *pn-one*) (not (square-pnc sqrx)))
               (return-from action-check-group-pnc))
 
@@ -1013,7 +1034,7 @@
 ;;; Add a new square, from only one place in action.lisp.
 ;;; To support additional logic.
 ;;; Presumably, Pn == *pn-one*, pnc == nil.
-;;; Invalidated groups may be nil, that is not yet checked for, or otherwise a groupstore, which may be empty. 
+;;; Invalidated groups may be nil, that is not yet checked for, or otherwise a groupstore, which may be empty.
 (defun action-new-square (actx sqrx invalidated-groups) ; -> side effect, action instance is changed.
   ;(format t "~&action-new-square: Act ~D adding ~A" (action-id actx) (square-str sqrx))
   (assert (action-p actx))
@@ -1079,7 +1100,7 @@
 ;;; An existitg square will be updated.
 ;;; For a need, it is assumed that a new square will be created if needed.
 (defun action-take-sample-for-need (actx stax nedx) ; -> sample,  side effect, action instance is changed.
-  ;(format t "~&action-take-sample-for-need: ~A ~A" (type-of actx) (type-of stax)) 
+  ;(format t "~&action-take-sample-for-need: ~A ~A" (type-of actx) (type-of stax))
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (= (action-num-bits actx) (state-num-bits stax)))
@@ -1099,7 +1120,7 @@
 ;;; An existitg square will be updated.
 ;;; For a need, it is assumed that a new square will be created if needed.
 (defun action-take-sample-arbitrary (actx stax) ; -> sample,  side effect, action instance is changed.
-  ;(format t "~&action-take-sample-arbitrarily: ~A ~A" (type-of actx) (type-of stax)) 
+  ;(format t "~&action-take-sample-arbitrarily: ~A ~A" (type-of actx) (type-of stax))
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (= (action-num-bits actx) (state-num-bits stax)))
@@ -1123,7 +1144,7 @@
 ;;; An existitg square will be updated.
 ;;; When a step works, in most cases, its unnecessary to create a new square.
 (defun action-take-sample-for-step (actx stax) ; -> sample, side effect, action instance is changed.
-  ;(format t "~&action-take-sample-for-step: ~A ~A" (type-of actx) (type-of stax)) 
+  ;(format t "~&action-take-sample-for-step: ~A ~A" (type-of actx) (type-of stax))
   (assert (action-p actx))
   (assert (state-p stax))
   (assert (= (action-num-bits actx) (state-num-bits stax)))
@@ -1235,7 +1256,7 @@
 
          (setf sqr-k (action-find-square actx stay))
          ;(format t "~&checking sqr ~A and ~A compatible ~A" (state-str (square-state sqrx)) (state-str (square-state sqr-k)) (square-compatible sqrx sqr-k))
-           
+
          (when (or (pn-eq (square-pn sqrx) *pn-one*) (square-pnc sqrx))
            (when (= (square-compatible sqrx sqr-k) *compatible*)
 
@@ -1263,7 +1284,7 @@
     ;; Create a one-state group.
     (if (and (regionstore-is-empty regstr-t) (not (groupstore-state-in (action-groups actx) stax)))
       ;(format t "~&Act: ~D Groups: ~A" (action-id actx) (groupstore-str (action-groups actx)))
-      (let ((grpx (action-make-group actx (region-new stax))))            
+      (let ((grpx (action-make-group actx (region-new stax))))
         (format t "~&Act: ~D Adding: ~A" (action-id actx) (group-str grpx))
         (groupstore-add-end (action-groups actx) grpx)
         ;(format t "~&Act: ~D Groups: ~A" (action-id actx) (groupstore-str (action-groups actx)))
@@ -1296,7 +1317,7 @@
     ;; Add sample to square.
     (setf cng (square-add-sample sqrx smpl))
 
-    (when cng 
+    (when cng
       ;; If square pn, or pnc, changed, check for invalidated groups.
       (setf invalidated-groups (groupstore-groups-invalidated-by-square (action-groups actx) sqrx))
 
@@ -1325,12 +1346,12 @@
       (setf nxt-regs (regionstore-new nil))
 
       ;; Tst all possible pairs of regions.
-      (loop for inx from 0 below (1- (regionstore-length cur-regs)) do                                                      
+      (loop for inx from 0 below (1- (regionstore-length cur-regs)) do
 
         (setf regx (nth inx (regionstore-regions cur-regs)))
 
-        (loop for iny from (1+ inx) below (regionstore-length cur-regs) do    
-           
+        (loop for iny from (1+ inx) below (regionstore-length cur-regs) do
+
             ;(format t "~&checking reg ~A and ~A" (region-str regx) (region-str (nth iny (regionstore-regions cur-regs))))
 
             (setf regy (region-new (statestore-append
@@ -1395,7 +1416,7 @@
     (setf prefix (make-string (length start) :initial-element #\ ))
 
     (if (groupstore-is-empty (action-groups actx))
-      (format t "(no groups)") 
+      (format t "(no groups)")
       (loop for grpx in (groupstore-groups (action-groups actx)) do
         (if first
           (progn
@@ -1409,13 +1430,14 @@
   )
 ; (format t "~&    Act: ~D " (action-id actx))
 ; (if (groupstore-is-empty (action-groups actx))
-;     (format t "(no groups)") 
+;     (format t "(no groups)")
 ;     (groupstore-print (action-groups actx)))
   (if (not (null (action-logical-structure actx)))
     (format t " calced structure: ~A" (regionstore-str (action-logical-structure actx))))
 
+  (format t " number squares: ~D" (squarestore-length (action-squares actx)))
 ; (format t "~&   base rules: " (action-base-rules actx))
-; ( for rulsx in (action-base-rules actx) do
+; (loop for rulsx in (action-base-rules actx) do
 ;   (format t " ~A" (rulestore-str rulsx))
 ; )
 )
@@ -1435,6 +1457,28 @@
       )
     )
     ret
+  )
+)
+
+;; Cleanup unneeded squares
+(defun action-cleanup (actx) ; -> side effect some squares deleted.
+  (assert (action-p actx))
+  (format t "~&action-cleanup: Act: ~D" (action-id actx))
+
+  (setf (action-cleanup-flag actx) false)
+
+  (let (del-sqrs)
+    ;; Find squares that are not needed.
+    (loop for sqrx in (squarestore-squares (action-squares actx)) do
+      (if (not (regionstore-state-needed (action-structure-pairs actx) (square-state sqrx)))
+        (if (not (groupstore-state-needed (action-groups actx) (square-state sqrx)))
+          (push sqrx del-sqrs)))
+    )
+    ;; Remove squares that are not needed.
+    (loop for sqrx in del-sqrs do
+      (format t "~&Act ~D delete square ~A" (action-id actx) (state-str (square-state sqrx)))
+      (setf (action-squares actx) (squarestore-remove (action-squares actx) sqrx))
+    )
   )
 )
 
