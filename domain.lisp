@@ -139,35 +139,34 @@
   ;(format t "~&domain-get-plan2: domx ~D rule ~A within ~A depth ~D no-alt ~A" (domain-id domx) (rule-str rule-from-to)
   ;   (region-str with-reg) depth no-alt)
 
+  ;; If no changes are needed, return a act zero plan.
   (if (change-is-low (rule-changes rule-from-to))
     (return-from domain-get-plan2 (plan-new (list (step-new 0 rule-from-to)))))
 
-  (when (zerop depth)
-    ;(format t "~&domain-get-plan2: returning 2 nil")
+  ;; Check for recursion limit.
+  (if (zerop depth)
     (return-from domain-get-plan2 nil))
 
   (let (steps
-        wanted-changes
+       (wanted-changes (rule-changes rule-from-to))
         steps-from steps-to steps-both
         (from-reg (rule-initial-region rule-from-to))
         (to-reg (rule-result-region rule-from-to))
        )
 
+    ;; Get steps that contain at least one wanted bit change.
     (setf steps (domain-get-steps domx rule-from-to with-reg no-alt))
 
-    (setf wanted-changes (rule-changes rule-from-to))
-
-    (when (stepstore-is-empty steps)
-      (return-from domain-get-plan2 nil))
-
-    ;; Develop steps with alt-rule step, if any.
+    ;; For steps with an alt-rule, if any.
+    ;; Develop a return plan restricted to within, else skip using the step.
+    ;; In the return plan, disallow using steps with alt-rules, to avoid an infinite regress of alt-rules.
     (let ((steps2 (stepstore-new nil)) planx plan-result)
 
       (loop for stpx in (stepstore-steps steps) do
         (if (step-alt-rule stpx)
           (progn
             ;; Get plan to return to the step initial region.
-            (setf planx (domain-get-plan domx (rule-reverse (step-alt-rule stpx)) with-reg true))
+            (setf planx (domain-get-plan domx (rule-reverse (step-alt-rule stpx)) with-reg true)) ; true means no alt-rules.
             (when planx
               ;(format t "~&step ~A alt plan found ~A" (step-str stpx) (plan-str planx))
               (setf plan-result (plan-result-region planx))
@@ -187,26 +186,30 @@
       (setf steps steps2)
     )
 
-    (when (stepstore-is-empty steps)
+    (if (stepstore-is-empty steps)
       (return-from domain-get-plan2 nil))
 
     ;; Check if steps contain all wanted changes.
     (if (not (change-eq (change-and wanted-changes (stepstore-aggregate-changes steps)) wanted-changes))
       (return-from domain-get-plan2 nil))
-
-    ;(format t "~&steps found ~A" (stepstore-str steps))
+    
+    ;; Get steps that intersect the from-region.
     (setf steps-from (stepstore-initial-region-intersects steps from-reg))
+
+    ;; Get steps that intersect the to-region.
     (setf steps-to   (stepstore-initial-region-intersects steps to-reg))
 
+    ;; Get steps that intersect the from-region and the to-region.
     (setf steps-both (stepstore-intersection steps-from steps-to))
 
     ;; Check for one step that spans the gap.
+    ;; The ultimate end of recursion.
     (let (span-steps stepy)
       (loop for stepx in (stepstore-steps steps-both) do
         (setf stepy (step-restrict-initial-region stepx from-reg))
         (when (region-intersects (step-result-region stepy) to-reg)
            (setf stepy (step-restrict-result-region stepy to-reg))
-           (push stepx span-steps)
+           (push stepy span-steps)
         )
       )
       (when span-steps
@@ -217,87 +220,74 @@
     )
 
     ;; Gather steps that intersect the from-reg or to-reg.
-    (let (steps-from-to stepy planx steps-intermediate plan1 plan2 plan3 plan4 intermediate-unique-changes
+    (let (steps-from-to steps-intermediate
          (glide-path (region-union from-reg to-reg))
          )
 
+      ;; Get steps that intersect the from-region or the to-region.
       (setf steps-from-to (stepstore-union steps-from steps-to))
 
+      ;; Get steps that do not intersect the from-region or the to-region.
       (setf steps-intermediate (stepstore-difference steps steps-from-to))
 
-      ;; Check for intermediate steps.
+      ;; Check for intermediate steps that contain a change not contained in other steps.
       (when (stepstore-is-not-empty steps-intermediate)
 
-        (setf intermediate-unique-changes 
-          (change-and wanted-changes (stepstore-aggregate-changes steps-intermediate)))
+        (let (intermediate-unique-changes stepy plan1 plan2 plan3 plan4 (glide-path (region-union from-reg to-reg)))
 
-        (if (stepstore-is-not-empty steps-from-to)
-          (setf intermediate-unique-changes (change-and-not intermediate-unique-changes (stepstore-aggregate-changes steps-from-to))))
-
-        ;; Split problem into: from-reg -> step-initial-region -> step-result-region -> to-reg.
-        (when (change-is-not-low intermediate-unique-changes)
-          ;(format t "~&Dom ~D wanted-changes ~A" (domain-id domx) (change-str wanted-changes))
-          ;(format t "~&Dom ~D intermediate-unique-changes ~A" (domain-id domx) (change-str intermediate-unique-changes))
-          
-          ;(if (stepstore-is-not-empty steps-from-to)
-          ;  (format t "~&Dom ~D steps-from-to-changes ~A" (domain-id domx) (change-str (change-and wanted-changes (stepstore-aggregate-changes steps-from-to)))))
-
-          (setf steps-intermediate (stepstore-change-intersects steps-intermediate intermediate-unique-changes))
-
-          ;; Choose a random step.
-          (setf stepy (stepstore-select-step steps-intermediate glide-path))
+          (setf intermediate-unique-changes 
+            (change-and wanted-changes (stepstore-aggregate-changes steps-intermediate)))
   
-          (setf plan1 (domain-get-plan2 domx (rule-region-to-region from-reg (step-initial-region stepy)) with-reg (1- depth) no-alt))
-          (if (null plan1) (return-from domain-get-plan2 nil))
-          (setf plan2 (plan-link plan1 (plan-new (list stepy))))
-          (if (null plan2) (return-from domain-get-plan2 nil))
-          (setf plan3 (domain-get-plan2 domx (rule-region-to-region (plan-result-region plan2) to-reg) with-reg (1- depth) no-alt))
-          (if (null plan3) (return-from domain-get-plan2 nil))
-          (setf plan4 (plan-link plan2 plan3))
-          ;(if plan4
-          ;   (format t "~&intermediate step plan ~A" (plan-str plan4))
-          ;   (format t "~&intermediate step ~A failed" (step-str stepy)))
-          (return-from domain-get-plan2 plan4)
+          (if (stepstore-is-not-empty steps-from-to)
+            (setf intermediate-unique-changes (change-and-not intermediate-unique-changes (stepstore-aggregate-changes steps-from-to))))
+  
+          ;; Split problem into: from-reg -> step-initial-region -> step-result-region -> to-reg.
+          (when (change-is-not-low intermediate-unique-changes)
+            
+            ;; Get intermediate steps that contain at least one wanted bit-change not found in steps-from, steps-to.
+            (setf steps-intermediate (stepstore-change-intersects steps-intermediate intermediate-unique-changes))
+  
+            ;; Choose a random step.
+            (setf stepy (stepstore-select-step steps-intermediate glide-path))
+    
+            (setf plan1 (domain-get-plan2 domx (rule-region-to-region from-reg (step-initial-region stepy)) with-reg (1- depth) no-alt))
+            (if (null plan1) (return-from domain-get-plan2 nil))
+            (setf plan2 (plan-link plan1 (plan-new (list stepy))))
+            (if (null plan2) (return-from domain-get-plan2 nil))
+            (setf plan3 (domain-get-plan2 domx (rule-region-to-region (plan-result-region plan2) to-reg) with-reg (1- depth) no-alt))
+            (if (null plan3) (return-from domain-get-plan2 nil))
+            (setf plan4 (plan-link plan2 plan3))
+            ;(format t "~&domain-get-pl: intermediate step found: plan1 ~A step ~A plan3 ~A~&plan4 ~A"
+            ;       (plan-str plan1) (step-str stepy) (plan-str plan3) (plan-str plan4))
+  
+            (return-from domain-get-plan2 plan4)
+          )
         )
       )
 
-	  (when (stepstore-is-not-empty steps-from-to)
-	    ;; Choose a random step.
-	    (setf stepy (stepstore-select-step steps-from-to glide-path))
-
-	    ;; Recurse to build the rest of the plan.
-	    ;(format t "~&rule initial ~A intersects ~A = ~A" (region-str (rule-initial-region (step-rule stepy))) (region-str from-reg)
-		;                                                 (region-intersects (rule-initial-region (step-rule stepy)) from-reg))
-	    (when (region-intersects (rule-initial-region (step-rule stepy)) from-reg)
-	      (setf stepy (step-restrict-initial-region stepy from-reg))
-	      (if stepy
-	        (progn
-	          (setf planx (domain-get-plan2 domx (rule-region-to-region (step-result-region stepy) to-reg) with-reg (1- depth) no-alt))
-              ;(format t "~&domain-get-plan2: returning 4 plan/nil")
-	          (if planx
-                (return-from domain-get-plan2 (plan-link (plan-new (list stepy)) planx))
-                (return-from domain-get-plan2 nil)
-	          )
-	        )
-            (progn
-              ;(format t "~&domain-get-plan2: returning 5 nil")
+      (let (stepy planx)
+        ;; Choose a random step.
+        (setf stepy (stepstore-select-step steps-from-to glide-path))
+  
+        ;; Recurse to build the rest of the plan.
+        (if (region-intersects (rule-initial-region (step-rule stepy)) from-reg)
+          (progn
+            (setf stepy (step-restrict-initial-region stepy from-reg))
+            (setf planx (domain-get-plan2 domx (rule-region-to-region (step-result-region stepy) to-reg) with-reg (1- depth) no-alt))
+            (if planx
+              (return-from domain-get-plan2 (plan-link (plan-new (list stepy)) planx))
               (return-from domain-get-plan2 nil)
             )
-	      )
-        )
-	    ;(format t "~&rule result ~A intersects ~A = ~A" (region-str (rule-result-region (step-rule stepy))) (region-str to-reg)
-		;                                                (region-intersects (rule-result-region (step-rule stepy)) to-reg))
-	    (when (region-intersects (rule-result-region (step-rule stepy)) to-reg)
-	      (setf stepy (step-restrict-result-region stepy to-reg))
-          (setf planx (domain-get-plan2 domx from-reg (rule-region-to-regiot (step-initial-region stepy) with-reg) (1- depth) no-alt))
-          ;(format t "~&domain-get-plan2: returning 6 plan/nil")
-	      (if planx
-            (return-from domain-get-plan2 (plan-link planx (plan-new (list stepy)))) 
-            (return-from domain-get-plan2 nil))
-        )
-	  )
-      ;(format t "~&domain-get-plan2: returning 7 nil")
-	  (return-from domain-get-plan2 nil)
+          )
+          (progn
+            (setf stepy (step-restrict-result-region stepy to-reg))
+            (setf planx (domain-get-plan2 domx from-reg (rule-region-to-regiot (step-initial-region stepy) with-reg) (1- depth) no-alt))
+            (if planx
+              (return-from domain-get-plan2 (plan-link planx (plan-new (list stepy)))) 
+              (return-from domain-get-plan2 nil))
+          )
+        ) ; end if
+      ) ; end let
     ) ; end-let
   ) ; end-let
 )
