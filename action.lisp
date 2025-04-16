@@ -188,49 +188,38 @@
   )
 )
 
-;; Return group needs, based on logical-structure regions and structure-pairs.
+;;; Return group needs, based on logical-structure regions and structure-pairs.
+;;; It is assumed that the first state defining the group region is from the action-structure-pairs,
+;;; is pnc, and is only in one region of the action-logical-structure.
 (defun action-structure-group-needs (actx regx) ; -> needstore.
   (assert (action-p actx))
   (assert (region-p regx))
 
-  (let ((needs (needstore-new nil)) (stas-in (statestore-new nil)) grpx sta-far sqr-far)
+  (let ((needs (needstore-new nil)) grpx stax sta-far sqr-far)
 
-    ;; Find states in structure pairs also in the passed region.
-    (loop for regy in (regionstore-regions (action-structure-pairs actx)) do
-      (if (region-superset-of-state regx (region-first-state regy))
-        (statestore-push stas-in (region-first-state regy)))
-
-      (if (region-superset-of-state regx (region-second-state regy))
-        (statestore-push stas-in (region-second-state regy)))
-    )
+    (setf stax (region-first-state regx))
 
     ;; Find the group, if any exists.
     (setf grpx (groupstore-find (action-groups actx) regx))
+    (if grpx 
+      (if (state-eq (region-first-state (group-region grpx)) stax)
+        (if (state-eq (region-second-state (group-region grpx)) (region-second-state regx))
+          (return-from action-structure-group-needs needs))))
 
-    (when grpx
-      (when (statestore-member stas-in (region-first-state (group-region grpx)))
-        ;(format t "~&group ~A defined by structure-pairs" (region-str (group-region grpx)))
-        (return-from action-structure-group-needs needs))
-    )
-
-    (loop for stax in (statestore-states stas-in) do
-      (setf sta-far (region-far-state regx stax))
-      (setf sqr-far (action-find-square actx sta-far))
-      (if sqr-far
-        (progn
-          (when (square-pnc sqr-far)
-            (when grpx
-              ;(format t "~&replacing group region ~A with ~A"
-              ;       (region-str (group-region grpx)) (region-str (region-new (list stax sta-far))))
-              (group-set-region grpx (region-new (list stax sta-far)))
-            )
-            (return-from action-structure-group-needs (needstore-new nil))
+    (setf sta-far (region-second-state regx))
+    (setf sqr-far (action-find-square actx sta-far))
+    (if sqr-far
+      (progn
+        (when (square-pnc sqr-far)
+          (when grpx
+            (group-set-region grpx (region-new (list stax sta-far)))
           )
-          (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group* " group implied by structure"))
+          (return-from action-structure-group-needs needs)
         )
-        (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group* " group implied by structure"))
+        (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group* (format nil "defining group ~A implied by calced structure" (region-str regx))))
       )
-    ) ; next stax
+      (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group* (format nil "defining group ~A implied by calced structure" (region-str regx))))
+    )
     (return-from action-structure-group-needs needs)
   )
 )
@@ -364,27 +353,27 @@
     ) ; end let
 
     ;; Get structure needs.
-    (let ((structure-needs (action-structure-needs actx change-surface)))
+    (let ((structure-needs (action-structure-needs actx change-surface)) (defining-regions (regionstore-new nil)) regs-in sta-far regy)
 
       (if (needstore-is-not-empty structure-needs)
         (setf needs (needstore-append needs structure-needs))
+        ;; else
+        ;; Find defining regions in action-logical-structure, using action-structure-pairs.
+        (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
 
-        (when (not (null (action-logical-structure actx)))
-          (loop for regx in (regionstore-regions (action-logical-structure actx)) do
-            ;; Check if the region is defining, that is it has at least one square that is only in it.
-            (let ((any-left (regionstore-new (list regx))))
-              (loop for regy in (regionstore-regions (action-logical-structure actx)) do
-                (when (not (region-eq regy regx))
-                  (when (regionstore-any-intersection-of any-left regy)
-                    (setf any-left (regionstore-subtract-region any-left regy))
-                  )
-                )
-              )
-               
-              (if (regionstore-is-not-empty any-left)
-                (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
-              )
+          ;; Check regions states.
+          (loop for stax in (statestore-states (region-states regx)) do
+            (setf regs-in (regionstore-regions-state-in (action-logical-structure actx) stax))
+            (when (= 1 (regionstore-length regs-in))
+              (setf sta-far (region-far-state (regionstore-first-region regs-in) stax))
+              (setf regy (region-new (list stax sta-far)))
+              (regionstore-push-nosubs defining-regions regy)
             )
+          )
+
+          ;; Generate needs for each region.
+          (loop for regx in (regionstore-regions defining-regions) do
+            (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
           )
         )
       )

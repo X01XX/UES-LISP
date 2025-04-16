@@ -134,8 +134,8 @@
     (format t "~&  regionstore-split-by-intersections OK")
   )
 
-  ;; Test adjacent, dinimilar squares.
-  (let* ((max-reg (region-from 'rXXXX)) not-5 not-7 pos-57 not-8 not-c pos-8c pos-regs
+  ;; Test adjacent, dissimilar squares.
+  (let* ((max-reg (region-from 'rXXXX)) not-5 not-7 pos-57 not-8 not-c pos-8c pos-regs storex
         )
       (setf not-5 (region-subtract :min-reg max-reg :sub-reg (region-from 'r0101)))
       (setf not-7 (region-subtract :min-reg max-reg :sub-reg (region-from 'r0111)))
@@ -151,8 +151,41 @@
       ;(format t "~&pos-regs: ~A" (regionstore-str pos-regs))
       (assert (string-equal (regionstore-str pos-regs)
                "RS[rX1X0, r0XX0, rXX1X, rX0XX, r1XX1, r11XX, rXX01, rX10X, r0X0X]"))
+
+      (setf storex (regionstore-regions-state-in pos-regs (state-from 's0101)))
+      ;(format t "~&5 in ~A" (regionstore-str storex))
+      (assert (= (regionstore-length storex) 3))
+
+      (setf storex (regionstore-regions-state-in pos-regs (state-from 's0111)))
+      ;(format t "~&7 in ~A" (regionstore-str storex))
+      (assert (= (regionstore-length storex) 1))
+
+      (setf storex (regionstore-regions-state-in pos-regs (state-from 's1000)))
+      ;(format t "~&8 in ~A" (regionstore-str storex))
+      (assert (= (regionstore-length storex) 1))
+
+      (setf storex (regionstore-regions-state-in pos-regs (state-from 's1100)))
+      ;(format t "~&C in ~A" (regionstore-str storex))
+      (assert (= (regionstore-length storex) 3))
+
+    (format t "~&  regionstore adjacent similar squares OK")
   )
 
+  ;; Test regionstore-regions-state-in.
+  (let (storex stax storey)
+    (setf storex (regionstore-from (read-from-string "(r0x0x r0xx1)")))
+    (setf stax (state-from 's0101))
+    (setf storey (regionstore-regions-state-in storex stax))
+    ;(format t "~&storey: ~A" (regionstore-str storey))
+    (assert (= (regionstore-length storey) 2))
+
+    (setf stax (state-from 's0100))
+    (setf storey (regionstore-regions-state-in storex stax))
+    ;(format t "~&storey: ~A" (regionstore-str storey))
+    (assert (= (regionstore-length storey) 1))
+
+    (format t "~&  regionstore-regions-state-in OK")
+  )
   (format t "~&regionstore-tests done")
   t
 )

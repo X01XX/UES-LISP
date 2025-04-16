@@ -281,7 +281,7 @@
 
   (let (regions)
     (loop for tokx in symbols do
-      ;(format t "~&regionstore-from2 ~A ~A" (type-of tokx) tokx)
+      ;(format t "~&regionstore-from ~A ~A" (type-of tokx) tokx)
       (push (region-from tokx) regions)
     )
     (regionstore-new (reverse regions))
@@ -448,4 +448,17 @@
   false
 )
 
+;;; Return true if a state is in only one region.
+(defun regionstore-regions-state-in (regions stax) ; -> regionstore
+  ;(format t "~&regionstore-regions-state-in: ~A ~A" (type-of regions) (type-of stax))
+  (assert (regionstore-p regions))
+  (assert (state-p stax))
 
+  (let ((ret-store (regionstore-new nil)))
+    (loop for regx in (regionstore-regions regions) do
+      (if (region-superset-of-state regx stax)
+         (regionstore-push ret-store regx))
+    )
+    ret-store
+  )
+)

@@ -1,4 +1,7 @@
 ;;;; Implement the region struct and functions.
+;;;;
+;;;; Regions can also be used as a convenient way to store squares that are related in some way,
+;;;; and regions can be stored and manipulated in a regionstore.
 
 ;;; The region struct.
 ;;; It represents a 2^x by 2^y region of squares on a K-Map.

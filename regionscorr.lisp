@@ -78,7 +78,7 @@
   (assert (regionscorr-congruent regscorr1 regscorr2))
 
   (loop for reg1 in (regionscorr-region-list regscorr1)
-	for reg2 in (regionscorr-region-list regscorr2) do
+        for reg2 in (regionscorr-region-list regscorr2) do
 
     (if (not (region-intersects reg1 reg2))
       (return-from regionscorr-intersects false))
@@ -192,7 +192,7 @@
 
     (loop for regx in (regionscorr-region-list  min)
           for regy in (regionscorr-region-list  sub)
-	  for inx from 0 below (regionscorr-length min) do
+          for inx from 0 below (regionscorr-length min) do
 
       ; Subtract two regions.
       (setf tmp-regs (region-subtract :min-reg regx :sub-reg regy))
@@ -200,18 +200,18 @@
       ; Produce a new regionscorr for each remainder region.
       (loop for regz in (regionstore-regions tmp-regs) do
 
-	(setf new-regs (regionscorr-new nil))
+        (setf new-regs (regionscorr-new nil))
 
         (loop for regw in (regionscorr-region-list min)
-	      for iny from 0 below (regionscorr-length min) do
+              for iny from 0 below (regionscorr-length min) do
 
-	  (if (= inx iny)
-	    (regionscorr-add-end new-regs regz)
-	    (regionscorr-add-end new-regs regw)
-	  )
+          (if (= inx iny)
+            (regionscorr-add-end new-regs regz)
+            (regionscorr-add-end new-regs regw)
+          )
         )
-	;; Save new regionscorr.
-	(push new-regs ret)
+        ;; Save new regionscorr.
+        (push new-regs ret)
       )
     )
     (regionscorrstore-new ret)
@@ -234,9 +234,9 @@
 
       ;; Check item characteristics.
       (if first-item
-	(if (not (regionscorr-congruent regx first-item))
+        (if (not (regionscorr-congruent regx first-item))
           (return-from regionscorr-list-p false))
-	(setf first-item regx))
+        (setf first-item regx))
     )
     true
   )
@@ -252,7 +252,7 @@
     (return-from regionscorr-congruent false))
 
   (loop for reg1 in (regionscorr-region-list regionscorr1)
-	for reg2 in (regionscorr-region-list regionscorr2) do
+        for reg2 in (regionscorr-region-list regionscorr2) do
 
     (if (/= (region-num-bits reg1) (region-num-bits reg2))
       (return-from regionscorr-congruent false))
@@ -351,12 +351,12 @@
   (assert (regionscorr-congruent regionscorr1 regionscorr2))
 
   (let ((to-ones (maskscorr-or
-		   (maskscorr-and (regionscorr-0-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))
-		   (maskscorr-and (regionscorr-x-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))))
+           (maskscorr-and (regionscorr-0-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))
+           (maskscorr-and (regionscorr-x-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))))
         (to-zeros (maskscorr-or
-		   (maskscorr-and (regionscorr-1-maskscorr regionscorr1) (regionscorr-0-maskscorr regionscorr2))
-		   (maskscorr-and (regionscorr-x-maskscorr regionscorr1) (regionscorr-0-maskscorr regionscorr2))))
-	)
+           (maskscorr-and (regionscorr-1-maskscorr regionscorr1) (regionscorr-0-maskscorr regionscorr2))
+           (maskscorr-and (regionscorr-x-maskscorr regionscorr1) (regionscorr-0-maskscorr regionscorr2))))
+    )
     (regionscorr-set-to-zeros (regionscorr-set-to-ones regionscorr1 to-ones) to-zeros)
   )
 )
@@ -383,7 +383,7 @@
 
   (let ((cnt 0))
     (loop for reg1 in (regionscorr-region-list regscorr1)
-  	      for reg2 in (regionscorr-region-list regscorr2) do
+          for reg2 in (regionscorr-region-list regscorr2) do
 
       (setf cnt (+ cnt (region-distance reg1 reg2)))
     )
