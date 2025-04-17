@@ -462,3 +462,26 @@
     ret-store
   )
 )
+
+;;; Return a list of defining regions, if any,
+;;; that is, any region that has something left from subtracting the other regions.
+(defun regionstore-defining-regions (storex) ; -> regionstore
+  (assert (regionstore-p storex))
+
+  (let ((ret-store (regionstore-new nil)) tmp-store)
+    ;; Test each region.
+    (loop for regx in (regionstore-regions storex) do
+      (setf tmp-store (regionstore-new (list regx)))
+      ;; Subtract other regions, as needed.
+      (loop for regy in (regionstore-regions storex) do
+
+        (if (and (null (region-eq regy regx)) (regionstore-any-intersection-of tmp-store regy))
+          (setf tmp-store (regionstore-subtract-region tmp-store regy)))
+      )
+      (if (regionstore-is-not-empty tmp-store)
+        (regionstore-push-nosubs ret-store regx))
+    )
+    ret-store
+  )
+)
+

@@ -186,6 +186,37 @@
 
     (format t "~&  regionstore-regions-state-in OK")
   )
+
+  ;; Test regionstore-defining-regions.
+  (let (storex defining-regions)
+    (setf storex (regionstore-new nil))
+    (setf defining-regions (regionstore-defining-regions storex))
+    (assert (regionstore-p defining-regions))
+    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
+    (assert (= (regionstore-length defining-regions) 0))
+
+    (setf storex (regionstore-from (read-from-string "(r0x0x)")))
+    (setf defining-regions (regionstore-defining-regions storex))
+    (assert (regionstore-p defining-regions))
+    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
+    (assert (= (regionstore-length defining-regions) 1))
+
+    (setf storex (regionstore-from (read-from-string "(r0x0x rxxx1)")))
+    (setf defining-regions (regionstore-defining-regions storex))
+    (assert (regionstore-p defining-regions))
+    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
+    (assert (= (regionstore-length defining-regions) 2))
+
+    (setf storex (regionstore-from (read-from-string "(r0x0x rxxx1 r010x)")))
+    (setf defining-regions (regionstore-defining-regions storex))
+    (assert (regionstore-p defining-regions))
+    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
+    (assert (= (regionstore-length defining-regions) 2))
+    (assert (not (regionstore-member defining-regions (region-from 'r010x))))
+
+    (format t "~&  regionstore-defining-regions OK")
+  )
+
   (format t "~&regionstore-tests done")
   t
 )
