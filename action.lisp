@@ -202,7 +202,8 @@
     ;; Find the group, if any exists.
     (setf grpx (groupstore-find (action-groups actx) regx))
     (if grpx 
-      (if (state-eq (region-first-state (group-region grpx)) stax)
+      (if (or (state-eq (region-first-state (group-region grpx)) stax)
+              (state-eq (region-second-state (group-region grpx)) stax))
         (if (state-eq (region-second-state (group-region grpx)) (region-second-state regx))
           (return-from action-structure-group-needs needs))))
 
@@ -216,9 +217,9 @@
           )
           (return-from action-structure-group-needs needs)
         )
-        (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group* (format nil "defining group ~A implied by calced structure" (region-str regx))))
+        (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
       )
-      (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group* (format nil "defining group ~A implied by calced structure" (region-str regx))))
+      (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
     )
     (return-from action-structure-group-needs needs)
   )
