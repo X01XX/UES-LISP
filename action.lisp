@@ -213,7 +213,7 @@
       (progn
         (when (square-pnc sqr-far)
           (when grpx
-            (group-set-region grpx (region-new (list stax sta-far)))
+            (group-set-region grpx regx)
           )
           (return-from action-structure-group-needs needs)
         )

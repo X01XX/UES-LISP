@@ -373,6 +373,6 @@
   (if (not (region-eq (plan-initial-region pln1) (plan-initial-region-pln2)))
     (return-from plan-eq false))
 
-  (rule-eq (plan-as-rule pln1) (plan-as-rule pln2))
+  (region-eq (plan-result-region pln1) (plan-result-region-pln2))
 )
 
