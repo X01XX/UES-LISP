@@ -135,16 +135,12 @@
   )
 
   ;; Test adjacent, dissimilar squares.
-  (let* ((max-reg (region-from 'rXXXX)) not-5 not-7 pos-57 not-8 not-c pos-8c pos-regs storex
+  (let* ((max-reg (region-from 'rXXXX)) pos-57 pos-8c pos-regs storex
         )
-      (setf not-5 (region-subtract :min-reg max-reg :sub-reg (region-from 'r0101)))
-      (setf not-7 (region-subtract :min-reg max-reg :sub-reg (region-from 'r0111)))
-      (setf pos-57 (regionstore-union not-5 not-7))
+      (setf pos-57 (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
       ;(format t "~&pos-57: ~A" (regionstore-str pos-57))
 
-      (setf not-8 (region-subtract :min-reg max-reg :sub-reg (region-from 'r1000)))
-      (setf not-c (region-subtract :min-reg max-reg :sub-reg (region-from 'r1100)))
-      (setf pos-8c (regionstore-union not-8 not-c))
+      (setf pos-8c (state-regions-implied-by-dissimilarity (state-from 's1000) (state-from 's1100)))
       ;(format t "~&pos-8c: ~A" (regionstore-str pos-8c))
 
       (setf pos-regs (regionstore-intersection pos-57 pos-8c))
@@ -207,7 +203,7 @@
     ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 2))
 
-    (setf storex (regionstore-from (read-from-string "(r0x0x rxxx1 r010x)")))
+    (setf storex (regionstore-from (read-from-string "(r0x0x rxxx1 r01x1)")))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
     ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))

@@ -75,8 +75,8 @@
 (defun domain-print (domx)
     (assert (domain-p domx))
 
-    (format t "~&Domain ~D current-state ~A change-surface: ~A" (domain-id domx) (state-str (domain-current-state domx))
-      (regionstore-str (domain-change-surface domx)))
+    (format t "~&Domain ~D current-state ~A reachable: ~A" (domain-id domx) (state-str (domain-current-state domx))
+      (regionstore-str (domain-reachable domx)))
 
     (actionstore-print (domain-actions domx))
 )
@@ -296,7 +296,7 @@
   ;(format t "~&domain-get-needs: ~A" (type-of domx))
   (assert (domain-p domx))
 
-  (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-change-surface domx))))
+  (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-reachable domx))))
 
     (needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
 
@@ -446,22 +446,26 @@
    )
 )
 
-;;; Return the domain change surface.
-;;; The aggregation of all action group rule initial-regions that allow a predictable change to be made.
-(defun domain-change-surface (domx) ; -> regionstore.
+;;; Return a regionstore of a region of appalently reachable states from the current state.
+;;; The aggregation of all changes that are possible to the current state.
+(defun domain-reachable (domx) ; -> regionstore.
   (assert (domain-p domx))
 
-  (let (ret
-        (max-region (region-new (list (state-new-high (domain-current-state domx)) (state-new-low (domain-current-state domx)))))
+  (let ((domain-changes (actionstore-changes (domain-actions domx)))
+        (max-region (region-new (list (domain-current-state domx))))
+        xmask
        )
-    ;; Get change surface.
-    (setf ret (actionstore-change-surface (domain-actions domx)))
 
+    ;; Apply possible changes to the current state.
     ;; Combine regions, like (1xxx, 0xxx) or (01x1, 11x1, x101, x111).
-    (setf ret (regionstore-subtract :min-store (regionstore-new (list max-region)) :sub-store ret))
-    (setf ret (regionstore-subtract :min-store (regionstore-new (list max-region)) :sub-store ret))
+    (setf xmask (mask-new-or
+                  (mask-new-and (mask-new (state-not (domain-current-state domx))) (change-m01 domain-changes))
+                  (mask-new-and (mask-new (state-value (domain-current-state domx))) (change-m10 domain-changes))
+                )
+    )
+    (setf max-region (region-set-to-x max-region xmask))
 
-    ret
+    (regionstore-new (list max-region))
   )
 )
 

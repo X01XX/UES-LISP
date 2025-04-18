@@ -566,19 +566,6 @@
   (or (mask-is-not-low (rule-m01 rulx)) (mask-is-not-low (rule-m10 rulx)))
 )
 
-;;; Return the initial region, restricted by changes.
-;;; That is, X->1 becomes 0, X->0 becomes 1.
-(defun rule-change-surface (rulx) ; -> region
-  (assert (rule-p rulx))
-  (assert (rule-makes-change rulx))
-
-  (rule-initial-region (make-rule :m00 (mask-and (rule-m00 rulx) (mask-not (rule-m10 rulx)))
-                                  :m01 (rule-m01 rulx)
-                                  :m11 (mask-and (rule-m11 rulx) (mask-not (rule-m01 rulx)))
-                                  :m10 (rule-m10 rulx)))
-)
-
-
 ;;;; Return a rule based on a number or restrictions.
 (defun rule-restrict-by (rulx rule-from-to within) ; -> rule, or nil.
   (assert (rule-p rulx))

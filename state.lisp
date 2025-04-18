@@ -212,3 +212,17 @@
   (value-num-ones (state-xor sta1 sta2))
 )
 
+;;; Return the regions implied by two dissimilar states.
+(defun state-regions-implied-by-dissimilarity (stax stay) ; -> regionstore.
+  (assert (state-p stax))
+  (assert (state-p stay))
+  (assert (= (state-num-bits stax) (state-num-bits stay)))
+  (assert (not (state-eq stax stay)))
+
+  (let ((max-regionstore (regionstore-new (list (region-new (list (state-new-high stax) (state-new-low stax)))))))
+    (regionstore-union
+      (regionstore-subtract-state max-regionstore stax)
+      (regionstore-subtract-state max-regionstore stay))
+  )
+)
+

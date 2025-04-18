@@ -387,6 +387,18 @@
   )
 )
 
+;;; Return a region with edges of a mask set to x.
+(defun region-set-to-x (regx mskx) ; -> region.
+  (assert (region-p regx))
+  (assert (mask-p mskx))
+  (assert (= (region-num-bits regx) (mask-num-bits mskx)))
+
+  (let ((mskn (mask-new (mask-not mskx))))
+    (region-new (list (state-new (value-or (mask-value mskx) (state-value (region-high-state regx))))
+                      (state-new (value-and (mask-value mskn) (state-value (region-low-state regx))))))
+  )
+)
+
 ;;; Return the minuend region minus the subtrahend region.
 (defun region-subtract (&key min-reg sub-reg) ; -> regionstore.
   (assert (region-p min-reg))

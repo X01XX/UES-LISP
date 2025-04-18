@@ -226,14 +226,14 @@
 )
 
 ;;; Return action needs to improve the understanding of the logic behind the samples, so far.
-(defun action-get-needs (actx cur-state change-surface) ; -> NeedStore.
+(defun action-get-needs (actx cur-state reachable) ; -> NeedStore.
   ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
   (assert (action-p actx))
   (assert (state-p cur-state))
-  (assert (regionstore-p change-surface))
+  (assert (regionstore-p reachable))
   (assert (= (action-num-bits actx) (state-num-bits cur-state)))
-  (assert (or (regionstore-is-empty change-surface)
-              (= (action-num-bits actx) (regionstore-num-bits change-surface))))
+  (assert (or (regionstore-is-empty reachable)
+              (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
   (let ((needs (needstore-new nil)))
 
@@ -354,28 +354,32 @@
     ) ; end let
 
     ;; Get structure needs.
-    (let ((structure-needs (action-structure-needs actx change-surface)) (defining-regions (regionstore-new nil)) regs-in sta-far regy)
+    (let ((structure-needs (action-structure-needs actx reachable)) (defining-regions (regionstore-new nil)) regs-in sta-far regy
+           structure-reachable)
 
       (if (needstore-is-not-empty structure-needs)
         (setf needs (needstore-append needs structure-needs))
         ;; else
         ;; Find defining regions in action-logical-structure, using action-structure-pairs.
-        (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
-
-          ;; Check regions states.
-          (loop for stax in (statestore-states (region-states regx)) do
-            (setf regs-in (regionstore-regions-state-in (action-logical-structure actx) stax))
-            (when (= 1 (regionstore-length regs-in))
-              (setf sta-far (region-far-state (regionstore-first-region regs-in) stax))
-              (setf regy (region-new (list stax sta-far)))
-              (regionstore-push-nosubs defining-regions regy)
+        (when (not (null (action-logical-structure actx)))
+          (setf structure-reachable (regionstore-intersection reachable (action-logical-structure actx)))
+          (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
+  
+            ;; Check regions states.
+            (loop for stax in (statestore-states (region-states regx)) do
+              (setf regs-in (regionstore-regions-state-in structure-reachable stax))
+              (when (= 1 (regionstore-length regs-in))
+                (setf sta-far (region-far-state (regionstore-first-region regs-in) stax))
+                (setf regy (region-new (list stax sta-far)))
+                (regionstore-push-nosubs defining-regions regy)
+              )
             )
-          )
-
-          ;; Generate needs for each region.
-          (loop for regx in (regionstore-regions defining-regions) do
-            (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
-          )
+  
+            ;; Generate needs for each region.
+            (loop for regx in (regionstore-regions defining-regions) do
+              (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
+            )
+          ) ; next regx
         )
       )
     )
@@ -644,17 +648,17 @@
 
 ;;; Calculate the logical structure, return needs to improve understanding of the structure.
 ;;; Set logical-structure field in action instance.
-(defun action-structure-needs (actx change-surface) ; -> needstore
+(defun action-structure-needs (actx reachable) ; -> needstore
   (assert (action-p actx))
-  (assert (regionstore-p change-surface))
-  (assert (or (regionstore-is-empty change-surface)
-              (= (action-num-bits actx) (regionstore-num-bits change-surface))))
+  (assert (regionstore-p reachable))
+  (assert (or (regionstore-is-empty reachable)
+              (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
   (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
         (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (non-adj-pairs2 (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
-        (logical-structure change-surface)          ; Best guess for logical structure.
+        (logical-structure reachable)          ; Best guess for logical structure.
         max-regionstore                             ; A Regionstore of one region.
         (needs (needstore-new nil))                 ; Needstore for adjacent incompatible squares to return.
         (needs2 (needstore-new nil)))               ; Needstore for non-adjacent incompatible squares to return.
@@ -720,7 +724,7 @@
 
       ;; Check if at least one disimilar pair was found.
       (when (regionstore-is-empty pairs)
-         (setf (action-logical-structure actx) change-surface)
+         (setf (action-logical-structure actx) reachable)
          (when (needstore-is-not-empty needs)
            (return-from action-structure-needs needs))
 
@@ -743,9 +747,7 @@
     (setf logical-structure max-regionstore)
     (loop for prx in (regionstore-regions adj-pairs) do
       (setf logical-structure (regionstore-intersection logical-structure
-         (regionstore-union
-             (regionstore-subtract-state max-regionstore (region-first-state prx))
-             (regionstore-subtract-state max-regionstore (region-second-state prx)))))
+         (state-regions-implied-by-dissimilarity (region-first-state prx) (region-second-state prx))))
     )
 
     ;; Populate non-adj-pairs2 store.
@@ -1440,17 +1442,18 @@
 ; )
 )
 
-;;; Return regions of groups that make a predictable change.
-(defun action-change-surface (actx) ; -> regionstore.
+;;; Return all possible changes.
+(defun action-changes (actx) ; -> change.
   (assert (action-p actx))
 
-  (let ((ret (regionstore-new nil)))
+  (let ((ret (change-new :m01 (mask-new (value-new :num-bits (action-num-bits actx) :bits 0))
+                         :m10 (mask-new (value-new :num-bits (action-num-bits actx) :bits 0)))))
 
     (loop for grpx in (groupstore-groups (action-groups actx)) do
       (if (group-makes-predictable-change grpx)
         (loop for rulx in (rulestore-rules (group-rules grpx)) do
           (if (rule-makes-change rulx)
-            (regionstore-push-nosubs ret (rule-change-surface rulx)))
+            (setf ret (change-or ret (rule-changes rulx))))
         )
       )
     )
