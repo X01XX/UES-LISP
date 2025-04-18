@@ -34,7 +34,7 @@
   (assert (rulestore-list-p rules))
   (assert (and (integerp id) (>= id 0)))
 
-  (let (rulsx rulsy actx memory)
+  (let (rulsx rulsy actx memory tmp-state)
 
     ;; Check each rulestore, populate memory list.
     (loop for rulsx in rules do
@@ -68,12 +68,14 @@
       )
     )
 
+    (setf tmp-state (state-new (value-new :num-bits (rulestore-num-bits (car rules)) :bits 0)))
+
     (setf actx (make-action :id id
                             :groups (groupstore-new nil)
                             :squares (squarestore-new)
                             :base-rules rules
                             :base-memory memory
-                            :logical-structure nil
+                            :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
                             :structure-pairs (regionstore-new nil)
                             :cleanup-flag true))
     ;(format t "~&returning act: ~A" (action-str actx))
@@ -238,7 +240,7 @@
   (let ((needs (needstore-new nil)))
 
    ;; Check for groups not supported by the logical structure.
-   (when (and (action-logical-structure actx) (> (regionstore-length (action-logical-structure actx)) 1))
+   (when (> (regionstore-length (action-logical-structure actx)) 1)
       (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
         (if (groupstore-is-not-empty invalidated-groups)
           (action-process-invalidated-groups actx invalidated-groups))
@@ -361,7 +363,7 @@
         (setf needs (needstore-append needs structure-needs))
         ;; else
         ;; Find defining regions in action-logical-structure, using action-structure-pairs.
-        (when (not (null (action-logical-structure actx)))
+        (progn
           (setf structure-reachable (regionstore-intersection reachable (action-logical-structure actx)))
           (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
   
@@ -722,9 +724,8 @@
         )
       )
 
-      ;; Check if at least one disimilar pair was found.
+      ;; Check if no disimilar pair was found.
       (when (regionstore-is-empty pairs)
-         (setf (action-logical-structure actx) reachable)
          (when (needstore-is-not-empty needs)
            (return-from action-structure-needs needs))
 

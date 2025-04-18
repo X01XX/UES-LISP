@@ -135,8 +135,8 @@
   )
 
   ;; Test adjacent, dissimilar squares.
-  (let* ((max-reg (region-from 'rXXXX)) pos-57 pos-8c pos-regs storex
-        )
+  (let* (pos-57 pos-8c pos-regs storex)
+
       (setf pos-57 (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
       ;(format t "~&pos-57: ~A" (regionstore-str pos-57))
 
@@ -184,30 +184,32 @@
   )
 
   ;; Test regionstore-defining-regions.
-  (let (storex defining-regions)
+  (let (storex storey defining-regions)
     (setf storex (regionstore-new nil))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
     ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 0))
 
-    (setf storex (regionstore-from (read-from-string "(r0x0x)")))
+    (setf storex (regionstore-from (read-from-string "(rXXXX)")))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
     ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 1))
 
-    (setf storex (regionstore-from (read-from-string "(r0x0x rxxx1)")))
+    (setf storex (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
     ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 2))
 
-    (setf storex (regionstore-from (read-from-string "(r0x0x rxxx1 r01x1)")))
+    (setf storex (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
+    (setf storey (state-regions-implied-by-dissimilarity (state-from 's0111) (state-from 's1111)))
+    (setf storex (regionstore-intersection storex storey))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
     ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
-    (assert (= (regionstore-length defining-regions) 2))
+    (assert (= (regionstore-length defining-regions) 3))
     (assert (not (regionstore-member defining-regions (region-from 'r010x))))
 
     (format t "~&  regionstore-defining-regions OK")

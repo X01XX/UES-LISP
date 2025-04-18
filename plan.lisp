@@ -24,7 +24,7 @@
 
   (let ((planx (make-plan :stepstore (stepstore-new steps))))
     (if (not (plan-is-valid planx))
-      (error "~& plan-new: plan is not valid ~A" planx)
+      (error "~& plan-new: plan is not valid ~A" (plan-str planx))
     )
 
     ;(assert (plan-is-valid planx))
@@ -105,6 +105,7 @@
   (let ((last-step))
     (loop for stepx in (plan-step-list planx) do
         (when last-step
+
 	  (when (region-ne (step-result-region last-step) (step-initial-region stepx))
 	    (format t "~&~A -> ~A ?" (step-result-region last-step) (step-initial-region stepx))
             (return-from plan-is-valid false))
@@ -112,10 +113,6 @@
 	(setf last-step stepx)
     )
   )
-  ;; Check that plan goes somewhere.
-  (if (region-eq (step-initial-region (plan-first-step planx)) (step-result-region (plan-last-step planx)))
-    (return-from plan-is-valid false))
-
   true
 )
 
