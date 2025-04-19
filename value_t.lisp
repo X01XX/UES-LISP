@@ -37,21 +37,6 @@
     (format t "~&  value-from OK")
   )
 
-  ; Test string-add-underscores.
-  (let (strx errx)
-    (setf errx (string-add-underscores-na "1_010"))
-    (assert (and (err-p errx) (string= (err-str errx) "Argument contains underscores")))
-
-    ; Test empty string.
-    (setf strx (string-add-underscores ""))
-    (assert (and (stringp strx) (string= strx "")))
-
-    (setf strx (string-add-underscores "12345"))
-    (assert (and (stringp strx) (string= strx "1_2345")))
-
-    (format t "~&  string-add-underscores OK")
-  )
-
   ; Test value-str.
   (let (strx)
     (setf strx (value-str (value-from 'v0101_1000)))
@@ -199,24 +184,6 @@
     (format t "~&  value-split OK")
   )
 
-  ; Test value-between.
-  (let (boolx val1 val8 val9 valf)
-    (setf val1 (value-from 'v0001))
-    (setf val8 (value-from 'v1000))
-    (setf val9 (value-from 'v1001))
-    (setf valf (value-from 'v1111))
-
-    ; Test a value between two others.
-    (setf boolx (value-between :target val9 :from val1 :to valf))
-    (assert (and (bool-p boolx) boolx))
-
-    ; Test a value not between two others.
-    (setf boolx (value-between :target val8 :from val1 :to valf))
-    (assert (and (bool-p boolx) (null boolx)))
-
-    (format t "~&  value-between OK")
-  )
-
   ; Test value-msb.
   (let (valx)
     ; Test one-bit value.
@@ -248,6 +215,20 @@
     (assert (and (value-p valx) (value-eq valx (value-from 'v0001))))
 
     (format t "~&  value-shift OK")
+  )
+
+  (let (lst)
+    (setf lst (list (value-from 'v0101) (value-from 'v0110) (value-from 'v0111)))
+
+    ;; Check list item types.
+    (if (not (eval (append '(and) (mapcar #'(lambda (item) (value-p item)) lst))))
+      (error "list contains a non-value"))
+
+    (if (not (or (< (length lst) 2)
+                 (eval (append '(and) (mapcar #'(lambda (item) (= (value-num-bits item) (value-num-bits (car lst)))) (cdr lst))))))
+      (error "list contains values with different number bits"))
+            
+    (format t "~&  value-list OK")
   )
 
   (format t "~&value-tests done")

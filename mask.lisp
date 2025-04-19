@@ -20,6 +20,7 @@
 
 ;;; Return a new mask.
 (defun mask-new (value) ; -> mask.
+  ;(format t "~&mask-new ~A" (type-of value))
   (assert (value-p value))
 
   (make-mask :value value)
@@ -27,6 +28,7 @@
 
 ;;; Return a string for a mask.
 (defun mask-str (msk)  ; -> string.
+  ;(format t "~&mask-str ~A" (type-of msk))
   (assert (mask-p msk))
 
   (format nil "~A" (concatenate 'string "m" (subseq (value-str (mask-value msk)) 1)))
@@ -34,6 +36,7 @@
 
 ;;; Return the number of bits used by a mask.
 (defun mask-num-bits (msk) ; -> number
+  ;(format t "~&mask-num-bits ~A" (type-of msk))
   (assert (mask-p msk))
 
   (value-num-bits (mask-value msk))
@@ -41,6 +44,7 @@
 
 ;;; Return t if two masks are equal.
 (defun mask-eq (msk1 msk2) ; -> bool
+  ;(format t "~&mask-eq mnk1 ~A msk2 ~A" (type-of msk1) (type-of msk2))
   (assert (mask-p msk1))
   (assert (mask-p msk2))
   (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))

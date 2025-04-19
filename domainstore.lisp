@@ -1,7 +1,8 @@
 ;;;; Implement a store of domains.
 
 (defstruct domainstore
-  domains  ; A list of zero, or more, domains with unique id values.
+  domains   ; A list of zero, or more, domains with unique id values.
+  num-bits  ; A list of domain number bits used.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,6 +25,7 @@
 
   (make-domainstore
     :domains nil
+    :num-bits nil
   )
 )
 
@@ -38,6 +40,8 @@
 
   (setf (domainstore-domains storex)
      (append (domainstore-domains storex) (list domx)))
+
+  (setf (domainstore-num-bits storex) (domainstore-num-bits-list storex))
 )
 
 ;;; Return the number of domains in a domainstore.
@@ -328,6 +332,16 @@
       )
     )
     true
+  )
+)
+
+;; Return a list of number bits used by domains, in order.
+(defun domainstore-num-bits-list (storex) ; -> list of domain bit nums, in domain order.
+  (let (lst)
+    (loop for domx in (domainstore-domains storex) do
+      (push (domain-num-bits domx) lst)
+    )
+    (reverse lst)
   )
 )
 

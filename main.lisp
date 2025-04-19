@@ -112,6 +112,7 @@
 
 (load #p "needstore.lisp")
 (load #p "needstore_t.lisp")
+(load #p "tools_t.lisp")
 
 (load #p "sessiondata.lisp")
 (load #p "statescorr.lisp")
@@ -175,12 +176,15 @@
 
   (assert (sessiondata-p sessx))
 
-  (let (inp tokens token (run 0) just-read-in)
+  (let (inp tokens token (run 0) just-read-in tokens-processed)
 
     (loop
       ;; Update cycle and needs, unless session just read in.
       (if just-read-in
-        (setf just-read-in nil)
+        (progn
+          (sessiondata-init sessx)
+          (setf just-read-in nil)
+        )
         (progn
           (sessiondata-inc-cycle-num sessx)
           (sessiondata-get-needs sessx)
@@ -217,7 +221,7 @@
       (when token
         (push token tokens))
 
-        (setf tokens (reverse tokens))
+      (setf tokens (reverse tokens))
 
       ;(format t "~&tokens: ~A" tokens)
 
@@ -226,14 +230,18 @@
         (return-from command-loop))
 
       ;; Check for run command.
-      (if (string-equal (car tokens) "run")
+      (when (string-equal (car tokens) "run")
+        (setf tokens-processed true)
         (setf run 1)
       )
 
+      (setf tokens-processed false)
+
       (if (string-equal (car tokens) "write-session")
         (let (inp create-flag (fname (second tokens)))
+          (setf tokens-processed true)
           (setf create-flag t)
-          (when (open fname :direction :probe)
+          (when (probe-file fname)
             (format t "~&File ~A exists, overwrite? yes/no: " fname)
             (setf create-flag (yes-or-no-p))
           )
@@ -249,7 +257,8 @@
 
       (if (string-equal (car tokens) "read-session")
         (let (inp (fname (second tokens)) sessx2)
-          (if (open fname :direction :probe)
+          (setf tokens-processed true)
+          (if (probe-file fname)
             (progn
               (with-open-file (stream fname) (setf sessx2 (read stream)))
               (format t "~&File ~A read. Type of input ~A" fname (type-of sessx2))
@@ -270,6 +279,7 @@
       ;; Where domain 0 uses 4 bits and domain 1 uses 3 bits.
       (if (string-equal (car tokens) "to")
         (let (to-regs plans)
+          (setf tokens-processed true)
           ;(format t "~&tokens: ~A" tokens)
           (setf to-regs (read-from-string (subseq inp 3)))
           ;(format t "~&to-regs: ~A" to-regs)
@@ -311,6 +321,7 @@
       ;; Check for do need.
       (if (string-equal (car tokens) "dn")
         (let (inx)
+          (setf tokens-processed true)
           (if (= (length tokens) 2)
            (progn
               (setf inx (read-from-string (second tokens)))
@@ -327,11 +338,14 @@
             )
             (format t "~&Did not understand dn command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 
       (if (string-equal (car tokens) "ss")
         (let (dom-id act-id statex)
+          (setf tokens-processed true)
           (if (= (length tokens) 4)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -342,7 +356,7 @@
                     (progn
                       (setf statex (state-from-str (fourth tokens)))
                       (if statex
-                         (sessiondata-take-action-need sessx dom-id act-id statex)
+                         (sessiondata-take-action-arbitrary sessx dom-id act-id statex)
                          (format t "~&Did not understand state in ss command")
                       )
                     )
@@ -354,11 +368,14 @@
             )
             (format t "~&Did not understand ss command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 
       (if (string-equal (car tokens) "act-sqrs")
         (let (dom-id act-id)
+          (setf tokens-processed true)
           (if (= (length tokens) 3)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -366,10 +383,11 @@
                 (progn
                   (setf act-id (read-from-string (third tokens)))
                   (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                    (format t "~&squares: ~A" (squarestore-str (action-squares
-                                                 (actionstore-nth
-                                                   (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
-                                                 act-id))))
+                    (loop for sqrx in (squarestore-squares (action-squares (actionstore-nth
+                                             (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
+                                                  act-id))) do
+                      (format t "~&~A" (square-str sqrx))
+                    )
                     (format t "~&Did not understand action id in act-sqrs command")
                   )
                 )
@@ -378,11 +396,14 @@
             )
             (format t "~&Did not understand act-sqrs command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 
       (if (string-equal (car tokens) "grp-sqrs")
         (let (dom-id act-id regx grpx sqrx actx)
+          (setf tokens-processed true)
           (if (= (length tokens) 4)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -425,11 +446,14 @@
             )
             (format t "~&Did not understand grp-sqrs command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 
       (if (string-equal (car tokens) "reg-sqrs")
         (let (dom-id act-id regx actx sqrs)
+          (setf tokens-processed true)
           (if (= (length tokens) 4)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -464,11 +488,14 @@
             )
             (format t "~&Did not understand reg-sqrs command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 
       (if (string-equal (car tokens) "sample")
         (let (dom-id act-id stax actx)
+          (setf tokens-processed true)
           (if (= (length tokens) 4)
             (progn
               (setf dom-id (read-from-string (second tokens)))
@@ -500,13 +527,15 @@
             )
             (format t "~&Did not understand sample command")
           )
+          (format t "~& ~&Press Enter to continue: ")
+          (setf inp (read-line *STANDARD-INPUT*))
         )
       )
 
       ;; Force specific domain action state sample, print square and square-count.
       (if tokens
         (progn
-          (when (zerop run)
+          (when (and (zerop run) (null tokens-processed))
             (format t "~&Did not understand command, Press Enter to continue: ")
             (setf inp (read-line *STANDARD-INPUT*))
           )
@@ -654,6 +683,7 @@
   (maskscorr-tests)
   (planscorr-tests)
   (planscorrstore-tests)
+  (tools-tests)
 
   (format t "~&All tests done")
   t

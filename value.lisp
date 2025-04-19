@@ -35,7 +35,6 @@
 ;;; Underscore characters, which can be used as spacers, are ignored.
 ;;; All bits must be specified, since the number of bits is kept in the num-bits field in the struct.
 (defun value-from (symx) ; -> value.
-  ;(format t "~&value-from ~A" (type-of symbol))
   (assert (symbolp symx))
 
   (let ((strx (symbol-name symx)))
@@ -52,9 +51,8 @@
   )
 )
 
-;;; Get a value from a string, no-abort.
+;;; Get a value from a string.
 (defun value-from-str (strx) ; -> value, or err.
-  ;(format t "~&value-from-str: ~A" (type-of strx))
   (assert (stringp strx))
 
   ;; Check for v prefix.
@@ -77,6 +75,7 @@
       )
     ) ; end loop
 
+    ;; Check num bits gt zero.
     (if (zerop num-bits)
       (return-from value-from-str (err-new (format nil "value-from-str: At least one bit must be given ~A" strx))))
 
@@ -88,38 +87,9 @@
   )
 )
 
-;;; Add underscores for each 4 characters of a string, from right to left.
-(defun string-add-underscores (str) ; -> string.
-  (assert (stringp str))
-
-  (let ((ret (string-add-underscores-na str)))
-    (cond ((err-p ret) (error (err-str ret)))
-          ((stringp ret) ret)
-          (t (error "Result is not a string"))))
-)
-;;; Add underscores no-abort (na).
-(defun string-add-underscores-na (str) ; -> string, or err.
-
-  (let ((str2 "") cnt (str-len (length str)))
-     (setf cnt str-len)
-     (loop for chr across str do
-       (if (char= chr #\_)
-           (return-from string-add-underscores-na (err-new "Argument contains underscores")))
-
-       (if (and (/= cnt str-len) (zerop (mod cnt 4)))
-           (setf str2 (concatenate 'string str2 "_"))
-       )
-       (setf str2 (concatenate 'string str2 (princ-to-string chr)))
-       (decf cnt)
-     )
-     str2
-  )
-)
-
 ;;; Return a string representation of a value.
 ;;; Use hexadecimal in preference to binary, if possible.
 (defun value-str (val) ; -> string.
-  (assert (value-p val))
 
   (let (str str-len val-len)
 
@@ -154,16 +124,21 @@
   (assert (value-p val))
 
   ; Create value to return.
-  (value-new :num-bits (value-num-bits val) :bits (logxor (- (expt 2 (value-num-bits val)) 1) (value-bits val)))
+  (value-new :num-bits (value-num-bits val) :bits (logxor (1- (expt 2 (value-num-bits val))) (value-bits val)))
 )
 
 ;;; Return true if two given values are adjacent.
 (defun value-is-adjacent (val1 val2) ; -> bool.
+  (assert (value-p val1))
+  (assert (value-p val2))
+  (assert (= (value-num-bits val1) (value-num-bits val2)))
+
   (let ((ret (value-is-adjacent-na val1 val2)))
     (cond ((err-p ret) (error (err-str ret)))
           ((bool-p ret) ret)
           (t (error "Result is not a bool"))))
 )
+
 ;;; value-is-adjacent no-abort (na).
 (defun value-is-adjacent-na (val1 val2) ; -> bool, or err.
   (if (not (value-p val1))
@@ -265,17 +240,6 @@
     ) ; end-loop
     ret
   )
-)
-
-;;; Given a value, and two others, return true if the first value is between the other two.
-(defun value-between (&key target from to) ; -> bool
-  (assert (value-p target))
-  (assert (value-p from))
-  (assert (value-p to))
-  (assert (= (value-num-bits target) (value-num-bits from)))
-  (assert (= (value-num-bits target) (value-num-bits to)))
-
-  (value-zerop (value-and (value-xor target from) (value-xor target to)))
 )
 
 ;;; Return a value with the most significant bit set to one.
