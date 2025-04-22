@@ -123,17 +123,6 @@
   (run)
 )
 
-;;; (do-interactive-session nil)
-(defun default-session ()
-  (let (dmxs)
-    (setf dmxs (domainstore-new)) ; Init domainstore.
-    (domainstore-add-domain (state-from 's0000)) ; Add a domain.
-    (domainstore-add-domain (state-from 's00))   ; Add a domain.
-
-    (do-interactive-session dmxs)
-  )
-)
-
 ;;; Do commands against a given sessiondata instance.
 (defun do-interactive-session (sessx)
   (assert (sessiondata-p sessx))
@@ -262,13 +251,13 @@
             (progn
               (with-open-file (stream fname) (setf sessx2 (read stream)))
               (format t "~&File ~A read. Type of input ~A" fname (type-of sessx2))
-              (when (typep sessx2 'sessiondata)
+              (if (typep sessx2 'sessiondata)
                 (setf sessx sessx2)
-                (setf just-read-in t)
               )
             )
             (format t "~&File ~A not found" fname)
           )
+          (setf just-read-in t)
           (format t "~& ~&Press Enter to continue: ")
           (setf inp (read-line *STANDARD-INPUT*))
         )

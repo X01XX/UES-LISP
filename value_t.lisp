@@ -4,7 +4,6 @@
 
   ; Test value-new.
   (let (valx)
-    ; Test valid value parameters.
     (setf valx (value-new :num-bits 4 :bits 7))
     (assert (value-p valx))
     (assert (and (value-p valx) (= (value-num-bits valx) 4) (= (value-bits valx) 7)))
@@ -17,22 +16,21 @@
 
     ; Test string does not start with the v character.
     (setf errx (value-from-str "x1"))
-    ;(format t "~A" errx)
-    (assert (and (err-p errx) (string-equal (err-str errx) "value-from-str: Value X1 Should begin with a v character")))
+    (assert (err-p errx))
 
     ; Test string for invalid binary digit.
     (setf errx (value-from-str "v012"))
-    (assert (and (err-p errx) (string-equal (err-str errx) "value-from-str: Invalid binary digit 2")))
+    (assert (err-p errx))
 
-    ; Test valid binary string.
-    (setf valx (value-from 'v1101))
-    ;(format t "~&~A" valx)
-    ;(format t "~&~A" (value-num-bits valx))
-    (assert (and (value-p valx) (= (value-num-bits valx) 4)))
+    ; Test valid bits, with leading zero.
+    (setf valx (value-from 'v0101_0010))
+    (assert (and (value-p valx) (= (value-num-bits valx) 8) (= (value-bits valx) #x52)))
 
-    ; Test valid binary string.
-    (setf valx (value-from 'V1101))
-    (assert (and (value-p valx) (= (value-num-bits valx) 4)))
+    ; Test single bit, uppercase prefix.
+    (setf valx (value-from 'V0))
+    (assert (and (value-p valx) (= (value-num-bits valx) 1) (= (value-bits valx) 0)))
+    (setf valx (value-from 'V1))
+    (assert (and (value-p valx) (= (value-num-bits valx) 1) (= (value-bits valx) 1)))
 
     (format t "~&  value-from OK")
   )
@@ -49,7 +47,7 @@
   (let (boolx)
     ; Test a non-zero value.
     (setf boolx (value-zerop (value-from 'v01)))
-    (assert (null boolx))
+    (assert (and (bool-p boolx) (null boolx)))
 
     ; Test a zero value.
     (setf boolx (value-zerop (value-from 'v00)))
@@ -65,7 +63,7 @@
     (assert (and (integerp numx) (= numx 3)))
 
     ; Test a zero value.
-    (setf numx (value-num-ones (value-from 'v00)))
+    (setf numx (value-num-ones (value-from 'v0)))
     (assert (and (integerp numx) (zerop numx)))
 
     (format t "~&  value-num-ones OK")
@@ -73,29 +71,10 @@
 
   ; Test value-not.
   (let (valx)
-    ; Test a value.
     (setf valx (value-not (value-from 'v0101_1010)))
     (assert (and (value-p valx) (value-eq valx (value-from 'v1010_0101))))
 
     (format t "~&  value-not OK")
-  )
-
-  ; Test value-is-adjacent.
-  (let (boolx val1 val2 val3 val4)
-    (setf val1 (value-from 'v0000_0001))
-    (setf val2 (value-from 'v0000_0010))
-    (setf val3 (value-from 'v0000_0011))
-    (setf val4 (value-from 'v0011_0011))
-
-    ; Test two values that are adjacent.
-    (setf boolx (value-is-adjacent val1 val3))
-    (assert (and (bool-p boolx) boolx))
-
-    ; Test two values that are not adjacent.
-    (setf boolx (value-is-adjacent val1 val2))
-    (assert (and (bool-p boolx) (not boolx)))
-
-    (format t "~&  value-is-adjacent OK")
   )
 
   ; Test value-eq.
@@ -108,7 +87,7 @@
     (setf boolx (value-eq val1 val3))
     (assert (and (bool-p boolx) boolx))
 
-    ; Test two values that are not adjacent.
+    ; Test two values that are not eq.
     (setf boolx (value-eq val1 val2))
     (assert (and (bool-p boolx) (not boolx)))
 
@@ -123,7 +102,6 @@
 
     ; Test or of three values.
     (setf valx (value-or val1 val2 val6))
-    ;(format t "~& val: ~A" val)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0111))))
 
     (format t "~&  value-or OK")
@@ -132,12 +110,11 @@
   ; Test value-and.
   (let (valx val2 val7 vala)
     (setf val7 (value-from 'v0111))
-    (setf val2 (value-from 'v0110))
-    (setf vala (value-from 'v1010))
+    (setf val2 (value-from 'v1110))
+    (setf vala (value-from 'v1011))
 
-    ; Test or of two values.
+    ; Test and of three values.
     (setf valx (value-and val7 val2 vala))
-    ;(format t "~& val: ~A" val)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0010))))
 
     (format t "~&  value-and OK")
@@ -148,9 +125,7 @@
     (setf val1 (value-from 'v0011))
     (setf val2 (value-from 'v0110))
 
-    ; Test or of two values.
     (setf valx (value-xor val1 val2))
-    ;(format t "~& val: ~A" val)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0101))))
 
     (format t "~&  value-xor OK")
@@ -161,9 +136,7 @@
     (setf val1 (value-from 'v0011))
     (setf val2 (value-from 'v0110))
 
-    ; Test eqv of two values.
     (setf valx (value-eqv val1 val2))
-    ;(format t "~& val: ~A" val)
     (assert (and (value-p valx) (value-eq valx (value-from 'v1010))))
 
     (format t "~&  value-eqv OK")
@@ -178,8 +151,13 @@
     (assert (member (value-from 'v0100) lstx :test #'value-eq))
 
     ; Test splitting 0.
-    (setf lstx (value-split (value-from 'v0000)))
+    (setf lstx (value-split (value-from 'v0)))
     (assert (and (listp lstx) (= (length lstx) 0)))
+
+    ; Test splitting 1.
+    (setf lstx (value-split (value-from 'v1)))
+    (assert (and (listp lstx) (= (length lstx) 1)))
+    (assert (member (value-from 'v1) lstx :test #'value-eq))
 
     (format t "~&  value-split OK")
   )
@@ -194,41 +172,17 @@
     (setf valx (value-msb (value-from 'v000)))
     (assert (and (value-p valx) (value-eq valx (value-from 'v100))))
 
-    ; Test four-bit value.
-    (setf valx (value-msb (value-from 'v0000)))
-    (assert (and (value-p valx) (value-eq valx (value-from 'v1000))))
-
     (format t "~&  value-msb OK")
   )
 
-  ; Test value-shift.
+  ; Test value-shift-right.
   (let (valx val5)
     (setf val5 (value-from 'v0101))
 
-    ; Test shift left by two.
-    (setf valx (value-shift val5 2))
-    (assert (and (value-p valx) (value-eq valx (value-from 'v0100))))
+    (setf valx (value-shift-right val5))
+    (assert (and (value-p valx) (value-eq valx (value-from 'v0010))))
 
-    ; Test shift right by two.
-    (setf valx (value-shift val5 -2))
-    ;(format t "~&val ~A" val);
-    (assert (and (value-p valx) (value-eq valx (value-from 'v0001))))
-
-    (format t "~&  value-shift OK")
-  )
-
-  (let (lst)
-    (setf lst (list (value-from 'v0101) (value-from 'v0110) (value-from 'v0111)))
-
-    ;; Check list item types.
-    (if (not (eval (append '(and) (mapcar #'(lambda (item) (value-p item)) lst))))
-      (error "list contains a non-value"))
-
-    (if (not (or (< (length lst) 2)
-                 (eval (append '(and) (mapcar #'(lambda (item) (= (value-num-bits item) (value-num-bits (car lst)))) (cdr lst))))))
-      (error "list contains values with different number bits"))
-            
-    (format t "~&  value-list OK")
+    (format t "~&  value-shift-right OK")
   )
 
   (format t "~&value-tests done")

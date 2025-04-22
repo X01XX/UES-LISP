@@ -7,7 +7,7 @@
     ; Test creating a valid mask.
     (setf mskx (mask-new (value-from 'v0000_0011)))
     (assert (mask-p mskx))
-    (assert (and (mask-p mskx) (= (value-bits (mask-value mskx)) 3)))
+    (assert (and (mask-p mskx) (= (mask-num-bits mskx) 8) (= (mask-bits mskx) 3)))
 
     (format t "~&  mask-new OK")
   )
@@ -49,13 +49,12 @@
     (format t "~&  mask-eq OK")
   )
 
-
   ; Test mask-from.
   (let (mskx)
      (setf mskx (mask-from 'm0010_0011))
      (assert (mask-p mskx))
      (assert (= (value-num-bits (mask-value mskx)) 8))
-     (assert (= (value-bits (mask-value mskx)) #x23))
+     (assert (= (mask-bits mskx) #x23))
 
      (format t "~&  mask-from OK")
   )
@@ -81,20 +80,14 @@
     (format t "~&  mask-msb OK")
   )
 
-  ; Test mask-shift.
+  ; Test mask-shift-right.
   (let (mskx msk5)
     (setf msk5 (mask-from 'm0101))
 
-    ; Test shift left by two.
-    (setf mskx (mask-shift msk5 2))
-    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0100))))
+    (setf mskx (mask-shift-right msk5))
+    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0010))))
 
-    ; Test shift right by two.
-    (setf mskx (mask-shift msk5 -2))
-    ;(format t "~&msk ~A" msk);
-    (assert (and (mask-p mskx) (mask-eq mskx (mask-from 'm0001))))
-
-    (format t "~&  mask-shift OK")
+    (format t "~&  mask-shift-right OK")
   )
 
   ; Test mask-zerop.
@@ -118,12 +111,10 @@
 
     ; Test and of two masks.
     (setf valx (mask-and msk3 msk6))
-    ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0010))))
 
     ; Test and of a mask and a state.
     (setf valx (mask-and msk3 sta6))
-    ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0010))))
 
     (format t "~&  mask-and OK")
@@ -137,12 +128,10 @@
 
     ; Test and-not of two masks.
     (setf valx (mask-and-not msk3 msk6))
-    ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0001))))
 
     ; Test and-not of a mask and a state.
     (setf valx (mask-and-not msk3 sta6))
-    ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0001))))
 
     (format t "~&  mask-and-not OK")
@@ -155,7 +144,6 @@
 
     ; Test or of two masks.
     (setf valx (mask-or msk3 msk6))
-    ;(format t "~& msk: ~A" msk)
     (assert (and (value-p valx) (value-eq valx (value-from 'v0111))))
 
     (format t "~&  mask-or OK")

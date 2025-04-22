@@ -331,8 +331,8 @@
     (setf wanted (rule-changes rul1))
     ;(format t "~& wanted ~A" wanted)
 
-    ;                                                     "000_111_xxx"
-    ;                                                     "01x_01x_01x"
+    ;                                                "000_111_xxx"
+    ;                                                "01x_01x_01x"
     (assert (mask-eq (change-m01 wanted) (mask-from 'm010_000_010)))
     (assert (mask-eq (change-m10 wanted) (mask-from 'm000_100_100)))
 
@@ -344,12 +344,8 @@
     (setf wanted (change-new :m01 (mask-from 'm10) :m10 (mask-from 'm01)))
     (setf rul1 (rule-from "[01/00]"))
     (setf rul2 (rule-from "[11/10]"))
-    ;(format t "~&rul1        ~A" rul1)
-    ;(format t "~&rul2        ~A" rul2)
-    ;(format t "~&combine 1 = ~A" (rule-combine-sequence rul1 rul2))
 
     (setf bx (rule-sequence-blocks-changes :first rul1 :next rul2 :wanted wanted))
-;   (format t "~& rule order is bad ~A ~A bad is ~A" rul1 rul2 bx)
     (assert (not bx))
 
     (setf wanted (change-new :m01 (mask-from 'm01) :m10 (mask-from 'm10)))
@@ -460,7 +456,6 @@
   (let (rul1 rul2)
     (setf rul1 (rule-from "[00/01/11/10/XX/Xx]"))
     (setf rul2 (rule-reverse rul1))
-    ;(format t "~&rul2 ~A" (rule-str rul2))
 
     (assert (rule-eq rul2 (rule-from "[00/10/11/01/XX/Xx]")))
 
@@ -486,20 +481,17 @@
   (let (rul1 rules)
     (setf rul1 (rule-from "[00/01/11/10/XX/Xx]"))
     (setf rules (rule-split-xb rul1))
-    ;(format t "~&rules: ~A" (rulestore-str rules))
     (assert (= 1 (rulestore-length rules)))
     (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx]")))
 
     (setf rul1 (rule-from "[00/01/11/10/XX/Xx/X1]"))
     (setf rules (rule-split-xb rul1))
-    ;(format t "~&rules: ~A" (rulestore-str rules))
     (assert (= 2 (rulestore-length rules)))
     (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/01]")))
     (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/11]")))
 
     (setf rul1 (rule-from "[00/01/11/10/XX/Xx/X1/X0]"))
     (setf rules (rule-split-xb rul1))
-    ;(format t "~&rules: ~A" (rulestore-str rules))
     (assert (= 4 (rulestore-length rules)))
     (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/01/00]")))
     (assert (rulestore-member rules (rule-from "[00/01/11/10/XX/Xx/01/10]")))
@@ -508,7 +500,6 @@
 
     (setf rul1 (rule-from "[00/01/11/10/XX/Xx/X0/X1/X0]"))
     (setf rules (rule-split-xb rul1))
-    ;(format t "~&rules: ~A" (rulestore-str rules))
     (assert (= 8 (rulestore-length rules)))
 
 

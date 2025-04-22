@@ -57,7 +57,6 @@
 ;;; XX == xx, x to x.
 ;;; Xx == xX, x to x-not.
 (defun rule-from (rulx) ; -> rule.
-  ;(format t "~&rule-from: ~A" rulx)
   (if (symbolp rulx)
      (setf rulx (symbol-name rulx)))
 
@@ -69,7 +68,6 @@
 )
 
 (defun rule-from-str (strx) ; -> rule or err.
-  ;(format t "~&rule-from-str: ~A" strx)
     (if (< (length strx) 3)
         (return-from rule-from-str (err-new "String is too short")))
 
@@ -193,7 +191,7 @@
                  ((= bitval 15) (setf strs (concatenate 'string strs "1X?0X?")))
                  (t (setf strs (concatenate 'string strs "..")))
            )
-           (setf bit-pos (mask-shift bit-pos -1))
+           (setf bit-pos (mask-shift-right bit-pos))
        ) ; end-while
 
     (setf strs (concatenate 'string strs "]"))
@@ -248,14 +246,14 @@
   (assert (rule-p rul2))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
 
-    (let (rulx)
-      (setf rulx (make-rule :m00 (mask-new-and (rule-m00 rul1) (rule-m00 rul2))
-                            :m01 (mask-new-and (rule-m01 rul1) (rule-m01 rul2))
-                            :m11 (mask-new-and (rule-m11 rul1) (rule-m11 rul2))
-                            :m10 (mask-new-and (rule-m10 rul1) (rule-m10 rul2))))
+  (let (rulx)
+    (setf rulx (make-rule :m00 (mask-new-and (rule-m00 rul1) (rule-m00 rul2))
+                          :m01 (mask-new-and (rule-m01 rul1) (rule-m01 rul2))
+                          :m11 (mask-new-and (rule-m11 rul1) (rule-m11 rul2))
+                          :m10 (mask-new-and (rule-m10 rul1) (rule-m10 rul2))))
 
-      (if (rule-is-valid-intersection rulx) rulx nil)
-    )
+    (if (rule-is-valid-intersection rulx) rulx nil)
+  )
 )
 
 ;;; Return true if a rule is a valid intersection, that is no bit position is zero for all four masks.
@@ -282,6 +280,8 @@
 
 ;;; Ruturn the number of bits used by a rules masks.
 (defun rule-num-bits (rulx) ; -> a number.
+  (assert (rule-p rulx))
+
   (mask-num-bits (rule-m00 rulx))
 )
 
@@ -456,7 +456,6 @@
 
 ;;; Return a rule that has an result region restricted by a given region.
 (defun rule-restrict-result-region (rulx regx) ; -> rule.
-  ;(format t "~&rule-restrict-result-region: rule ~A region ~A" rulx regx)
   (assert (rule-p rulx))
   (assert (region-p regx))
   (assert (= (rule-num-bits rulx) (region-num-bits regx)))
@@ -483,11 +482,16 @@
 
 ;;; Return the number of changes.
 (defun rule-num-changes (rulx) ; -> integer.
+  (assert (rule-p rulx))
+
   (change-num-changes (rule-changes rulx))
 )
 
 ;;; Return the intersection of a rule and a change, as a change.
 (defun rule-intersection-change (rulx cngx) ; -> change
+  (assert (rule-p rulx))
+  (assert (change-p cngx))
+
     (change-new :m01 (mask-new-and (rule-m01 rulx) (change-m01 cngx))
                 :m10 (mask-new-and (rule-m10 rulx) (change-m10 cngx)))
 )
@@ -551,6 +555,7 @@
 (defun rule-result-from-state (rulx stax) ; -> state instance.\
   (assert (rule-p rulx))
   (assert (state-p stax))
+  (assert (= (rule-num-bits rulx) (state-num-bits stax)))
 
   (let (cng1s cng0s)
     (setf cng1s (mask-new (state-and stax (rule-m10 rulx))))
@@ -571,7 +576,8 @@
   (assert (rule-p rulx))
   (assert (rule-p rule-from-to))
   (assert (region-p within))
-  ;(format t "~&rule-restrict-by: rule: ~A rule-from-to ~A within ~A" (rule-str rulx) (rule-str rule-from-to) (region-str within))
+  (assert (= (rule-num-bits rulx) (rule-num-bits rule-from-to)))
+  (assert (= (rule-num-bits rulx) (region-num-bits within)))
 
   (let ((ruly rulx) wanted-changes)
     (setf ruly (rule-restrict-by-within ruly within))
@@ -587,6 +593,7 @@
 (defun rule-restrict-by-within (rulx within) ; -> rule, or nil.
   (assert (rule-p rulx))
   (assert (region-p within))
+  (assert (= (rule-num-bits rulx) (region-num-bits within)))
 
   (let ((ruly rulx))
 
@@ -613,7 +620,7 @@
 (defun rule-restrict-by-change (rulx wanted-changes) ; -> rule, or nil.
   (assert (rule-p rulx))
   (assert (change-p wanted-changes))
-  ;(format t "~&rule-restrict-by-change: rulx: ~A wanted-changes: ~A" (rule-str rulx) (change-str wanted-changes))
+  (assert (= (rule-num-bits rulx) (change-num-bits wanted-changes)))
 
   (let ((ruly rulx) rule-wanted-changes)
 
@@ -690,6 +697,7 @@
        pattern-masks
        num-positions
        to-0-mask to-1-mask mrul)
+
     (setf initial (rule-initial-region rulx))
     (setf result  (rule-result-region rulx))
 
@@ -703,7 +711,6 @@
     ;; Get masks with a single bit set to one for each xb position.
     ;; For m0101, this will be (m0100, m0001).
     (setf xb-positions (mask-split xb-mask))
-    ;(format t "~&xp-positions: ~A" (maskstore-str (maskstore-new xb-positions)))
 
     (setf num-positions (length xb-positions))
 
@@ -712,14 +719,12 @@
     (loop for bit-position from 0 below num-positions do
       (push (mask-new (value-new :num-bits num-positions :bits (expt 2 bit-position))) position-masks)
     )
-    ;(format t "~&position-masks: ~A" (maskstore-str (maskstore-new position-masks)))
 
     ;; Get list of each possible bit pattern, with positions to be set to 0 or 1.
     ;; If there are two xb positions, this will be (m00 m01 m10 m11).
     (loop for bit-pattern from 0 below (expt 2 num-positions) do
       (push (mask-new (value-new :num-bits num-positions :bits bit-pattern)) pattern-masks)
     )
-    ;(format t "~&pattern-masks: ~A" (maskstore-str (maskstore-new pattern-masks)))
 
     ;; For each pattern mask, like (m00 m01 m10 m11),
     ;; For each position pattern (m0010, m0001), for each prob mask (m00 m01 m10 m11),
@@ -728,7 +733,6 @@
     ;; Set xb positions .x.x to .1.0 for m10.
     ;; Set xb positions .x.x to .1.1 for m11.
     (loop for pattern-mask in pattern-masks do
-      ;(format t "~& ~&pattern-mask: ~A" (mask-str pattern-mask))
 
       ;; Init masks for changing the original rule initial region.
       (setf to-0-mask (mask-new (value-new :num-bits (region-num-bits initial) :bits 0)))
@@ -745,8 +749,6 @@
            (setf to-1-mask (mask-new-or to-1-mask (nth inx xb-positions)))
         )
       )
-      ;(format t "  to-0-mask: ~A" (mask-str to-0-mask))
-      ;(format t "  to-1-mask: ~A" (mask-str to-1-mask))
 
       ;; Alter original rule initial region.
       (setf tmp-initial (region-set-to-zeros initial to-0-mask))

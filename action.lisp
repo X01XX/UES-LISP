@@ -656,7 +656,7 @@
         (return-from action-structure-needs needs))
 
       ;; Calc the max region.
-      (setf max-region (region-new (list (square-state (car sqrs)))))
+      (setf max-region (region-new (square-state (car sqrs))))
       (loop for sqrx in (cdr sqrs) do
         (if (not (region-superset-of-state max-region (square-state sqrx)))
           (setf max-region (region-union-state max-region (square-state sqrx))))
@@ -1229,7 +1229,7 @@
          (stax (square-state sqrx)))
 
     ;; Find compatible squares, test squares between them, add the square-pair regions to a store, no subsets.
-    (loop for stay in (statestore-state-list keys) do
+    (loop for stay in (statestore-states keys) do
 
        (when (state-ne stay stax)
 
@@ -1333,8 +1333,8 @@
 
             ;(format t "~&checking reg ~A and ~A" (region-str regx) (region-str (nth iny (regionstore-regions cur-regs))))
 
-            (setf regy (region-new (statestore-append
-                (region-states regx) (region-states (nth iny (regionstore-regions cur-regs))))))
+            (setf regy (region-new (statestore-states (statestore-append
+                (region-states regx) (region-states (nth iny (regionstore-regions cur-regs)))))))
 
             (if (squarestore-region-is-valid (action-squares actx) regy)
                (regionstore-push nxt-regs regy))

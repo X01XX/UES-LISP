@@ -196,11 +196,6 @@
   )
 )
 
-;;; Return a list of states.
-(defun statestore-state-list (storex) ; -> list of states.
-  (statestore-states storex)
-)
-
 ;;; Add state to the end of a statestore.
 (defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.
   (assert (statestore-p storex))

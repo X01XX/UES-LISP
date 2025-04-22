@@ -452,7 +452,7 @@
   (assert (domain-p domx))
 
   (let ((domain-changes (actionstore-changes (domain-actions domx)))
-        (max-region (region-new (list (domain-current-state domx))))
+        (max-region (region-new (domain-current-state domx)))
         xmask
        )
 

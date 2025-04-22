@@ -6,7 +6,7 @@
 ;;; The region struct.
 ;;; It represents a 2^x by 2^y region of squares on a K-Map.
 (defstruct region
-  states	; A StateStore of one, or more, states, no state between two others.
+  states    ; A StateStore of one, or more, states, no state between two others.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,99 +24,113 @@
 
 ;;; Return a new region, made up of one, or more, states.
 (defun region-new (states) ; -> region.
-  (if (listp states)
-      (setf states (statestore-new states)))
+  (let (states2)
+    ;; Allow a single state or a state list as argument.
+    (cond ((listp states)
+           (assert (not (null states)))
+           (setf states2 (statestore-new states)))
+          ((state-p states)
+           (setf states2 (statestore-new (list states))))
+          (t (error "region-new: invalid argumant passed")))
 
-  (if (state-p states)
-      (setf states (statestore-new (list states))))
+    (assert (statestore-same-num-bits states2))
 
-  (assert (statestore-p states))
-  (assert (> (statestore-length states) 0))
-  (assert (statestore-same-num-bits states))
-
-  (make-region :states (statestore-remove-unneeded states))
+    ;; Construct result.
+    (make-region :states (statestore-remove-unneeded states2))
+  )
 )
 
 ;;; Return the list of states defining a region.
 (defun region-state-list (regx) ; -> a list of states.
+  ;; Check argument.
   (assert (region-p regx))
 
-  (statestore-state-list (region-states regx))
+  ;; Return statestore field.
+  (statestore-states (region-states regx))
 )
 
 ;;; Return the highest state in a region.
 (defun region-high-state (regx) ; -> state
+  ;; Check argument.
   (assert (region-p regx))
 
-  (if (= (statestore-length (region-states regx)) 1)
-    (return-from region-high-state (region-first-state regx)))
-
-  (let ((ret (value-new :num-bits (region-num-bits regx) : bits 0)))
-    (loop for stax in (region-state-list regx) do
-       (setf ret (value-or ret (state-value stax)))
+  ;; OR subsequent states with the first state.
+  (let ((ret (car (region-state-list regx))))
+    (loop for stax in (cdr (region-state-list regx)) do
+      (setf ret (state-new-or ret stax))
     )
-    (state-new ret)
+    ;; Return result.
+    ret
   )
 )
 
 ;;; Return the lowest state in a region.
 (defun region-low-state (regx) ; -> state
+  ;; Check argument.
   (assert (region-p regx))
 
-  (if (= (statestore-length (region-states regx)) 1)
-    (return-from region-low-state (region-first-state regx)))
-
-  (let ((ret (value-not (value-new :num-bits (region-num-bits regx) : bits 0))))
-     (loop for stax in (region-state-list regx) do
-       (setf ret (value-and ret (state-value stax)))
-     )
-     (state-new ret)
+  ;; AND subsequent states with the first state.
+  (let ((ret (car (region-state-list regx))))
+    (loop for stax in (cdr (region-state-list regx)) do
+      (setf ret (state-new-and ret stax))
+    )
+    ;; Return result.
+    ret
   )
 )
 
 ;;; Return the number of bits used by a region's states.
 (defun region-num-bits (regx) ; -> number
+  ;; Check argument.
   (assert (region-p regx))
 
+  ;; Return result.
   (statestore-num-bits (region-states regx))
 )
 
 ;;; Return the first state in a region.
 (defun region-first-state (regx) ; -> state
+  ;; Check argument.
   (assert (region-p regx))
 
+  ;; Return result.
   (statestore-first-state (region-states regx))
 )
 
 ;;; Return the x mask of a region.
 (defun region-x-mask (regx) ; -> mask
-  ;(format t "~&region-x-mask ~A" (type-of regx))
+  ;; Check argument.
   (assert (region-p regx))
 
+  ;; Construct result.
   (mask-new (state-xor (region-high-state regx) (region-low-state regx)))
 )
 
 ;;; Return the edge 1s mask of a region.
 (defun region-1-mask (regx) ; -> mask
+  ;; Check argument.
   (assert (region-p regx))
 
-  (mask-new (state-and
-	  (region-first-state regx)
-	  (region-second-state regx)))
+  ;; Construct result.
+  (mask-new (state-and (region-first-state regx) (region-second-state regx)))
 )
 
 ;;; Return the edge 0s mask of a region.
 (defun region-0-mask (regx) ; -> mask
+  ;; Check argument.
   (assert (region-p regx))
 
+  ;; Construct result.
   (mask-new (value-and (state-not (region-first-state regx)) (state-not (region-second-state regx))))
 )
 
 ;;; Return the second state in a region, really the far state from the first state.
 (defun region-second-state (regx) ; -> state
+  ;; Check argument.
   (assert (region-p regx))
 
   (let ((len (statestore-length (region-states regx))))
+    ;; Construct result.
     (cond ((= len 1) (region-first-state regx))
           ((= len 2) (statestore-last-state (region-states regx)))
           (t (state-new (state-xor (region-first-state regx) (region-x-mask regx)))))
@@ -125,8 +139,10 @@
 
 ;;; Return the number of states that define a region.
 (defun region-number-states (regx) ; -> integer, gt zero.
+  ;; Check argument.
   (assert (region-p regx))
 
+  ;; Return result.
   (statestore-length (region-states regx))
 )
 
@@ -134,66 +150,64 @@
 ;;; The state making up a region with one state, is obvious.
 ;;; The states making up a region with two states, can be read from the string representation.
 ;;; X01x is made up of (1010, 0011).
-;;; A region can have more than two states, typically three, to define a region using available
-;;; samples, and will be indicated by a trailing + sign. In that case, the only first state can be read
-;;; from the string representation.
-;;; X01x+ is made up of (1010, ...).
+;;; A region can have more than two states, typically three, where none of the states
+;;; are between any other two states, and will be indicated by a trailing + sign.
+;;; In X01x+ the first state is 1010, the following states cannot be inferred.
 (defun region-str (regx)  ; -> string.
+  ;; Check argument.
   (assert (region-p regx))
 
-    (let ((strs "r"))
-      (setf strs (concatenate 'string strs (region-str-bits regx)))
+  (let ((strs "r") ; Region prefix.
+       )
+    ;; Add region bits.
+    (setf strs (concatenate 'string strs (region-str-bits regx)))
 
-      (if (> (region-number-states regx) 2)
-          (setf strs (concatenate 'string strs "+")))
+    ;; Add suffix, if needed.
+    (if (> (region-number-states regx) 2)
+        (setf strs (concatenate 'string strs "+")))
 
-      strs
-    )
+    ;; Return result.
+    strs
+  )
 )
 
 ;;; Return a string representing just region bit positions.
 (defun region-str-bits (regx) ; -> string, like 010X.
+  ;; Check argument.
   (assert (region-p regx))
 
-    (let (
-          (strs "")
-	  (xmask (region-x-mask regx))
-          (bit-pos (mask-msb (mask-new (state-value (statestore-first-state (region-states regx))))))
-          (not-start nil)
-	  (first-state (statestore-first-state (region-states regx)))
-	  (cnt (region-num-bits regx))
-	  xval
-	  fval
-         )
+  (let ((strs "") ; String to build up for result.
+        (bit-pos (mask-msb (mask-new (state-value (region-first-state regx))))) ; msb, to successively shift to test bit positions.
+        (first-state (region-first-state regx))
+        (second-state (region-second-state regx))
+        fval        ; First state bit-pos value.
+        sval        ; Second state bit-pos value.
+       )
 
-         (loop while (not (mask-zerop bit-pos)) do
+    (loop while (not (mask-zerop bit-pos)) do
 
-	     (setf xval 1)
-             (if (value-zerop (mask-and bit-pos xmask))
-                 (setf xval 0))
+      (if (mask-zerop (mask-new-and bit-pos first-state))
+        (setf fval 0)
+        (setf fval 1))
 
-	     (setf fval 1)
-             (if (value-zerop (mask-and bit-pos first-state))
-                 (setf fval 0))
+      (if (mask-zerop (mask-new-and bit-pos second-state))
+        (setf sval 0)
+        (setf sval 1))
 
-             (if (and not-start (zerop (mod cnt 4)))
-	       (setf strs (concatenate 'string strs "_"))
-	       (setf not-start t))
-
-	     (decf cnt)
-
-             (cond ((and (= xval 1) (= fval 1))
-		    (setf strs (concatenate 'string strs "X")))
-                   ((and (= xval 1) (= fval 0))
-		    (setf strs (concatenate 'string strs "x")))
-                   ((zerop fval) (setf strs (concatenate 'string strs "0")))
-                   (t (setf strs (concatenate 'string strs "1")))
-             )
-             (setf bit-pos (mask-shift bit-pos -1))
-         ) ; end-while
-
-    strs
-    )
+      (cond ((and (= fval 0) (= sval 0))
+             (setf strs (concatenate 'string strs "0")))
+            ((and (= fval 0) (= sval 1))
+             (setf strs (concatenate 'string strs "x")))
+            ((and (= fval 1) (= sval 0))
+             (setf strs (concatenate 'string strs "X")))
+            ((and (= fval 1) (= sval 1))
+             (setf strs (concatenate 'string strs "1")))
+      )
+      (setf bit-pos (mask-shift-right bit-pos))
+    ) ; end-while
+    ;; Return result.
+    (string-add-underscores strs)
+  )
 )
 
 ;;; Return a region instance from a symbol.
@@ -204,55 +218,58 @@
 ;;; An x will cause a 0 in the first state, a one in the second state.
 ;;; So the states making up a region can be specified by the symbol representation.
 (defun region-from (symx) ; -> region.
-  ;(format t "~&region-from ~A" (type-of symx))
+  ;; Check argument.
   (assert (symbolp symx))
 
-  (let ((strx (symbol-name symx)))
-    ;; Check for r prefix.
-    (if (not (string-equal (subseq strx 0 1) "r"))
-	  (return-from region-from (err-new (format nil "region-from: Region ~A Should begin with a r character" strx))))
-
-    (let ((ret (region-from-str strx)))
-      (cond ((err-p ret) (error (err-str ret)))
-            ((region-p ret) ret)
-             (t (error "Region is not valid"))))
+  (let ((strx (symbol-name symx)) ret)
+    ;; Process symbol name.
+    (setf ret (region-from-str strx))
+    ;; Check type of result.
+    (if (err-p ret)
+      (error (err-str ret))
+      ret) ; return value.
   )
 )
 ;;; Return a region instance from a string.
 (defun region-from-str (strx) ; -> region instance.
-  ;(format t "~&region-from-str ~A" (type-of strx))
+  ;; Check argument.
   (assert (stringp strx))
 
-  ;; Check for r prefix.
-  (if (not (string-equal (subseq strx 0 1) "r"))
-	 (return-from region-from-str (err-new (format nil "region-from-str: Region ~A Should begin with an r character" strx))))
+  (let (strx2 ; Work string.
+       (state-first "s") (state-second "s")) ; Init string prefixs.
 
-  (setf strx (subseq strx 1))
+    ;; Trim spaces.
+    (setf strx2 (string-left-trim '(#\Space) (string-right-trim '(#\Space) strx)))
 
-  (let ((state-first "v") (state-second "v"))
-    (loop for chr across strx do
+    ;; Check prefix.
+    (if (not (string-equal (subseq strx2 0 1) "r"))
+      (return-from region-from-str (err-new (format nil "region-from-str: Region ~A Should begin with an r character" strx2))))
+
+    (loop for chr across (subseq strx2 1) do
       (cond
-	    ((char= chr #\_) nil)
-	    ((char= chr #\0) (setf state-first (concatenate 'string state-first "0"))
-	                     (setf state-second  (concatenate 'string state-second  "0")))
-	    ((char= chr #\1) (setf state-first (concatenate 'string state-first "1"))
-	                     (setf state-second  (concatenate 'string state-second  "1")))
-	    ((char= chr #\X) (setf state-first (concatenate 'string state-first "1"))
-	                     (setf state-second  (concatenate 'string state-second  "0")))
-	    ((char= chr #\x) (setf state-first (concatenate 'string state-first "0"))
-	                     (setf state-second  (concatenate 'string state-second  "1")))
-	    (t (return-from region-from-str (err-new (format nil "region-from-str: Invalid character ~A" chr)))))
+        ((char= chr #\_) nil)
+        ((char= chr #\0) (setf state-first (concatenate 'string state-first "0"))
+                         (setf state-second  (concatenate 'string state-second  "0")))
+        ((char= chr #\1) (setf state-first (concatenate 'string state-first "1"))
+                         (setf state-second  (concatenate 'string state-second  "1")))
+        ((char= chr #\X) (setf state-first (concatenate 'string state-first "1"))
+                         (setf state-second  (concatenate 'string state-second  "0")))
+        ((char= chr #\x) (setf state-first (concatenate 'string state-first "0"))
+                         (setf state-second  (concatenate 'string state-second  "1")))
+        (t (return-from region-from-str (err-new (format nil "region-from-str: Invalid character ~A in ~A" chr strx2)))))
     )
     (if (= (length state-first) 1)
-      (return-from region-from-str (err-new "region-from-str: No valid character found")))
+      (return-from region-from-str (err-new (format nil "region-from-str: No valid bit character found in ~A" strx2))))
 
-    (region-new (list (state-new (value-from-str state-first))
-                      (state-new (value-from-str state-second))))
+    ;; Construct return value.
+    (region-new (list (state-from-str state-first)
+                      (state-from-str state-second)))
   )
 )
 
 ;;; Return true if two regions are equal.
 (defun region-eq (reg1 reg2) ; -> bool
+  ;; Check arguments.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -268,13 +285,18 @@
 
 ;;; Return true if two regions are not equal.
 (defun region-ne (reg1 reg2) ; -> bool
+  ;; Check arguments.
+  (assert (region-p reg1))
+  (assert (region-p reg2))
+  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
+
   (not (region-eq reg1 reg2))
 )
 
 ;;; Return true if a list is a list of regions.
 ;;; An empty list will return true.
 (defun region-list-p (reglst) ; -> bool
-  ;(format t "~&region-list-p: ~A" reglst)
+  ;; Check argument.
   (if (not (listp reglst))
     (return-from region-list-p false))
 
@@ -287,6 +309,7 @@
 
 ;;; Return the intersection of two regions.
 (defun region-intersection (reg1 reg2) ; -> region, or nil.
+  ;; Check arguments.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -300,6 +323,7 @@
 
 ;;; Return the union of two regions.
 (defun region-union (reg1 reg2) ; -> region
+  ;; Check arguments.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -310,6 +334,7 @@
 
 ;;; Return the union of two regions.
 (defun region-union-state (reg1 stax) ; -> region
+  ;; Check arguments.
   (assert (region-p reg1))
   (assert (state-p stax))
   (assert (= (region-num-bits reg1) (state-num-bits stax)))
@@ -320,6 +345,7 @@
 
 ;;; Return a mask of edge bit positions.
 (defun region-edge-mask (regx) ; -> mask
+  ;; Check argument.
   (assert (region-p regx))
 
   (mask-new (value-eqv (state-value (region-first-state regx)) (state-value (region-second-state regx))))
@@ -327,12 +353,18 @@
 
 ;;; Return a edge-difference mask of two regions.
 (defun region-edge-dif-mask (reg1 reg2) ; -> mask
+  ;; Check arguments.
+  (assert (region-p reg1))
+  (assert (region-p reg2))
+  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
+
     (mask-new (value-and (mask-and (region-edge-mask reg1) (region-edge-mask reg2))
                          (state-xor (region-first-state reg1) (region-first-state reg2))))
 )
 
 ;;; Return the distance between two regions.
 (defun region-distance (reg1 reg2) ; -> integer.
+  ;; Check arguments.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -342,6 +374,7 @@
 
 ;;; Return true if a region intersects another.
 (defun region-intersects (reg1 reg2) ; -> bool.
+  ;; Check arguments.
   (assert (region-p reg1))
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
@@ -352,6 +385,7 @@
 
 ;;; Return true if the first region is a superset of the second.
 (defun region-superset-of (&key sub sup) ; -> bool.
+  ;; Check arguments.
   (assert (region-p sub))
   (assert (region-p sup))
   (assert (= (region-num-bits sub) (region-num-bits sup)))
@@ -367,6 +401,7 @@
 
 ;;; Return a region with edges of a mask set to ones.
 (defun region-set-to-ones (regx mskx) ; -> region.
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
@@ -377,6 +412,7 @@
 
 ;;; Return a region with edges of a mask set to zeros.
 (defun region-set-to-zeros (regx mskx) ; -> region.
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
@@ -389,6 +425,7 @@
 
 ;;; Return a region with edges of a mask set to x.
 (defun region-set-to-x (regx mskx) ; -> region.
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
@@ -401,6 +438,7 @@
 
 ;;; Return the minuend region minus the subtrahend region.
 (defun region-subtract (&key min-reg sub-reg) ; -> regionstore.
+  ;; Check arguments.
   (assert (region-p min-reg))
   (assert (region-p sub-reg))
   (assert (= (region-num-bits min-reg) (region-num-bits sub-reg)))
@@ -416,17 +454,17 @@
        )
     (loop for bitx in sub-bits do
       (if (mask-is-low (mask-new-and bitx (mask-new (state-value (region-first-state sub-reg)))))
-	    (regionstore-push-nosubs ret (region-set-to-ones min-reg bitx))
-	    (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
+        (regionstore-push-nosubs ret (region-set-to-ones min-reg bitx))
+        (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
       )
     )
-    ;(format t "~&region-subtract minuend ~A subtrahend ~A returns ~A" (region-str min-reg) (region-str sub-reg) (regionstore-str ret))
     ret
   )
 )
 
 ;;; Return a region minus a state.
 (defun region-subtract-state (regx stax) ; -> regionstore.
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p  stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
@@ -442,38 +480,17 @@
 
     (loop for bitx in sub-bits do
       (if (mask-is-low (mask-new-and bitx (mask-new (state-value stax))))
-	    (regionstore-push-nosubs ret (region-set-to-ones regx bitx))
-	    (regionstore-push-nosubs ret (region-set-to-zeros regx bitx))
+        (regionstore-push-nosubs ret (region-set-to-ones regx bitx))
+        (regionstore-push-nosubs ret (region-set-to-zeros regx bitx))
       )
     )
-    ;(format t "~&region-subtract-state ~A minus ~A returns ~A" (region-str regx) (state-str stax) (regionstore-str ret))
     ret
-  )
-)
-
-;;; Return true if a list is a list of regions of the same number of bits.
-;;; An empty list will return true.
-(defun region-list-same-num-bits-p (reglst) ; -> bool
-  (if (not (listp reglst))
-    (return-from region-list-same-num-bits-p false))
-
-  (if (null reglst)
-    (return-from region-list-same-num-bits-p true))
-
-  (let ((num-bits (region-num-bits (car reglst))))
-    (loop for regx in (cdr reglst) do
-      (if (not (region-p regx))
-        (return-from region-list-same-num-bits-p false))
-
-      (if (/= num-bits (region-num-bits regx))
-        (return-from region-list-same-num-bits-p false))
-    )
-    true
   )
 )
 
 ;;; Return the distance between a region and a state.
 (defun region-distance-state (regx stax) ; -> integer.
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
@@ -485,6 +502,7 @@
 
 ;;; Return true if a region intersects a state.
 (defun region-intersects-state (regx stax) ; -> bool.
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
@@ -496,7 +514,7 @@
 
 ;;; Return true if the first region is a superset of a state.
 (defun region-superset-of-state (regx stax) ; -> bool.
-  ;(format t "~&region-superset-of-state: ~A ~A" (region-str regx) (state-str stax))
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
@@ -506,6 +524,7 @@
 
 ;;; Return the far state for, opposite a given state, in a region.
 (defun region-far-state (regx stax) ; -> state
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
@@ -516,7 +535,7 @@
 
 ;;; Return the far region for, opposite a given subregion, in a region.
 (defun region-far-region (regx subx) ; -> region
-  ;(format t "~&region-far-region: ~A ~A" (region-str regx) (region-str subx))
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (region-p subx))
   (assert (= (region-num-bits regx) (region-num-bits subx)))
@@ -531,8 +550,10 @@
 
 ;; Return true if a state is needed to define a region.
 (defun region-state-needed (regx stax) ; -> bool
+  ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
 
   (loop for stay in (region-state-list regx) do
     (if (state-eq stay stax)

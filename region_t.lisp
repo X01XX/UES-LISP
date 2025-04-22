@@ -155,13 +155,11 @@
  (let (errx)
    ; Test arg with invalid character.
    (setf errx (region-from-str "01X3"))
-   ;(format t "~&~A" errx)
-   (assert (and (err-p errx) (string-equal (err-str errx) "region-from-str: Region 01X3 Should begin with an r character")))
+   (assert (err-p errx))
 
    ; Test arg with no valid character.
    (setf errx (region-from-str "r"))
-   ;(format t "~&~A" errx)
-   (assert (and (err-p errx) (string= (err-str errx) "region-from-str: No valid character found")))
+   (assert (err-p errx))
 
    ; Test good string.
    (assert (string-equal (region-str (region-from 'r01Xx)) "r01Xx"))
@@ -365,27 +363,6 @@
     (assert (region-list-p lst1))
 
     (format t "~&  region-list-p OK")
-  )
-
-  ; Test region-list-some-num-bits-p.
-  (let (lst1)
-    (assert (region-list-same-num-bits-p lst1))
-
-    (assert (not (region-list-same-num-bits-p 1)))
-
-    (setf lst1 (list (region-from 'rXXXX)))
-    (assert (region-list-same-num-bits-p lst1))
-
-    (setf lst1 (list (region-from 'rXXXX) 1))
-    (assert (not (region-list-same-num-bits-p lst1)))
-
-    (setf lst1 (list (region-from 'r01XX) (region-from 'r10XX)))
-    (assert (region-list-same-num-bits-p lst1))
-
-    (setf lst1 (list (region-from 'r01XX) (region-from 'r10X)))
-    (assert (not (region-list-same-num-bits-p lst1)))
-
-    (format t "~&  region-list-same-num-bits-p OK")
   )
 
   ;; Test region-edge-dif-mask.

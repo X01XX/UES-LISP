@@ -49,6 +49,8 @@
 
 ;;; Increment the cycle num.
 (defun sessiondata-inc-cycle-num (sessx) ; -> side effect, cycle num changed.
+  (assert (sessiondata-p sessx))
+
   (setf (sessiondata-cycle-num sessx) (+ 1 (sessiondata-cycle-num sessx)))
 )
 
@@ -232,11 +234,15 @@
 
 ;;; Return all domain current states.
 (defun sessiondata-domain-current-states (sessx) ; -> StatesCorr
+  (assert (sessiondata-p sessx))
+
   (domainstore-all-current-states (sessiondata-domains sessx))
 )
 
 ;;; Return all domain current states as regions.
 (defun sessiondata-domain-current-regions (sessx) ; -> RegionsCorr
+  (assert (sessiondata-p sessx))
+
   (let ((ret (regionscorr-new nil)))
     (loop for stax in (statescorr-state-list (domainstore-all-current-states (sessiondata-domains sessx))) do
       (regionscorr-add-end ret (region-new stax))
@@ -247,12 +253,13 @@
 
 ;;; Return all domain maximum regions.
 (defun sessiondata-domain-max-regions (sessx) ; -> RegionsCorr
+  (assert (sessiondata-p sessx))
+
   (domainstore-max-regions (sessiondata-domains sessx))
 )
 
 ;;; Return current needs.
 (defun sessiondata-get-needs (sessx) ; -> (values can-do cant-do)
-  ;(format t "~&sessiondata-get-needs ~A" (type-of sessx))
   (assert (sessiondata-p sessx))
 
   (multiple-value-bind (needs can-do cant-do)
@@ -272,7 +279,7 @@
         (let (targetx)
 
           (if (state-p (need-target nedx))
-            (setf targetx (region-new (list (need-target nedx))))
+            (setf targetx (region-new (need-target nedx)))
             (setf targetx (need-target nedx)))
 
           (let (new-target plans)
@@ -343,9 +350,7 @@
 ) ; end sessiondata-get-needs
 
 ;;; Process a given need.
-;;; TODO pass (sessiondata-selectregions-paths sessx) to domainstore-process-need.
 (defun sessiondata-process-need (sessx nedx)
-  ;(format t "~&sessiondata-process-need: ~A ~A" (type-of sessx) (type-of nedx))
   (assert (sessiondata-p sessx))
   (assert (need-p nedx))
 
@@ -457,8 +462,6 @@
 
 ;;; Return need to exit negative-rated selectregion, with plan, if needed.
 (defun sessiondata-move-from-negative-selectregions (sessx) ; -> needstore.
-  ;(format t "~&sessiondata-move-from-negative-selectregions")
-
   (assert (sessiondata-p sessx))
 
   (let ((needs (needstore-new nil)) cur-regs cur-rate close-rcs (min-dist 9999) dist plans nedx)
@@ -515,8 +518,6 @@
 
 ;;; Return need to seek positive-rated selectregion, with plan, if needed.
 (defun sessiondata-move-to-positive-selectregions (sessx) ; -> needstore.
-  ;(format t "~&sessiondata-move-to-positive-selectregions")
-
   (assert (sessiondata-p sessx))
 
   (let ((needs (needstore-new nil)) cur-regs cur-rate pos-rcs plans nedx)
@@ -569,5 +570,7 @@
 
 ;; Initialization tasks, for sessiondata-from, and read-session.
 (defun sessiondata-init (sessx) ; -> side effect.
+  (assert (sessiondata-p sessx))
+
   (setf *domain-num-bits-list* (domainstore-num-bits (sessiondata-domains sessx)))
 )
