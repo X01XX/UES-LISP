@@ -21,3 +21,23 @@ if [ `/usr/bin/grep -c -- square-add-sample action.lisp` -ne 1 ]
 then
   /usr/bin/echo "square-add-sample calls in action.lisp gt 1?"
 fi
+
+if [ `/usr/bin/grep -- "make-regionscorr " *.lisp | /usr/bin/grep -v ":;" | /usr/bin/wc -l` -ne 1 ]
+then
+  /usr/bin/echo "make-regionscorr calls gt 1?"
+fi
+
+if [ `/usr/bin/grep -- "make-statescorr " *.lisp | /usr/bin/grep -v ":;" | /usr/bin/wc -l` -ne 1 ]
+then
+  /usr/bin/echo "make-statescorr calls gt 1?"
+fi
+
+if [ `/usr/bin/grep -- "make-maskscorr " *.lisp | /usr/bin/grep -v ":;" | /usr/bin/wc -l` -ne 1 ]
+then
+  /usr/bin/echo "make-maskscorr calls gt 1?"
+fi
+
+if [ `/usr/bin/grep -- "make-planscorr " *.lisp | /usr/bin/grep -v ":;" | /usr/bin/wc -l` -ne 1 ]
+then
+  /usr/bin/echo "make-planscorr calls gt 1?"
+fi

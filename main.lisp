@@ -11,6 +11,7 @@
 (defvar *compatible* 2323)
 (defvar *not-compatible* 2324)
 (defvar *more-samples-needed* 2325)
+(defvar *domain-num-bits-list* nil) ; Will be shadowed, as needed.
 
 ;; Bool vars.
 (defvar true t)
@@ -171,7 +172,7 @@
       ;; Update cycle and needs, unless session just read in.
       (if just-read-in
         (progn
-          (sessiondata-init sessx)
+          ;(sessiondata-init sessx)
           (setf just-read-in nil)
         )
         (progn
@@ -275,29 +276,21 @@
           (setf to-regs (regionscorr-from to-regs))
           (if to-regs
             (progn
-              (if (regionscorr-congruent to-regs (sessiondata-domain-current-regions sessx))
+              (if (regionscorr-superset-of-states to-regs (sessiondata-domain-current-states sessx))
+                (format t "~&Current states satisfy the request")
                 (progn
-                  ;(format t "~&to RegionsCorr ~A" (regionscorr-str to-regs))
-                  (if (regionscorr-superset-of-states to-regs (sessiondata-domain-current-states sessx))
-                    (format t "~&Current states satisfy the request")
+                  (setf plans (sessiondata-get-plans sessx to-regs))
+                  (if plans
                     (progn
-                      (setf plans (sessiondata-get-plans sessx to-regs))
-                      (if plans
-                        (progn
-                          ;(format t "~&plans: ~A" (planscorrstore-str plans))
-                          ;(format t "~&TODO run plans")
-                          (domainstore-run-plans (sessiondata-domains sessx) plans)
-                          (if (regionscorr-superset-of :sup (domainstore-max-regions (sessiondata-domains sessx)) :sub to-regs)
-                            (format t "~&Plans worked")
-                            (format t "~&Plans failed")
-                          )
-                        )
-                        (format t "~&plans not found")
+                      (domainstore-run-plans (sessiondata-domains sessx) plans)
+                      (if (regionscorr-superset-of :sup (domainstore-max-regions (sessiondata-domains sessx)) :sub to-regs)
+                        (format t "~&Plans worked")
+                        (format t "~&Plans failed")
                       )
                     )
+                    (format t "~&plans not found")
                   )
                 )
-                (format t "~&The regionscorr definition in the to command is not congruent")
               )
             )
             (format t "~&Could not convert the regionscorr definition in the to command")
@@ -614,11 +607,14 @@
             ;(format t "~&final: ~A" str)
             (setf sdx-in (read-from-string str)) ; read in data, check that parentheses are balanced.
             (when sdx-in
-                ;(pprint sdx-in)
-                (setf sdx (eval sdx-in))
- ;              (format t "~&sdx ~A" sdx)
+              ;(pprint sdx-in)
+              (setf sdx (eval sdx-in))
+              ;(format t "~&sdx ~A" sdx)
+              (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))))
+              ;(let ((*domain-num-bits-list* (domainstore-num-bits (sessiondata-domains sdx))))
+                (do-interactive-session sdx)
+              )
             )
-            (do-interactive-session sdx)
         )
     )
 )

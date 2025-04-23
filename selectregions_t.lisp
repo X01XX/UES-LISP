@@ -4,7 +4,7 @@
   (format t "~&selectregions-tests beginning")
 
   ; Test selectregions-new.
-  (let (selectregions1)
+  (let (selectregions1 (*domain-num-bits-list* (list 2 2)))
     ; Test new, empty, selectregions.
     (setf selectregions1 (selectregions-new
                            (regionscorr-new (list (region-from 'r0X) (region-from 'r1X))) (rate-from '(RT 0 -3))))
@@ -14,7 +14,7 @@
   )
 
   ;; Test selectregions-from.
-  (let (sr1)
+  (let (sr1 (*domain-num-bits-list* (list 5 16)))
 
     (setf sr1 (selectregions-from '(SR (RC (rx0xx1 rXXXX_XXX1_1XXX_XXXX)) (RT 2 0))))
     (assert (selectregions-p sr1))

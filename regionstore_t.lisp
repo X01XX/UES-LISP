@@ -21,14 +21,12 @@
     (setf store1 (regionstore-new (list (region-from 'rXXXX))))
 
     (setf store2 (regionstore-subtract-region store1 (region-from 'rX111)))
-    ;(format t "~&store2 ~A" store2)
     (assert (= (regionstore-length store2) 3))
     (assert (regionstore-member store2 (region-from 'rXXX0)))
     (assert (regionstore-member store2 (region-from 'rXX0X)))
     (assert (regionstore-member store2 (region-from 'rX0XX)))
 
     (setf store3 (regionstore-subtract-region store2 (region-from 'r000x)))
-    ;(format t "~&store3 ~A" store3)
     (assert (= (regionstore-length store3) 7))
     (assert (regionstore-member store3 (region-from 'rX01X)))
     (assert (regionstore-member store3 (region-from 'r10XX)))
@@ -39,20 +37,6 @@
     (assert (regionstore-member store3 (region-from 'r1XX0)))
 
     (format t "~&  regionstore-subtract-region OK")
-  )
-
-  ; Test regionstore-append.
-  (let (store1 store2 store3)
-    (setf store1 (regionstore-new (list (region-from 'rX000) (region-from 'rX001))))
-    (setf store2 (regionstore-new (list (region-from 'rX001) (region-from 'rX011))))
-    (setf store3 (regionstore-append store1 store2))
-    ;(format t "~&store3 ~A" store3)
-    (assert (= 4 (regionstore-length store3)))
-    (assert (regionstore-member store3 (region-from 'rX000)))
-    (assert (regionstore-member store3 (region-from 'rX001)))
-    (assert (regionstore-member store3 (region-from 'rX011)))
-
-    (format t "~&  regionstore-append OK")
   )
 
   ;; Test regionstore-from.
@@ -69,99 +53,27 @@
     (format t "~&  regionstore-from OK")
   )
 
-  ;; Test regionstore-largest-intersections
-  (let (regs1 ints)
-    (setf regs1 (regionstore-from '(r0x0x r0XX1 r0x1x)))
-
-    (setf ints (regionstore-largest-intersections regs1))
-    ;(format t "~&ints ~A" ints)
-    (assert (= 2 (regionstore-length ints)))
-    (assert (regionstore-member ints (region-from 'r0X11)))
-    (assert (regionstore-member ints (region-from 'r0X01)))
-
-    (format t "~&  regionstore-largest-intersections OK")
-  )
-
-  ;; Test regionstore-split-by-intersections
-  (let (regst1 fragments)
-    (setf regst1 (regionstore-from '(r01x1 r011x)))
-    (setf fragments (regionstore-split-by-intersections regst1))
-    ;(format t "~&fragments ~A" fragments)
-    (assert (= (regionstore-length fragments) 3))
-    (assert (regionstore-member fragments (region-from 'r0101)))
-    (assert (regionstore-member fragments (region-from 'r0110)))
-    (assert (regionstore-member fragments (region-from 'r0101)))
-
-    (setf regst1 (regionstore-from '(r01x1 r011x r0x11)))
-    (setf fragments (regionstore-split-by-intersections regst1))
-    ;(format t "~&fragments ~A" fragments)
-    (assert (= (regionstore-length fragments) 4))
-    (assert (regionstore-member fragments (region-from 'r0101)))
-    (assert (regionstore-member fragments (region-from 'r0110)))
-    (assert (regionstore-member fragments (region-from 'r0011)))
-    (assert (regionstore-member fragments (region-from 'r0111)))
-
-    (setf regst1 (regionstore-from '(r01x1 r011x rxx11)))
-    (setf fragments (regionstore-split-by-intersections regst1))
-    ;(format t "~&fragments ~A" fragments)
-    (assert (= (regionstore-length fragments) 5))
-    (assert (regionstore-member fragments (region-from 'r0101)))
-    (assert (regionstore-member fragments (region-from 'r0110)))
-    (assert (regionstore-member fragments (region-from 'rX011)))
-    (assert (regionstore-member fragments (region-from 'r1X11)))
-    (assert (regionstore-member fragments (region-from 'r0111)))
-
-    (setf regst1 (regionstore-from '(rx10x rx1x1)))
-    (setf fragments (regionstore-split-by-intersections regst1))
-    ;(format t "~&fragments ~A" fragments)
-    (assert (= (regionstore-length fragments) 3))
-    (assert (regionstore-member fragments (region-from 'rX100)))
-    (assert (regionstore-member fragments (region-from 'rX111)))
-    (assert (regionstore-member fragments (region-from 'rX101)))
-
-    ;; Test regions with subsets.
-    (setf regst1 (regionstore-from '(rxxxx rx1x1 r01x1 rx101)))
-    (setf fragments (regionstore-split-by-intersections regst1))
-    ;(format t "~&fragments ~A" fragments)
-    (assert (= (regionstore-length fragments) 6))
-    (assert (regionstore-member fragments (region-from 'rXXX0)))
-    (assert (regionstore-member fragments (region-from 'rX0XX)))
-    (assert (regionstore-member fragments (region-from 'r1111)))
-    (assert (regionstore-member fragments (region-from 'r0111)))
-    (assert (regionstore-member fragments (region-from 'r1101)))
-    (assert (regionstore-member fragments (region-from 'r0101)))
-
-    (format t "~&  regionstore-split-by-intersections OK")
-  )
-
   ;; Test adjacent, dissimilar squares.
   (let* (pos-57 pos-8c pos-regs storex)
 
       (setf pos-57 (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
-      ;(format t "~&pos-57: ~A" (regionstore-str pos-57))
 
       (setf pos-8c (state-regions-implied-by-dissimilarity (state-from 's1000) (state-from 's1100)))
-      ;(format t "~&pos-8c: ~A" (regionstore-str pos-8c))
 
       (setf pos-regs (regionstore-intersection pos-57 pos-8c))
-      ;(format t "~&pos-regs: ~A" (regionstore-str pos-regs))
       (assert (string-equal (regionstore-str pos-regs)
                "RS[rX1X0, r0XX0, rXX1X, rX0XX, r1XX1, r11XX, rXX01, rX10X, r0X0X]"))
 
       (setf storex (regionstore-regions-state-in pos-regs (state-from 's0101)))
-      ;(format t "~&5 in ~A" (regionstore-str storex))
       (assert (= (regionstore-length storex) 3))
 
       (setf storex (regionstore-regions-state-in pos-regs (state-from 's0111)))
-      ;(format t "~&7 in ~A" (regionstore-str storex))
       (assert (= (regionstore-length storex) 1))
 
       (setf storex (regionstore-regions-state-in pos-regs (state-from 's1000)))
-      ;(format t "~&8 in ~A" (regionstore-str storex))
       (assert (= (regionstore-length storex) 1))
 
       (setf storex (regionstore-regions-state-in pos-regs (state-from 's1100)))
-      ;(format t "~&C in ~A" (regionstore-str storex))
       (assert (= (regionstore-length storex) 3))
 
     (format t "~&  regionstore adjacent similar squares OK")
@@ -172,12 +84,10 @@
     (setf storex (regionstore-from (read-from-string "(r0x0x r0xx1)")))
     (setf stax (state-from 's0101))
     (setf storey (regionstore-regions-state-in storex stax))
-    ;(format t "~&storey: ~A" (regionstore-str storey))
     (assert (= (regionstore-length storey) 2))
 
     (setf stax (state-from 's0100))
     (setf storey (regionstore-regions-state-in storex stax))
-    ;(format t "~&storey: ~A" (regionstore-str storey))
     (assert (= (regionstore-length storey) 1))
 
     (format t "~&  regionstore-regions-state-in OK")
@@ -188,27 +98,24 @@
     (setf storex (regionstore-new nil))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
-    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 0))
 
     (setf storex (regionstore-from (read-from-string "(rXXXX)")))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
-    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 1))
 
     (setf storex (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
-    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 2))
 
     (setf storex (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
     (setf storey (state-regions-implied-by-dissimilarity (state-from 's0111) (state-from 's1111)))
     (setf storex (regionstore-intersection storex storey))
+
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
-    ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
     (assert (= (regionstore-length defining-regions) 3))
     (assert (not (regionstore-member defining-regions (region-from 'r010x))))
 

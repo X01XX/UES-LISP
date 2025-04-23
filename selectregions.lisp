@@ -60,17 +60,9 @@
   (if (not (listp sregslst))
     (return-from selectregions-list-p false))
 
-  (let (last-item)
-    (loop for sregsx in sregslst do
-      (if (not (selectregions-p sregsx))
-        (return-from selectregions-list-p false))
-
-      (if last-item
-        (if (not (regionscorr-congruent (selectregions-regionscorr sregsx) (selectregions-regionscorr last-item)))
-          (return-from selectregions-list-p false))
-        (setf last-item sregsx)
-      )
-    )
+  (loop for sregsx in sregslst do
+    (if (not (selectregions-p sregsx))
+      (return-from selectregions-list-p false))
   )
   true
 )

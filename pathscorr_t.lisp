@@ -4,11 +4,7 @@
   (format t "~&pathscorr-tests beginning")
 
   ; Test pathscorr-new.
-  (let (pathscorr1)
-    ; Test new, empty, pathscorr.
-    (setf pathscorr1 (pathscorr-new nil))
-    (assert (pathscorr-p pathscorr1))
-    (assert (pathscorr-is-empty pathscorr1))
+  (let (pathscorr1 (*domain-num-bits-list* (list 2 2)))
 
     ; Test new, non-empty, pathscorr.
     (setf pathscorr1 (pathscorr-new (list (regionscorr-new (list (region-from 'r01) (region-from 'r00))))))
@@ -19,7 +15,8 @@
   )
 
   ;; Basic logic.
-  (let (paths cur-regs next-regs last-int next-int)
+  (let (paths cur-regs next-regs last-int next-int (*domain-num-bits-list* (list 4)))
+
     (setf paths (pathscorr-new (list (regionscorr-new (list (region-from 'r0000)))
                                      (regionscorr-new (list (region-from 'r0x0x)))
                                      (regionscorr-new (list (region-from 'rx1x1)))
@@ -60,7 +57,7 @@
   )
 
   ; Test pathscorr-add-start.
-  (let (pathscorr1)
+  (let (pathscorr1 (*domain-num-bits-list* (list 2 2)))
     (setf pathscorr1 (pathscorr-new (list (regionscorr-new (list (region-from 'r0x) (region-from 'r0x))))))
     (pathscorr-add-start pathscorr1 (regionscorr-new (list (region-from 'r01) (region-from 'r01))))
     (assert (= (pathscorr-length pathscorr1) 2))
@@ -71,7 +68,7 @@
   )
 
   ; Test pathscorr-add-end.
-  (let (pathscorr1)
+  (let (pathscorr1 (*domain-num-bits-list* (list 2 2)))
     (setf pathscorr1 (pathscorr-new (list (regionscorr-new (list (region-from 'r01) (region-from 'r01))))))
     (pathscorr-add-end pathscorr1 (regionscorr-new (list (region-from 'r0x) (region-from 'r0x))))
     (assert (= (pathscorr-length pathscorr1) 2))

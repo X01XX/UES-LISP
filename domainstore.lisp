@@ -1,8 +1,9 @@
 ;;;; Implement a store of domains.
+;;;;
+;;;; There may be a diagnostic advantage to have domains with different numbers of bits.
 
 (defstruct domainstore
   domains   ; A list of zero, or more, domains with unique id values.
-  num-bits  ; A list of domain number bits used.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -25,7 +26,6 @@
 
   (make-domainstore
     :domains nil
-    :num-bits nil
   )
 )
 
@@ -41,7 +41,7 @@
   (setf (domainstore-domains storex)
      (append (domainstore-domains storex) (list domx)))
 
-  (setf (domainstore-num-bits storex) (domainstore-num-bits-list storex))
+  ;(setf (domainstore-num-bits storex) (domainstore-num-bits-list storex))
 )
 
 ;;; Return the number of domains in a domainstore.
@@ -104,28 +104,12 @@
   )
 )
 
-;;; Return true if a domainstore is congruent with a regionstorecorr.
-(defun domainstore-congruent (storex regionscorrx) ; -> bool
-  (assert (domainstore-p storex))
-  (assert (regionscorr-p regionscorrx))
-
-  (loop for domx in (domainstore-domains storex)
-        for regx in (regionscorr-region-list regionscorrx) do
-
-    (if (/= (domain-num-bits domx) (region-num-bits regx))
-      (return-from domainstore-congruent false))
-  )
-  true
-)
-
 ;;; Return plans to go from one regionscorr to another.
 (defun domainstore-get-plans (storex from-regs to-regs pathx) ; -> planscorrstore
   (assert (domainstore-p storex))
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
   (assert (pathscorr-p pathx))
-  (assert (domainstore-congruent storex from-regs))
-  (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
   ;(format t "~&domainstore-get-plans: from ~A to ~A within ~A" (regionscorr-str from-regs) (regionscorr-str to-regs) (pathscorr-str pathx))
 
@@ -158,8 +142,6 @@
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
   (assert (regionscorr-p within))
-  (assert (domainstore-congruent storex from-regs))
-  (assert (domainstore-congruent storex to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
 
   ;(if (not (regionscorr-superset-of :sup within :sub from-regs))
@@ -172,7 +154,7 @@
   ;)
   (assert (regionscorr-superset-of :sup within :sub to-regs))
 
-  (let ((ret-store (planscorr-new nil)) domx-plan)
+  (let (plans domx-plan)
 
     (loop for domx in (domainstore-domains storex)
           for from-regx in (regionscorr-region-list from-regs)
@@ -187,11 +169,11 @@
       (if (null domx-plan)
        (return-from domainstore-get-plan nil))
 
-      (planscorr-add-end ret-store domx-plan)
+      (push domx-plan plans)
     )
 
     ;(format t "~&domainstore-get-plan: returning ~A" (planscorr-str ret-store))
-    ret-store
+    (planscorr-new (planstore-new (reverse plans)))
   )
 )
 
@@ -280,11 +262,11 @@
 (defun domainstore-all-current-states (storex) ; -> StatesCorr
   (assert (domainstore-p storex))
 
-  (let ((ret (statescorr-new (statestore-new nil))))
+  (let (states)
     (loop for domx in (domainstore-domains storex) do
-      (statescorr-add-end ret (domain-current-state domx))
+      (push (domain-current-state domx) states)
     )
-    ret
+    (statescorr-new (statestore-new (reverse states)))
   )
 )
 
@@ -292,11 +274,11 @@
 (defun domainstore-all-current-regions (storex) ; -> RegionsCorr
   (assert (domainstore-p storex))
 
-  (let ((ret (regionscorr-new nil)))
+  (let (regs)
     (loop for domx in (domainstore-domains storex) do
-      (regionscorr-add-end ret (region-new (domain-current-state domx)))
+      (push (region-new (domain-current-state domx)) regs)
     )
-    ret
+    (regionscorr-new (regionstore-new (reverse regs)))
   )
 )
 
@@ -304,7 +286,6 @@
 (defun domainstore-set-states (storex stacrx) ; side-effect, domains changed.
   (assert (domainstore-p storex))
   (assert (statescorr-p stacrx))
-  (assert (statescorr-congruent stacrx (domainstore-all-current-states storex)))
 
   (loop for domx in (domainstore-domains storex)
         for stax in (statescorr-state-list stacrx) do

@@ -91,17 +91,27 @@
   (car (last (maskstore-masks storex)))
 )
 
-;;; Add mask to the end of a maskstore.
-(defun maskstore-add-end (storex plnx) ; -> nothing, side-effect maskstore changed.
-  (assert (maskstore-p storex))
-  (assert (mask-p plnx))
-
-  (setf (maskstore-masks storex) (append (maskstore-masks storex) (list plnx)))
-)
-
 ;;; Return a list of masks.
 (defun maskstore-mask-list (storex) ; -> list of masks.
   (assert (maskstore-p storex))
 
   (maskstore-masks storex)
 )
+
+;;; Return true if a maskstore is congruent, by mask number bits, with the domain list.
+(defun maskstore-congruent (maskstore1) ; -> bool
+  ;(format t "~&maskstore-congruent: rcx ~A dnbl: ~A" (maskstore-str maskstore1) *domain-num-bits-list*)
+  (assert (maskstore-p maskstore1))
+
+  (if (/= (maskstore-length maskstore1) (length *domain-num-bits-list*))
+    (return-from maskstore-congruent false))
+
+  (loop for stax in (maskstore-masks maskstore1)
+        for numx in *domain-num-bits-list* do
+
+    (if (/= (mask-num-bits stax) numx)
+      (return-from maskstore-congruent false))
+  )
+  true
+)
+

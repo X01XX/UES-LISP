@@ -38,7 +38,7 @@
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
 
-  (setf (regionscorrstore-regionscorrs storex) (append (regionscorrstore-regionscorrs storex) (list regx)))
+ (setf (regionscorrstore-regionscorrs storex) (append (regionscorrstore-regionscorrs storex) (list regx)))
 )
 
 ;;; Return a regionscorrstore, suppressing subsets.
@@ -129,7 +129,6 @@
   ;(format t "regionscorrstore-member storex ~A regx ~A" storex regx)
   (assert (regionscorrstore-p storex))
   (assert (regionscorr-p regx))
-  (assert (or (regionscorrstore-is-empty storex) (regionscorr-congruent (regionscorrstore-first-regionscorr storex) regx)))
 
   (member regx (regionscorrstore-regionscorrs storex) :test #'regionscorr-eq)
 )
@@ -194,7 +193,7 @@
 )
 
 ;;; Append two regionscorrstores.
-;;; Preserve order.
+;;; Preserv order.
 (defun regionscorrstore-append (store1 store2) ; -> regionscorrstore
   (assert (regionscorrstore-p store1))
   (assert (regionscorrstore-p store2))
@@ -214,7 +213,6 @@
   (assert (regionscorrstore-p store))
   (assert (regionscorr-p int-reg))
   (assert (regionscorr-p not-reg))
-  (assert (regionscorr-congruent int-reg not-reg))
 
   (loop for regx in (regionscorrstore-regionscorrs store) do
     (if (and (regionscorr-intersects regx int-reg) (not (regionscorr-intersects regx not-reg)))
@@ -234,7 +232,6 @@
   (assert (regionscorr-p left-reg))
   (assert (regionscorr-p right-reg))
   (assert (not (regionscorr-intersects left-reg right-reg)))
-  (assert (regionscorr-congruent left-reg right-reg))
 
   ;; No point without at least one intersection of the left region.
   (when (not (regionscorrstore-any-intersection pathscorr-options left-reg))
@@ -259,7 +256,6 @@
   (assert (regionscorrstore-p pathscorr-options))
   (assert (regionscorr-p left-reg))
   (assert (regionscorr-p right-reg))
-  (assert (regionscorr-congruent left-reg right-reg))
 
   ;; Check for the successful end of a search, or sub-search.
   ;; Look for one region that intersects both regions.

@@ -47,7 +47,7 @@
 
 ;;; Return a new pathscorr instance, from a regionscorr.
 (defun pathscorr-new (regions) ; -> pathscorr, or nil.
-  ;(format t "~&pathscorr-new: regions ~A" regions)
+  ;(format t "~&pathscorr-new: regions ~A" (type-of regions))
   (assert (regionscorr-list-p regions))
 
   (let (ret)

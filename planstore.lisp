@@ -25,14 +25,6 @@
   (make-planstore :plans plans)
 )
 
-;;; Add plan to the end of a planstore.
-(defun planstore-add-end (storex plnx) ; -> nothing, side-effect planstore changed.
-  (assert (planstore-p storex))
-  (assert (plan-p plnx))
-
-  (setf (planstore-plans storex) (append (planstore-plans storex) (list plnx)))
-)
-
 ;;; Return the number of plans in a planstore.
 (defun planstore-length (storex) ; -> number.
   (assert (planstore-p storex))
@@ -71,5 +63,22 @@
     )
     ret
   )
+)
+
+;;; Return true if a planstore is congruent, by plan number bits, with the domain list.
+(defun planstore-congruent (planstore1) ; -> bool
+  ;(format t "~&planstore-congruent: rcx ~A dnbl: ~A" (planstore-str planstore1) *domain-num-bits-list*)
+  (assert (planstore-p planstore1))
+
+  (if (/= (planstore-length planstore1) (length *domain-num-bits-list*))
+    (return-from planstore-congruent false))
+
+  (loop for plnx in (planstore-plans planstore1)
+        for numx in *domain-num-bits-list* do
+
+    (if (/= (plan-num-bits plnx) numx)
+      (return-from planstore-congruent false))
+  )
+  true
 )
 

@@ -19,11 +19,20 @@
 ;   (copy-regionscorr <instance>) copies a regionscorr instance.
 
 ;;; Return a new regionscorr instance, from a list of regions.
+;;; If this is tightly controlled, checking domain congruency of arguments to other functions is unneeded.
+;;; Don't use make-regionscorr anywhere else.
 (defun regionscorr-new (regions) ; -> regionscorr, or nil.
-  ;(format t "~&regionscorr-new: regions ~A" regions)
-  (assert (region-list-p regions))
+  (let (storex)
 
-  (make-regionscorr :regionstore (regionstore-new regions))
+    (cond ((listp regions) (setf storex (regionstore-new regions)))
+          ((regionstore-p regions) (setf storex regions))
+          (t (error "unexpected argument")))
+         
+    (assert (regionstore-congruent storex))
+
+    ;; Construct result.
+    (make-regionscorr :regionstore storex)
+  )
 )
 
 ;;; Return a list of regions from a regionscorr.
@@ -31,14 +40,6 @@
   (assert (regionscorr-p regionscorrx))
 
   (regionstore-regions (regionscorr-regionstore regionscorrx))
-)
-
-;;; Add region to the end of a regionscorr.
-(defun regionscorr-add-end (regionscorrx regx) ; -> nothing, side-effect regionscorr changed.
-  (assert (regionscorr-p regionscorrx))
-  (assert (region-p regx))
-
-  (regionstore-add-end (regionscorr-regionstore regionscorrx) regx)
 )
 
 ;;; Return the number of regions in a regionscorr.
@@ -75,7 +76,6 @@
 (defun regionscorr-intersects (regscorr1 regscorr2) ; -> bool
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
-  (assert (regionscorr-congruent regscorr1 regscorr2))
 
   (loop for reg1 in (regionscorr-region-list regscorr1)
         for reg2 in (regionscorr-region-list regscorr2) do
@@ -90,18 +90,17 @@
 (defun regionscorr-intersection (regscorr1 regscorr2) ; -> regionscorr, or nil.
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
-  (assert (regionscorr-congruent regscorr1 regscorr2))
 
-  (let ((ret (regionscorr-new nil)) regx)
+  (let (regs regx)
     (loop for reg1 in (regionscorr-region-list regscorr1)
           for reg2 in (regionscorr-region-list regscorr2) do
 
       (setf regx (region-intersection reg1 reg2))
       (if regx
-        (regionscorr-add-end ret regx)
+        (push regx regs)
         (return-from regionscorr-intersection nil))
    )
-   ret
+   (regionscorr-new (regionstore-new (reverse regs)))
   )
 )
 
@@ -109,15 +108,14 @@
 (defun regionscorr-union (regscorr1 regscorr2) ; -> regionscorr.
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
-  (assert (regionscorr-congruent regscorr1 regscorr2))
 
-  (let ((ret (regionscorr-new nil)))
+  (let (regs)
     (loop for reg1 in (regionscorr-region-list regscorr1)
           for reg2 in (regionscorr-region-list regscorr2) do
 
-       (regionscorr-add-end ret (region-union reg1 reg2))
+       (push (region-union reg1 reg2) regs)
     )
-    ret
+    (regionscorr-new (regionstore-new (reverse regs)))
   )
 )
 
@@ -126,7 +124,6 @@
   ;(format t "~&regionscorr-eq: ~A ~A" regscorr1 regscorr2)
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
-  (assert (regionscorr-congruent regscorr1 regscorr2))
 
   (loop for reg1 in (regionscorr-region-list regscorr1)
         for reg2 in (regionscorr-region-list regscorr2) do
@@ -140,7 +137,6 @@
 (defun regionscorr-ne (regscorr1 regscorr2) ; -> bool
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
-  (assert (regionscorr-congruent regscorr1 regscorr2))
 
   (not (regionscorr-eq regscorr1 regscorr2))
 )
@@ -150,7 +146,6 @@
   ;(format t "~&regionscorr-superset-of: sup ~A sub ~A" sup sub)
   (assert (regionscorr-p sub))
   (assert (regionscorr-p sup))
-  (assert (regionscorr-congruent sup sub))
 
   (loop for reg1 in (regionscorr-region-list sup)
         for reg2 in (regionscorr-region-list sub) do
@@ -165,7 +160,6 @@
   ;(format t "~&regionscorr-superset-of-states: ~A ~A" rcx scx)
   (assert (regionscorr-p rcx))
   (assert (statescorr-p scx))
-  (assert (regionscorr-congruent-states rcx scx))
 
   (loop for regx in (regionscorr-region-list rcx)
         for stax in (statescorr-state-list scx) do
@@ -180,7 +174,6 @@
   ;(format t "~&regionscorr-subtract: ~A ~A" min sub)
   (assert (regionscorr-p min))
   (assert (regionscorr-p sub))
-  (assert (regionscorr-congruent min sub))
 
   (if (not (regionscorr-intersects min sub))
     (return-from regionscorr-subtract (regionscorrstore-new (list min))))
@@ -188,7 +181,7 @@
   (if (regionscorr-superset-of :sub min :sup sub)
     (return-from regionscorr-subtract (regionscorrstore-new nil)))
 
-  (let (ret tmp-regs new-regs)
+  (let (ret tmp-regs regs)
 
     (loop for regx in (regionscorr-region-list  min)
           for regy in (regionscorr-region-list  sub)
@@ -200,18 +193,18 @@
       ; Produce a new regionscorr for each remainder region.
       (loop for regz in (regionstore-regions tmp-regs) do
 
-        (setf new-regs (regionscorr-new nil))
+        (setf regs nil)
 
         (loop for regw in (regionscorr-region-list min)
               for iny from 0 below (regionscorr-length min) do
 
           (if (= inx iny)
-            (regionscorr-add-end new-regs regz)
-            (regionscorr-add-end new-regs regw)
+            (push regz regs)
+            (push regw regs)
           )
         )
         ;; Save new regionscorr.
-        (push new-regs ret)
+        (push (regionscorr-new (regionstore-new (reverse regs))) ret)
       )
     )
     (regionscorrstore-new ret)
@@ -225,55 +218,11 @@
   (if (not (listp region-list))
     (return-from regionscorr-list-p false))
 
-  (let (first-item)
-    (loop for regx in region-list do
+  (loop for regx in region-list do
 
-      ;; Check item type.
-      (if (not (regionscorr-p regx))
-        (return-from regionscorr-list-p false))
-
-      ;; Check item characteristics.
-      (if first-item
-        (if (not (regionscorr-congruent regx first-item))
-          (return-from regionscorr-list-p false))
-        (setf first-item regx))
-    )
-    true
-  )
-)
-
-;;; Return true if two regionscorr have the same length and corresponding region-num-bits values.
-(defun regionscorr-congruent (regionscorr1 regionscorr2) ; -> bool
-  ;(format t "~&regionscorr-congruent: ~A ~A" regionscorr1 regionscorr2)
-  (assert (regionscorr-p regionscorr1))
-  (assert (regionscorr-p regionscorr2))
-
-  (if (/= (regionscorr-length regionscorr1) (regionscorr-length regionscorr2))
-    (return-from regionscorr-congruent false))
-
-  (loop for reg1 in (regionscorr-region-list regionscorr1)
-        for reg2 in (regionscorr-region-list regionscorr2) do
-
-    (if (/= (region-num-bits reg1) (region-num-bits reg2))
-      (return-from regionscorr-congruent false))
-  )
-  true
-)
-
-;;; Return true if a regionscorr and statescorr have the same length and corresponding num-bits values.
-(defun regionscorr-congruent-states (rcx scx) ; -> bool
-  ;(format t "~&regionscorr-congruent-states: ~A ~A" rcx scx)
-  (assert (regionscorr-p rcx))
-  (assert (statescorr-p scx))
-
-  (if (/= (regionscorr-length rcx) (statescorr-length scx))
-    (return-from regionscorr-congruent-states false))
-
-  (loop for regx in (regionscorr-region-list rcx)
-        for stax in (statescorr-state-list scx) do
-
-      (if (/= (region-num-bits regx) (state-num-bits stax))
-        (return-from regionscorr-congruent-states false))
+    ;; Check item type.
+    (if (not (regionscorr-p regx))
+      (return-from regionscorr-list-p false))
   )
   true
 )
@@ -348,7 +297,6 @@
 (defun regionscorr-translate-to (regionscorr1 regionscorr2) ; -> regionscorr
   (assert (regionscorr-p regionscorr1))
   (assert (regionscorr-p regionscorr2))
-  (assert (regionscorr-congruent regionscorr1 regionscorr2))
 
   (let ((to-ones (maskscorr-or
            (maskscorr-and (regionscorr-0-maskscorr regionscorr1) (regionscorr-1-maskscorr regionscorr2))
@@ -372,14 +320,13 @@
     (assert (eq (car symbols) 'RC))
     ;(format t "~&regionscorr-from: ~A" symbols)
 
-    (make-regionscorr :regionstore (regionstore-from (second symbols)))
+    (regionscorr-new (regionstore-from (second symbols)))
 )
 
 ;;; Return the distance between two regionscorrs.
 (defun regionscorr-distance (regscorr1 regscorr2) ; -> integer
   (assert (regionscorr-p regscorr1))
   (assert (regionscorr-p regscorr2))
-  (assert (regionscorr-congruent regscorr1 regscorr2))
 
   (let ((cnt 0))
     (loop for reg1 in (regionscorr-region-list regscorr1)

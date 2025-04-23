@@ -274,12 +274,16 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
+  ;; Regions can be equal, even though defined by different states.
+  ;; Check highest possible state.
   (if (not (state-eq (region-high-state reg1) (region-high-state reg2)))
     (return-from region-eq false))
 
+  ;; Check lowest possible state.
   (if (not (state-eq (region-low-state reg1) (region-low-state reg2)))
     (return-from region-eq false))
 
+  ;; Return a positive result.
   true
 )
 
@@ -290,6 +294,7 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
+  ;; Return result.
   (not (region-eq reg1 reg2))
 )
 
@@ -304,6 +309,7 @@
     (if (not (region-p regx))
       (return-from region-list-p false))
   )
+  ;; Return a positive result.
   true
 )
 
@@ -314,11 +320,14 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
+  ;; Check if regions intersect.  This is required, so it may be better to run this,
+  ;; than running region-intersects followed by region-intersection.
   (if (not (region-intersects reg1 reg2))
     (return-from region-intersection nil))
 
+  ;; Construct result.
   (region-new (list (state-new (state-and (region-high-state reg1) (region-high-state reg2)))
-                    (state-new (state-or  (region-low-state reg1) (region-low-state reg2)))))
+                    (state-new (state-or  (region-low-state reg1)  (region-low-state reg2)))))
 )
 
 ;;; Return the union of two regions.
@@ -328,6 +337,7 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
+  ;; Construct result.
   (region-new (list (state-new (state-or  (region-high-state reg1) (region-high-state reg2)))
                     (state-new (state-and (region-low-state reg1) (region-low-state reg2)))))
 )
@@ -339,6 +349,7 @@
   (assert (state-p stax))
   (assert (= (region-num-bits reg1) (state-num-bits stax)))
 
+  ;; Construct result.
   (region-new (list (state-new (state-or  (region-high-state reg1) stax))
                     (state-new (state-and (region-low-state reg1) stax))))
 )
@@ -348,7 +359,8 @@
   ;; Check argument.
   (assert (region-p regx))
 
-  (mask-new (value-eqv (state-value (region-first-state regx)) (state-value (region-second-state regx))))
+  ;; Construct result.
+  (state-eqv (region-first-state regx) (region-second-state regx))
 )
 
 ;;; Return a edge-difference mask of two regions.
@@ -358,8 +370,9 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-    (mask-new (value-and (mask-and (region-edge-mask reg1) (region-edge-mask reg2))
-                         (state-xor (region-first-state reg1) (region-first-state reg2))))
+  ;; Construct result.
+  (mask-new-and (mask-new-and (region-edge-mask reg1) (region-edge-mask reg2))
+                (mask-new (state-xor (region-first-state reg1) (region-first-state reg2))))
 )
 
 ;;; Return the distance between two regions.
@@ -369,6 +382,7 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
+  ;; Construct result.
   (mask-num-ones (region-edge-dif-mask reg1 reg2))
 )
 
@@ -379,7 +393,7 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  ; (format t "~&distance = ~D" (region-distance reg1 reg2))
+  ;; Carc result.
   (= (region-distance reg1 reg2) 0)
 )
 
@@ -390,9 +404,11 @@
   (assert (region-p sup))
   (assert (= (region-num-bits sub) (region-num-bits sup)))
 
+  ;; This is required, so it may be better to run this instead of running region-intersects followed by region-superset-of.
   (if (not (region-intersects sub sup))
     (return-from region-superset-of false))
 
+  ;; Calc result.
   (let ((subx (region-x-mask sub))
         (supx (region-x-mask sup)))
     (mask-superset-of :sup-mask supx :sub-mask subx)
@@ -406,8 +422,9 @@
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
-  (region-new (list (state-new (value-or (mask-value mskx) (state-value (region-high-state regx))))
-                    (state-new (value-or (mask-value mskx) (state-value (region-low-state regx))))))
+  ;; Calc result.
+  (region-new (list (state-new (mask-or mskx (region-high-state regx)))
+                    (state-new (mask-or mskx (region-low-state regx)))))
 )
 
 ;;; Return a region with edges of a mask set to zeros.
@@ -417,9 +434,10 @@
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
+  ;; Calc result.
   (let ((mskn (mask-new (mask-not mskx))))
-    (region-new (list (state-new (value-and (mask-value mskn) (state-value (region-high-state regx))))
-                      (state-new (value-and (mask-value mskn) (state-value (region-low-state regx))))))
+    (region-new (list (state-new (mask-and mskn (region-high-state regx)))
+                      (state-new (mask-and mskn (region-low-state regx)))))
   )
 )
 
@@ -430,9 +448,10 @@
   (assert (mask-p mskx))
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
+  ;; Calc result.
   (let ((mskn (mask-new (mask-not mskx))))
-    (region-new (list (state-new (value-or (mask-value mskx) (state-value (region-high-state regx))))
-                      (state-new (value-and (mask-value mskn) (state-value (region-low-state regx))))))
+    (region-new (list (state-new (mask-or  mskx (region-high-state regx)))
+                      (state-new (mask-and mskn (region-low-state regx)))))
   )
 )
 
@@ -443,21 +462,26 @@
   (assert (region-p sub-reg))
   (assert (= (region-num-bits min-reg) (region-num-bits sub-reg)))
 
+  ;; This is required, so it may be better to run this instead of running region-intersects followed by region-subtract.
   (if (not (region-intersects min-reg sub-reg))
     (return-from region-subtract (regionstore-new (list min-reg))))
 
+  ;; Check for nothing result.
   (if (region-superset-of :sup sub-reg :sub min-reg)
     (return-from region-subtract (regionstore-new nil)))
 
   (let ((ret (regionstore-new nil))
         (sub-bits (mask-split (mask-new-and (region-x-mask min-reg) (region-edge-mask sub-reg))))
        )
+    ;; Calc result.
+    ;; Copy and store the region, except, one position by one position, X over 0 becomes 1/0, X over 1 becomes 0/1.
     (loop for bitx in sub-bits do
-      (if (mask-is-low (mask-new-and bitx (mask-new (state-value (region-first-state sub-reg)))))
+      (if (mask-is-low (mask-new-and bitx (region-first-state sub-reg)))
         (regionstore-push-nosubs ret (region-set-to-ones min-reg bitx))
         (regionstore-push-nosubs ret (region-set-to-zeros min-reg bitx))
       )
     )
+    ;; Return result.
     ret
   )
 )
@@ -469,21 +493,26 @@
   (assert (state-p  stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
+  ;; This is required, so it may be better to run this instead of running region-superset-of followed by region-subtract-state.
   (if (not (region-superset-of-state regx stax))
     (return-from region-subtract-state (regionstore-new (list regx))))
 
+  ;; Check for nothing result.
   (if (and (= 1 (region-number-states regx)) (state-eq (region-first-state regx) stax))
     (return-from region-subtract-state (regionstore-new nil)))
 
   (let ((ret (regionstore-new nil))
         (sub-bits (mask-split (region-x-mask regx))))
 
+    ;; Calc result.
+    ;; Copy and store the region, except, one position by one position, X over 0 becomes 1/0, X over 1 becomes 0/1.
     (loop for bitx in sub-bits do
-      (if (mask-is-low (mask-new-and bitx (mask-new (state-value stax))))
+      (if (mask-is-low (mask-new-and bitx stax))
         (regionstore-push-nosubs ret (region-set-to-ones regx bitx))
         (regionstore-push-nosubs ret (region-set-to-zeros regx bitx))
       )
     )
+    ;; Return result.
     ret
   )
 )
@@ -495,9 +524,10 @@
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
-  (mask-num-ones (mask-new (value-and
-                  (state-xor (region-first-state regx) stax)
-                  (state-xor (region-second-state regx) stax))))
+  ;; Construct result.
+  (mask-num-ones (mask-new (state-and
+                  (state-new-xor (region-first-state regx) stax)
+                  (state-new-xor (region-second-state regx) stax))))
 )
 
 ;;; Return true if a region intersects a state.
@@ -507,7 +537,7 @@
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
-  ; (format t "~&distance = ~D" (region-distance reg1 reg2))
+  ;; Calc result.
   (= (region-distance-state regx stax) 0)
 )
 
@@ -519,6 +549,7 @@
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
+  ;; Calc result.
   (= (region-distance-state regx stax) 0)
 )
 
@@ -530,7 +561,8 @@
   (assert (= (region-num-bits regx) (state-num-bits stax)))
   (assert (region-intersects-state regx stax))
 
-  (state-new (state-xor stax (region-x-mask regx)))
+  ;; Calc result.
+  (state-new-xor stax (region-x-mask regx))
 )
 
 ;;; Return the far region for, opposite a given subregion, in a region.
@@ -542,9 +574,10 @@
   (assert (region-ne regx subx))
   (assert (region-superset-of :sup regx :sub subx))
 
-  (let ((msk (mask-new (mask-and (region-x-mask regx) (region-edge-mask subx)))))
-    (region-new (list (state-new (state-xor (region-first-state subx) msk))
-                      (state-new (state-xor (region-second-state subx) msk))))
+  ;; Calc result.
+  (let ((msk (mask-new-and (region-x-mask regx) (region-edge-mask subx))))
+    (region-new (list (state-new-xor (region-first-state subx) msk)
+                      (state-new-xor (region-second-state subx) msk)))
   )
 )
 
@@ -555,9 +588,6 @@
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
-  (loop for stay in (region-state-list regx) do
-    (if (state-eq stay stax)
-      (return-from region-state-needed true))
-  )
-  false
+  ;; Calc result.
+  (statestore-member (region-states regx) stax)
 )

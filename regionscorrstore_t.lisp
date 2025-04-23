@@ -3,7 +3,7 @@
   (format t "~&regionscorrstore-tests beginning")
 
   ; Test regionscorrstore-new.
-  (let (store1)
+  (let (store1 (*domain-num-bits-list* (list 2 2)))
 
     (setf store1 (regionscorrstore-new (list
      (regionscorr-new (list (region-from 'r0x) (region-from 'r10)))
@@ -16,7 +16,7 @@
   )
 
   ; Test regionscorrstore-subtract-regionscorr.
-  (let (store1 store2 store3)
+  (let (store1 store2 store3 (*domain-num-bits-list* (list 2 2)))
 
     (setf store1 (regionscorrstore-new (list (regionscorr-new (list
     (region-from 'rXX) (region-from 'rXX))))))
@@ -45,7 +45,7 @@
   )
 
   ; Test regionscorrstore-append.
-  (let (store1 store2 store3)
+  (let (store1 store2 store3 (*domain-num-bits-list* (list 2 2)))
     (setf store1 (regionscorrstore-new (list (regionscorr-new (list (region-from 'rX0) (region-from 'r00)))
                    (regionscorr-new (list (region-from 'rX0) (region-from 'r01))))))
     (setf store2 (regionscorrstore-new (list (regionscorr-new (list (region-from 'rX0) (region-from 'r01)))
@@ -61,7 +61,7 @@
   )
 
   ; Test regionscorrstore-find-path.
-  (let (path1 path2 path3)
+  (let (path1 path2 path3 (*domain-num-bits-list* (list 2 2)))
       ;; Calculate regions available to link together.
       (setf path1 (regionscorrstore-new (list (regionscorr-new (list (region-from 'rXX) (region-from 'rXX))))))
       (setf path2 (regionscorrstore-subtract-regionscorr path1
@@ -152,7 +152,7 @@
   )
 
   ; Test regionscorrstore-split-by-intersections.
-  (let (store1 store2)
+  (let (store1 store2 (*domain-num-bits-list* (list 4)))
     ;; Test three overlapping regions, with 0101 overlaped by all three.
     (setf store1 (regionscorrstore-new (list
       (regionscorr-new (list (region-from 'rX10X)))

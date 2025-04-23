@@ -299,8 +299,6 @@
 (defun state-new-or (sta1 sta2) ; -> state
   ;; Check arguments.
   (assert (state-p sta1))
-  (assert (state-p sta2))
-  (assert (= (state-num-bits sta1) (state-num-bits sta2)))
 
   ;; Construct result.
   (state-new (state-or sta1 sta2))
@@ -310,10 +308,28 @@
 (defun state-new-and (sta1 sta2) ; -> state
   ;; Check arguments.
   (assert (state-p sta1))
+
+  ;; Construct result.
+  (state-new (state-and sta1 sta2))
+)
+
+;;; Return a mask of matching bit positions of two states.
+(defun state-eqv (sta1 sta2) ; -> mask
+  ;; Check arguments.
+  (assert (state-p sta1))
   (assert (state-p sta2))
   (assert (= (state-num-bits sta1) (state-num-bits sta2)))
 
   ;; Construct result.
-  (state-new (state-and sta1 sta2))
+  (mask-new (value-eqv (state-value sta1) (state-value sta2)))
+)
+
+;;; Return a state from a state-xor operation.
+(defun state-new-xor (sta1 sta2) ; -> state
+  ;; Check arguments.
+  (assert (state-p sta1))
+
+  ;; Construct result.
+  (state-new (state-xor sta1 sta2))
 )
 

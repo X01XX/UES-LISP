@@ -18,10 +18,12 @@
 ;   (make-statescorr [:<field-name> <field-statescorr>]*), use statescorr-new instead.
 ;   (copy-statescorr <instance>) copies a statescorr instance.
 
-;;; Return a new statescorr instance, from a list of states.
+;;; Return a new statescorr instance, from a statestore.
+;;; If this is tightly controlled, checking domain congruency of arguments to other functions is unneeded.
+;;; Don't use make-statescorr anywhere else.
 (defun statescorr-new (store) ; -> statescorr, or nil.
-  ;(format t "~&statescorr-new: states ~A" store)
   (assert (statestore-p store))
+  (assert (statestore-congruent store))
 
   (make-statescorr :states store)
 )
@@ -29,14 +31,6 @@
 ;;; Return a list of states for the StatesCorr.
 (defun statescorr-state-list (scx) ; -> list of states.
   (statestore-states (statescorr-states scx))
-)
-
-;;; Add state to the end of a statescorr.
-(defun statescorr-add-end (scx stax) ; -> nothing, side-effect statescorr changed.
-  (assert (statescorr-p scx))
-  (assert (state-p stax))
-
-  (statestore-add-end (statescorr-states scx) stax)
 )
 
 ;;; Return the number of states in a statescorr.
@@ -74,7 +68,6 @@
   ;(format t "~&statescorr-eq: ~A ~A" scx1 scx2)
   (assert (statescorr-p scx1))
   (assert (statescorr-p scx2))
-  (assert (statescorr-congruent scx1 scx2))
 
   (loop for sta1 in (statescorr-state-list scx1)
         for sta2 in (statescorr-state-list scx2) do
@@ -88,27 +81,8 @@
 (defun statescorr-ne (stascorr1 stascorr2) ; -> bool
   (assert (statescorr-p stascorr1))
   (assert (statescorr-p stascorr2))
-  (assert (statescorr-congruent stascorr1 stascorr2))
 
   (not (statescorr-eq stascorr1 stascorr2))
-)
-
-;;; Return true if two statescorr have the same length and corresponding state-num-bits values.
-(defun statescorr-congruent (statescorr1 statescorr2) ; -> bool
-  ;(format t "~&statescorr-congruent: ~A ~A" statescorr1 statescorr2)
-  (assert (statescorr-p statescorr1))
-  (assert (statescorr-p statescorr2))
-
-  (if (/= (statescorr-length statescorr1) (statescorr-length statescorr2))
-    (return-from statescorr-congruent false))
-
-  (loop for sta1 in (statescorr-state-list statescorr1)
-        for sta2 in (statescorr-state-list statescorr2) do
-
-    (if (/= (state-num-bits sta1) (state-num-bits sta2))
-      (return-from statescorr-congruent false))
-  )
-  true
 )
 
 ;;; Translate a list of symbols into a statescorr instance.

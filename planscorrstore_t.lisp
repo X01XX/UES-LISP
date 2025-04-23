@@ -3,7 +3,7 @@
   (format t "~&planscorrstore-tests beginning")
 
   ; Test planscorrstore-new.
-  (let (store1 step1 step2 plan1 plan2 plnsc1)
+  (let (store1 step1 step2 plan1 plan2 plnsc1 (*domain-num-bits-list* (list 4 3)))
 
     ; Test empty planscorrstore.
     (setf store1 (planscorrstore-new nil))

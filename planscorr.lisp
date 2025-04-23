@@ -4,6 +4,8 @@
 ;;;; be run in parallel.
 
 ; Implement a store of corresponding plans.
+;;; If this is tightly controlled, checking domain congruency of arguments to other functions is unneeded.
+;;; Don't use make-planscorr anywhere else.
 (defstruct planscorr
   planstore  ; A planstore of zero, or more, plans.
 )
@@ -23,10 +25,18 @@
 
 ;;; Return a new planscorr instance, from a list of plans.
 (defun planscorr-new (plans) ; -> planscorr, or nil.
-  ;(format t "~&planscorr-new: plans ~A" plans)
-  (assert (plan-list-p plans))
+  ;(format t "~&planscorr-new: plans ~A" (type-of plans))
+  (let (storex)
 
-  (make-planscorr :planstore (planstore-new plans))
+    (cond ((listp plans) (setf storex (planstore-new plans)))
+          ((planstore-p plans) (setf storex plans))
+          (t (error "unexpected argument")))
+    
+    (assert (planstore-congruent storex))
+
+    ;; Construct result.
+    (make-planscorr :planstore storex)
+  )
 )
 
 ;;; Chegk if use of act 0 steps is valid.
@@ -61,29 +71,11 @@
   (planstore-plans (planscorr-planstore plnsc))
 )
 
-;;; Return true if two plans are congruent.
-(defun planscorr-congruent (plnsc1 plnsc2) ; -> bool
-  (assert (planscorr-p plnsc1))
-  (assert (planscorr-p plnsc2))
-
-  (if (/= (planscorr-length plnsc1) (planscorr-length plnsc2))
-    (return-from planscorr-congruent false))
-
-  (loop for plnx1 in (planscorr-plan-list plnsc1)
-        for plnx2 in (planscorr-plan-list plnsc2) do
-
-	(if (/= (plan-num-bits plnx1) (plan-num-bits plnx2))
-	  (return-from planscorr-congruent false))
-  )
-  true
-)
-
 ;;; Return true if two planscorrs are a sequence, that is
 ;;; The results of the first planscorr match the initial regions of the second.
 (defun planscorr-are-sequence (plnsc1 plnsc2) ; -> bool
   (assert (planscorr-p plnsc1))
   (assert (planscorr-p plnsc2))
-  (assert (planscorr-congruent plnsc1 plnsc2))
 
   (loop for plnx1 in (planscorr-plan-list plnsc1)
         for plnx2 in (planscorr-plan-list plnsc2) do
@@ -98,7 +90,6 @@
 (defun planscorr-can-be-linked (plnsc1 plnsc2) ; -> bool
   (assert (planscorr-p plnsc1))
   (assert (planscorr-p plnsc2))
-  (assert (planscorr-congruent plnsc1 plnsc2))
 
   (loop for plnx1 in (planscorr-plan-list plnsc1)
         for plnx2 in (planscorr-plan-list plnsc2) do
@@ -113,7 +104,6 @@
 (defun planscorr-link (plnsc1 plnsc2) ; -> (planscorr1', planscorr2'), nil.
   (assert (planscorr-p plnsc1))
   (assert (planscorr-p plnsc2))
-  (assert (planscorr-congruent plnsc1 plnsc2))
 
   (let (plans-list1 plans-list2 pln1 pln2)
 
@@ -140,11 +130,11 @@
 (defun planscorr-initial-regions (plnscr1) ; -> regionscorr
   (assert (planscorr-p plnscr1))
 
-  (let ((ret (regionscorr-new nil)))
+  (let (regs)
     (loop for plnx in (planscorr-plan-list plnscr1) do
-      (regionscorr-add-end ret (plan-initial-region plnx))
+      (push (plan-initial-region plnx) regs)
     )
-    ret
+    (regionscorr-new (regionstore-new (reverse regs)))
   )
 )
 
@@ -152,11 +142,11 @@
 (defun planscorr-result-regions (plnscr1) ; -> regionscorr
   (assert (planscorr-p plnscr1))
 
-  (let ((ret (regionscorr-new nil)))
+  (let (regs)
     (loop for plnx in (planscorr-plan-list plnscr1) do
-      (regionscorr-add-end ret (plan-result-region plnx))
+      (push (plan-result-region plnx) regs)
     )
-    ret
+    (regionscorr-new (regionstore-new (reverse regs)))
   )
 )
 
@@ -178,16 +168,7 @@
 (defun planscorr-is-linked-to (plnscr1 plnscr2) ; -> bool
   (assert (planscorr-p plnscr1))
   (assert (planscorr-p plnscr2))
-  (assert (planscorr-congruent plnscr1 plnscr2))
 
   (regionscorr-eq (planscorr-result-regions plnscr1) (planscorr-initial-regions plnscr2))
-)
-
-;;; Add plan to the end of a planscorr.
-(defun planscorr-add-end (planscorrx plnx) ; -> nothing, side-effect planscorr changed.
-  (assert (planscorr-p planscorrx))
-  (assert (plan-p plnx))
-
-  (planstore-add-end (planscorr-planstore planscorrx) plnx)
 )
 

@@ -196,11 +196,20 @@
   )
 )
 
-;;; Add state to the end of a statestore.
-(defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.
-  (assert (statestore-p storex))
-  (assert (state-p stax))
+;;; Return true if a statestore is congruent, by state number bits, with the domain list.
+(defun statestore-congruent (statestore1) ; -> bool
+  ;(format t "~&statestore-congruent: rcx ~A dnbl: ~A" (statestore-str statestore1) *domain-num-bits-list*)
+  (assert (statestore-p statestore1))
 
-  (setf (statestore-states storex) (append (statestore-states storex) (list stax)))
+  (if (/= (statestore-length statestore1) (length *domain-num-bits-list*))
+    (return-from statestore-congruent false))
+
+  (loop for stax in (statestore-states statestore1)
+        for numx in *domain-num-bits-list* do
+
+    (if (/= (state-num-bits stax) numx)
+      (return-from statestore-congruent false))
+  )
+  true
 )
 

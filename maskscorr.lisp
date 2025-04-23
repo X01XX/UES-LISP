@@ -19,11 +19,21 @@
 ;   (copy-maskscorr <instance>) copies a maskscorr instance.
 
 ;;; Return a new maskscorr instance, from a list of masks.
-(defun maskscorr-new (mask-list) ; -> maskscorr, or nil.
+;;; If this is tightly controlled, checking domain congruency of arguments to other functions is unneeded.
+;;; Don't use make-maskscorr anywhere else.
+(defun maskscorr-new (masks) ; -> maskscorr, or nil.
   ;(format t "~&maskscorr-new: masks ~A" masks)
-  (assert (mask-list-p mask-list))
+  (let (storex)
 
-  (make-maskscorr :maskstore (maskstore-new mask-list))
+    (cond ((listp masks) (setf storex (maskstore-new masks)))
+          ((maskstore-p masks) (setf storex masks))
+          (t (error "unexpected argument")))
+    
+    (assert (maskstore-congruent storex))
+
+    ;; Construct result.
+    (make-maskscorr :maskstore storex)
+  )
 )
 
 ;;; Return a list of masks from a maskscorr.
@@ -48,25 +58,11 @@
   (maskstore-length (maskscorr-maskstore mskscx))
 )
 
-;;; Return true is two maskscorr have similar format.
-(defun maskscorr-congruent (msksc1 msksc2) ; -> bool
-  (assert (maskscorr-p msksc1))
-  (assert (maskscorr-p msksc2))
-
-  (loop for msk1 in (maskscorr-mask-list msksc1)
-        for msk2 in (maskscorr-mask-list msksc2) do
-	  (if (/= (mask-num-bits msk1) (mask-num-bits msk2))
-	    (return-from maskscorr-congruent false))
-  )
-  true
-)
-
 ;;; Return true if two maskscorr are equal.
 (defun maskscorr-eq (msksc1 msksc2) ; -> bool
   ;(format t "~&maskscorr-eq: ~A ~A" msksc1 msksc2)
   (assert (maskscorr-p msksc1))
   (assert (maskscorr-p msksc2))
-  (assert (maskscorr-congruent msksc1 msksc2))
 
   (loop for msk1 in (maskscorr-mask-list msksc1)
         for msk2 in (maskscorr-mask-list msksc2) do
@@ -92,7 +88,6 @@
 (defun maskscorr-or (msksc1 msksc2) ; -> maskscorr.
   (assert (maskscorr-p msksc1))
   (assert (maskscorr-p msksc2))
-  (assert (maskscorr-congruent msksc1 msksc2))
 
   (let (mask-list)
     (loop for mskx in (maskscorr-mask-list msksc1)
@@ -108,7 +103,6 @@
 (defun maskscorr-and (msksc1 msksc2) ; -> maskscorr.
   (assert (maskscorr-p msksc1))
   (assert (maskscorr-p msksc2))
-  (assert (maskscorr-congruent msksc1 msksc2))
 
   (let (mask-list)
     (loop for mskx in (maskscorr-mask-list msksc1)
@@ -132,13 +126,5 @@
   (assert (maskscorr-p msksc1))
 
   (maskstore-last-mask (maskscorr-maskstore msksc1))
-)
-
-;;; Add a mask to the end of the mask list.
-(defun maskscorr-add-end (maskscorrx mskx) ; -> nothing, side-effect maskscorr changed.
-  (assert (maskscorr-p maskscorrx))
-  (assert (mask-p mskx))
-
-  (maskstore-add-end (maskscorr-masksstore maskscorrx) mskx)
 )
 
