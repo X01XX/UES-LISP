@@ -35,17 +35,19 @@
   (let (domx act1 plan)
     (setf domx (domain-from '(DOM (ACT ("[XX/XX/XX/Xx]")))))
 
-    (setf act1 (actionstore-nth (domain-actions domx) 1))
-    (action-take-sample-arbitrary act1 (state-from 's0000))
-    (action-take-sample-arbitrary act1 (state-from 's1111))
+    (let ((*dom-id* 0))
+      (setf act1 (actionstore-nth (domain-actions domx) 1))
+      (action-take-sample-arbitrary act1 (state-from 's0000))
+      (action-take-sample-arbitrary act1 (state-from 's1111))
 
-    (setf plan (domain-get-plan domx (rule-from-str "[XX/XX/XX/Xx]") (region-from 'rXXXX)))
-    (if plan
-      (progn
-        (format t "~&  plan: ~A" (plan-str plan))
-        (format t "~&  domain-get-plan1 OK")
+      (setf plan (domain-get-plan domx (rule-from-str "[XX/XX/XX/Xx]") (region-from 'rXXXX)))
+      (if plan
+        (progn
+          (format t "~&  plan: ~A" (plan-str plan))
+          (format t "~&  domain-get-plan1 OK")
+        )
+        (format t "~&  domain-get-plan1 Failed")
       )
-      (format t "~&  domain-get-plan1 Failed")
     )
   )
 

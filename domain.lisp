@@ -24,7 +24,7 @@
   (assert (state-p initial-state))
   (assert (and (integerp id) (>= id 0)))
 
-  (let (act0 high-state low-state sample1 sample2)
+  (let (act0 high-state low-state sample1 sample2 (*dom-id* id))
     ;; Create a no-op action as action 0.
     (setf high-state (state-new-high initial-state))
     (setf low-state (state-new-low initial-state))
@@ -89,7 +89,9 @@
   (assert (= (domain-num-bits domx) (rule-num-bits rule-from-to)))
   (assert (= (domain-num-bits domx) (region-num-bits within)))
 
-  (actionstore-get-steps (domain-actions domx) rule-from-to within no-alt)
+  (let  ((*dom-id* (domain-id domx)))
+    (actionstore-get-steps (domain-actions domx) rule-from-to within no-alt)
+  )
 )
 
 ;;; Return the number of bits used by a domain.
@@ -117,6 +119,7 @@
   (assert (region-superset-of :sup with-reg :sub (rule-result-region rule-from-to)))
 
   (let (plan
+       (*dom-id* (domain-id domx))
        (num-changes (rule-num-changes rule-from-to))) ; adjust depth limit by number chnages needed.
     (loop for i from 0 to 2
           while (null plan) do
@@ -296,7 +299,9 @@
   ;(format t "~&domain-get-needs: ~A" (type-of domx))
   (assert (domain-p domx))
 
-  (let ((needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-reachable domx))))
+  (let (needs (*dom-id* (domain-id domx)))
+
+    (setf needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-reachable domx)))
 
     (needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
 
@@ -328,8 +333,10 @@
   (assert (action-p actx))
   (assert (= (domain-num-bits domx) (action-num-bits actx)))
 
-  (action-set-id actx (actionstore-length (domain-actions domx)))
-  (actionstore-push (domain-actions domx) actx)
+  (let ((*dom-id* (domain-id domx)))
+    (action-set-id actx (actionstore-length (domain-actions domx)))
+    (actionstore-push (domain-actions domx) actx)
+  )
 )
 
 ;;; Return a domain instance, given a list of symbols.
@@ -370,8 +377,8 @@
   (if (zerop (step-act-id (plan-first-step planx)))
      (return-from domain-run-plan true))
 
-  (let (smpl)
-    (format t "~&Domain: ~D, running plan: ~A" (domain-id domx) (plan-str planx))
+  (let (smpl (*dom-id* (domain-id domx)))
+    (format t "~&Dom: ~D Running plan: ~A" (domain-id domx) (plan-str planx))
     (loop for stepx in (plan-step-list planx) do
 
       (when (> (step-act-id stepx) 0) ; Skip no change, other steps are expected to make a change.
@@ -381,7 +388,7 @@
 
             ;; Resample-on-no-change heuristic.
             (when (sample-no-change smpl)
-              (format t "~&step result unexpected, retrying.")
+              (format t "~&Dom: ~D Step ~A result ~A unexpected, retrying." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
               (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
             )
             (setf (domain-current-state domx) (sample-result smpl))
@@ -391,7 +398,7 @@
 
                 (when (region-superset-of-state (rule-result-region (step-alt-rule stepx)) (sample-result smpl))
 
-                  (format t "~&step ~A result unwanted, running alt plan." (step-str stepx))
+                  (format t "~&Dom: ~D step ~A result ~A unwanted, running alt plan." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
                   (if (domain-run-plan domx (step-alt-plan stepx))
                     (progn
                       (setf smpl (action-take-sample-for-step (actionstore-nth (domain-actions domx) (step-act-id stepx)) (domain-current-state domx)))
@@ -406,7 +413,7 @@
               )
 
               (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
-                (format t "~&step result unexpected.")
+                (format t "~&Dom: ~D Step ~A result ~A unexpected." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
                 (return-from domain-run-plan false)
               )
             )
@@ -429,7 +436,7 @@
    (assert (need-p needx))
    (assert (= (domain-id domx) (need-dom-id needx)))
 
-   (let ((act-id (need-act-id needx)) smpl)
+   (let ((act-id (need-act-id needx)) smpl  (*dom-id* (domain-id domx)))
       (if (plan-is-not-empty (need-plan needx))
         (domain-run-plan domx (need-plan needx))
       )
@@ -466,6 +473,27 @@
     (setf max-region (region-set-to-x max-region xmask))
 
     (regionstore-new (list max-region))
+  )
+)
+
+;;; Take an arbitrary sample, given act-id and state.
+(defun domain-take-sample-arbitrary (domx act-id state) ; -> ?
+  (assert (domain-p domx))
+  (assert (actionstore-valid-id act-id))
+  (assert (state-p state))
+
+  (let ((*dom-id* (domain-id domx)))
+    (action-take-sample-arbitrary (actionstore-nth (domain-actions domx) act-id) state)
+  )
+)
+
+;;; Take a sample for a need.
+(defun domain-take-sample-for-need (domx nedx) ; -> ?
+  (assert (domain-p domx))
+  (assert (need-p nedx))
+
+  (let ((*dom-id* (domain-id domx)))
+    (action-take-sample-for-need (actionstore-nth (domain-actions domx) (need-act-id nedx)) (domain-current-state domx) nedx)
   )
 )
 

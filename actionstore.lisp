@@ -145,3 +145,12 @@
   )
 )
 
+;;; Return true if an action id is within bounds.
+(defun actionstore-valid-id (storex id) ; -> bool
+  (assert (actionstore-p storex))
+  (assert (integerp id))
+  (assert (>= id 0))
+
+  (< id (actionstore-length storex))
+)
+

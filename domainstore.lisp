@@ -229,7 +229,7 @@
   ;(format t "~&domainstore-process-need: ~A ~A" (type-of dmxs) (type-of nedx))
   (assert (domainstore-p dmxs))
   (assert (need-p nedx))
-  (assert (< (need-dom-id nedx) (domainstore-length dmxs)))
+  (assert (domainstore-valid-id dmxs (need-dom-id nedx)))
 
   (if (planscorrstore-p (need-plan nedx))
     (let (smpl domx)
@@ -239,7 +239,8 @@
            (and (state-p (need-target nedx)) (state-eq (domain-current-state domx) (need-target nedx)))
            (and (region-p (need-target nedx)) (region-superset-of-state (need-target nedx) (domain-current-state domx)))
           )
-          (setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) (need-act-id nedx)) (domain-current-state domx) nedx))
+          ;(setf smpl (action-take-sample-for-need (actionstore-nth (domain-actions domx) (need-act-id nedx)) (domain-current-state domx) nedx))
+          (setf smpl (domain-take-sample-for-need domx nedx))
           (setf (domain-current-state domx) (sample-result smpl))
       )
     )
@@ -253,7 +254,7 @@
 (defun domainstore-nth (storex inx) ; -> domain instance, or nil.
   ;(format t "~&domainstore-nth: ~A ~A" (type-of storex) (type-of inx))
   (assert (domainstore-p storex))
-  (assert (and (integerp inx) (< inx (domainstore-length storex))))
+  (assert (and (integerp inx) (domainstore-valid-id storex inx)))
 
   (nth inx (domainstore-domains storex))
 )
@@ -324,5 +325,14 @@
     )
     (reverse lst)
   )
+)
+
+;;; Return true if an domain id is within bounds.
+(defun domainstore-valid-id (storex id) ; -> bool
+  (assert (domainstore-p storex))
+  (assert (integerp id))
+  (assert (>= id 0))
+
+  (< id (domainstore-length storex))
 )
 

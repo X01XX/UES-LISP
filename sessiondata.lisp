@@ -376,7 +376,7 @@
   (assert (< dom-id (sessiondata-num-domains sessx)))
   (assert (and (integerp act-id) (< act-id (sessiondata-num-actions sessx dom-id))))
 
-  (action-take-sample-arbitrary (actionstore-nth (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id) statex)
+  (domain-take-sample-arbitrary (domainstore-nth (sessiondata-domains sessx) dom-id) act-id statex)
 )
 
 ;;; Find a square, given a state.

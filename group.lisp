@@ -264,7 +264,7 @@
   (assert (bool-p pnc))
 
   (when (and (< (region-number-states (group-region grpx)) 3) (xor pnc (group-pnc grpx)))
-    (format t "~&group ~A pnc changed from ~A to ~A" (region-str (group-region grpx)) (group-pnc grpx) pnc)
+    (format t "~&Dom: ~D Act: ~D Group ~A pnc changed from ~A to ~A" *dom-id* *act-id* (region-str (group-region grpx)) (group-pnc grpx) pnc)
     (setf (group-pnc grpx) pnc)
     (return-from group-set-pnc )
   )
@@ -279,7 +279,7 @@
   (when (or (/= (region-number-states regx) (region-number-states (group-region grpx)))
             (state-ne (region-first-state regx) (region-first-state (group-region grpx))))
 
-    (format t "~&group ~A region changed from ~A to ~A" (region-str regx)
+    (format t "~&Dom: ~D Act: ~D group ~A region changed from ~A to ~A" *dom-id* *act-id* (region-str regx)
                                                         (statestore-str (region-states (group-region grpx)))
                                                         (statestore-str (region-states regx)))
     (setf (group-region grpx) regx)
