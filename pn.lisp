@@ -27,8 +27,8 @@
 (defun pn-str (pnx)
   (assert (pn-p pnx))
 
-  (if (eq pnx *pn-one*) "One "
-      (if (eq pnx *pn-two*) "Two "
+  (if (eq pnx *pn-one*) "One"
+      (if (eq pnx *pn-two*) "Two"
  	 (if (eq pnx *pn-none*) "None")))
 )
 

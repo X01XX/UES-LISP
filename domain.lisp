@@ -413,7 +413,7 @@
               )
 
               (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
-                (format t "~&Dom: ~D Step ~A result ~A unexpected." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
+                (format t "~&Dom: ~D Step ~A result ~A unexpected, plan failed." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
                 (return-from domain-run-plan false)
               )
             )

@@ -172,9 +172,16 @@
 
     (loop
       ;; Update cycle and needs, unless session just read in.
+      (format t "~& ~&Cycle: ~D --------------------------------------------" (sessiondata-cycle-num sessx))
+
+      (if (not just-read-in)
+        (sessiondata-inc-cycle-num sessx)
+      )
+
+      (sessiondata-print sessx)
+
       (if just-read-in
         (progn
-          ;(sessiondata-init sessx)
           (setf just-read-in nil)
         )
         (progn
@@ -183,8 +190,6 @@
         )
       )
 
-      (format t "~& ~&Cycle: ~D --------------------------------------------" (sessiondata-cycle-num sessx))
-      (sessiondata-print sessx)
       (display-needs sessx)
 
       (setf inp "")
@@ -193,6 +198,9 @@
         (format t "~& ~&Press Enter or type a command: ")
         (setf inp (read-line *STANDARD-INPUT*))
       )
+
+      (if (= run 1)
+        (format t "~& "))
 
       ; Parse tokens from the input string
       (setf tokens nil token nil)

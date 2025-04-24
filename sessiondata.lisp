@@ -70,7 +70,7 @@
 
   (let ((rate -20))
     (setf rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) (sessiondata-domain-current-regions sessx)))
-    (format t "~&Current states: ~A Status: ~A ~A" (statescorr-str (sessiondata-domain-current-states sessx))
+    (format t "~& ~&Current states: ~A Status: ~A ~A" (statescorr-str (sessiondata-domain-current-states sessx))
        (rate-effect rate) (rate-str rate))
     (if (plusp (sessiondata-num-cycles-at sessx))
       (format t ", boredom/satiation counter ~D" (sessiondata-num-cycles-at sessx)))
@@ -262,6 +262,7 @@
 (defun sessiondata-get-needs (sessx) ; -> (values can-do cant-do)
   (assert (sessiondata-p sessx))
 
+  (format t "~& ~&Getting needs.")
   (multiple-value-bind (needs can-do cant-do)
       (domainstore-get-needs (sessiondata-domains sessx))
       (setf (sessiondata-needs sessx) needs)

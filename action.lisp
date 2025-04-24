@@ -223,14 +223,6 @@
 
   (let ((needs (needstore-new nil)))
 
-   ;; Check for groups not supported by the logical structure.
-   (when (> (regionstore-length (action-logical-structure actx)) 1)
-      (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
-        (if (groupstore-is-not-empty invalidated-groups)
-          (action-process-invalidated-groups actx invalidated-groups))
-      )
-    )
-
     ;; Generate need for a cur-state that is not in a group.
     (when (not (groupstore-state-in-group (action-groups actx) cur-state))
       (let ((sqrx (squarestore-find (action-squares actx) cur-state)))
@@ -362,12 +354,20 @@
             )
   
             ;; Generate needs for each region.
-            (loop for regx in (regionstore-regions defining-regions) do
-              (setf needs (needstore-append needs (action-structure-group-needs actx regx)))
+            (loop for regy in (regionstore-regions defining-regions) do
+              (setf needs (needstore-append needs (action-structure-group-needs actx regy)))
             )
           ) ; next regx
-        )
-      )
+
+          ;; Check for groups not supported by the logical structure.
+          (when (> (regionstore-length (action-logical-structure actx)) 1)
+            (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
+              (if (groupstore-is-not-empty invalidated-groups)
+                (action-process-invalidated-groups actx invalidated-groups))
+            )
+          )
+        ) ; end progn
+      ) ; end if
     )
 
     (if (needstore-is-empty needs)
@@ -1453,7 +1453,6 @@
 ;; Cleanup unneeded squares
 (defun action-cleanup (actx) ; -> side effect some squares deleted.
   (assert (action-p actx))
-  (format t "~&Dom: ~D Act: ~D Cleanup" *dom-id* (action-id actx))
 
   (setf (action-cleanup-flag actx) false)
 
@@ -1464,18 +1463,16 @@
         (if (not (groupstore-state-needed (action-groups actx) (square-state sqrx)))
           (push sqrx del-sqrs)))
     )
-    (if (null del-sqrs)
-      (format t ", no squares found.")
-      (progn
+    (when del-sqrs
+      (format t "~&Dom: ~D Act: ~D Cleanup" *dom-id* (action-id actx))
       ;; Remove squares that are not needed.
-        (if (= 1 (length del-sqrs))
-          (format t ", 1 square found.")
-          (format t ", ~D squares found." (length del-sqrs))
-        )
-        (loop for sqrx in del-sqrs do
-          (format t "~&Dom: ~D Act: ~D Delete square ~A" *dom-id* (action-id actx) (state-str (square-state sqrx)))
-          (setf (action-squares actx) (squarestore-remove (action-squares actx) sqrx))
-        )
+      (if (= 1 (length del-sqrs))
+        (format t ", 1 square found.")
+        (format t ", ~D squares found." (length del-sqrs))
+      )
+      (loop for sqrx in del-sqrs do
+        (format t "~&Dom: ~D Act: ~D Delete square ~A" *dom-id* (action-id actx) (state-str (square-state sqrx)))
+        (setf (action-squares actx) (squarestore-remove (action-squares actx) sqrx))
       )
     )
   )
