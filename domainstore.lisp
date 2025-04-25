@@ -298,7 +298,7 @@
 ;;; Run a planscorrstore struct.
 ;;; Ruturn nil as soon as there is an unexpected result.
 ;;; Otherwise return true.
-(defun domainstore-run-plans (storex plans) ; bool, side-effect, domain current-states changed.
+(defun domainstore-run-plans (storex plans) ; -> bool, side-effect, domain current-states changed.
   (assert (domainstore-p storex))
   (assert (planscorrstore-p plans))
 

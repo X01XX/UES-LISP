@@ -22,7 +22,6 @@
 ;;; Return a new selectregions, made up of corresponding regions and a value.
 (defun selectregions-new (regions ratex) ; -> selectregions.
   (assert (regionscorr-p regions))
-  (assert (> (regionscorr-length regions) 0))
   (assert (rate-p ratex))
 
   (make-selectregions :regionscorr regions :rate ratex)
@@ -65,13 +64,6 @@
       (return-from selectregions-list-p false))
   )
   true
-)
-
-;;; Return the number of regions in seleectregions-regionscorr.
-(defun selectregions-length (sregsx) ; -> a number gt 0.
-  (assert (selectregions-p sregsx))
-
-  (regionscorr-length (selectregions-regionscorr sregsx))
 )
 
 ;;; Translate a list of symbols into a selectregions instance.

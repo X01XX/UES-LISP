@@ -19,7 +19,6 @@
     (setf sr1 (selectregions-from '(SR (RC (rx0xx1 rXXXX_XXX1_1XXX_XXXX)) (RT 2 0))))
     (assert (selectregions-p sr1))
     (assert (= (selectregions-net-value sr1) 2))
-    (assert (= (regionscorr-length (selectregions-regionscorr sr1)) 2))
 
     (format t "~&  selectregions-from OK")
   )

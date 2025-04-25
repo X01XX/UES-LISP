@@ -33,29 +33,6 @@
   (statestore-states (statescorr-states scx))
 )
 
-;;; Return the number of states in a statescorr.
-(defun statescorr-length (scx) ; -> number.
-  ;(format t "~&statescorr-length: ~A" (type-of scx))
-  (assert (statescorr-p scx))
-
-  (statestore-length (statescorr-states scx))
-)
-
-;;; Return true if a statescorr is empty.
-(defun statescorr-is-empty (scx) ; -> bool
-  ;(format t "~&statescorr-is-empty: arg ~A" (type-of scx))
-  (assert (statescorr-p scx))
-
-  (statestore-is-empty (statescorr-states scx))
-)
-
-;;; Return true if a statescorr is not empty.
-(defun statescorr-is-not-empty (scx) ; -> bool
-  (assert (statescorr-p scx))
-
-  (statestore-is-not-empty (statescorr-states scx))
-)
-
 ;;; Return a string representing a statescorr.
 (defun statescorr-str (scx) ; -> string.
   (assert (statescorr-p scx))

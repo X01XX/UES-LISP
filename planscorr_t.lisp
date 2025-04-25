@@ -12,22 +12,6 @@
     (format t "~&  planscorr-new OK")
   )
 
-  ;; Test planscorr-length.
-  (let (plnsc1 plan1 plan2 step1 step2 (*domain-num-bits-list* (list 4 2)))
-    (setf step1 (step-new 0 (rule-from "[00/XX/01/Xx]")))
-    (setf step2 (step-new 0 (rule-from "[01/XX/11/XX]")))
-    (setf plan1 (plan-new (list step1 step2)))
-
-    (setf step1 (step-new 0 (rule-from "[01/Xx]")))
-    (setf step2 (step-new 0 (rule-from "[11/XX]")))
-    (setf plan2 (plan-new (list step1 step2)))
-
-    (setf plnsc1 (planscorr-new (list plan1 plan2)))
-    (assert (= (planscorr-length plnsc1) 2))
-
-    (format t "~&  planscorr-length OK")
-  )
-
   ;; Test planscorr-congruent.
   (let (plnsc1 plnsc2 step1 plan1 plan2 (*domain-num-bits-list* (list 4 2)))
     (setf step1 (step-new 0 (rule-from "[00/XX/01/Xx]")))

@@ -57,13 +57,6 @@
   (format nil "PC~A" (planstore-str (planscorr-planstore plansc)))
 )
 
-;;; Return the number of plans in a planscorr.
-(defun planscorr-length (plnsc) ; -> integer ge 0.
-  (assert (planscorr-p plnsc))
-
-  (planstore-length (planscorr-planstore plnsc))
-)
-
 ;;; Return a plan list.
 (defun planscorr-plan-list (plnsc) ; -> plan list.
   (assert (planscorr-p plnsc))
