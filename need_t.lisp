@@ -1,5 +1,4 @@
-
-;;; Run tests.
+;;; Run need tests.
 (defun need-tests ()
   (format t "~&need-tests beginning")
 

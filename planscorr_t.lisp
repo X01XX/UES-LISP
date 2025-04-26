@@ -6,7 +6,7 @@
   ;; Test planscorr-new.
   (let (plncorr1 (*domain-num-bits-list* (list 2)))
     ; Test new, empty, planscorr.
-    (setf plncorr1 (planscorr-new (list (plan-new (list (step-new 1 (rule-from "[01/Xx]")))))))
+    (setf plncorr1 (planscorr-new (list (plan-new (list (step-new 1 (rule-from-str "[01/Xx]")))))))
     (assert (planscorr-p plncorr1))
 
     (format t "~&  planscorr-new OK")
@@ -14,18 +14,18 @@
 
   ;; Test planscorr-congruent.
   (let (plnsc1 plnsc2 step1 plan1 plan2 (*domain-num-bits-list* (list 4 2)))
-    (setf step1 (step-new 0 (rule-from "[00/XX/01/Xx]")))
+    (setf step1 (step-new 0 (rule-from-str "[00/XX/01/Xx]")))
     (setf plan1 (plan-new (list step1)))
 
-    (setf step1 (step-new 0 (rule-from "[01/Xx]")))
+    (setf step1 (step-new 0 (rule-from-str "[01/Xx]")))
     (setf plan2 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1 plan2)))
 
-    (setf step1 (step-new 0 (rule-from "[00/XX/01/Xx]")))
+    (setf step1 (step-new 0 (rule-from-str "[00/XX/01/Xx]")))
     (setf plan1 (plan-new (list step1)))
 
-    (setf step1 (step-new 0 (rule-from "[00/X1]")))
+    (setf step1 (step-new 0 (rule-from-str "[00/X1]")))
     (setf plan2 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1 plan2)))
@@ -35,13 +35,13 @@
 
   ;; Test planscorr-are-sequence.
   (let (plnsc1 plnsc2 step1 plan1 (*domain-num-bits-list* (list 4)))
-    (setf step1 (step-new 0 (rule-from "[00/11/01/XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[00/11/01/XX]")))
     (setf plan1 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1)))
     ;(format t "~&plnsc1 ~A" plnsc1)
 
-    (setf step1 (step-new 0 (rule-from "[01/11/11/XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[01/11/11/XX]")))
     (setf plan1 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1)))
@@ -55,13 +55,13 @@
 
   ;; Test planscorr-can-be-linked.
   (let (plnsc1 plnsc2 step1 plan1 (*domain-num-bits-list* (list 4)))
-    (setf step1 (step-new 0 (rule-from "[00/00/01/XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[00/00/01/XX]")))
     (setf plan1 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1)))
     ;(format t "~&plnsc1 ~A" plnsc1)
 
-    (setf step1 (step-new 0 (rule-from "[01/XX/11/00]")))
+    (setf step1 (step-new 0 (rule-from-str "[01/XX/11/00]")))
     (setf plan1 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1)))
@@ -76,13 +76,13 @@
   ;; Test planscorr-link.
   (let (plnsc1 plnsc2 step1 plan1 lnk plnsc1a plnsc2a (*domain-num-bits-list* (list 4)))
 
-    (setf step1 (step-new 0 (rule-from "[00/00/01/XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[00/00/01/XX]")))
     (setf plan1 (plan-new (list step1)))
 
     (setf plnsc1 (planscorr-new (list plan1)))
     ;(format t "~&plnsc1 ~A" plnsc1)
 
-    (setf step1 (step-new 0 (rule-from "[01/XX/11/00]")))
+    (setf step1 (step-new 0 (rule-from-str "[01/XX/11/00]")))
     (setf plan1 (plan-new (list step1)))
 
     (setf plnsc2 (planscorr-new (list plan1)))
@@ -95,10 +95,10 @@
     ;(format t "~&plnsc2a: ~A" plnsc2a)
     (assert (rule-eq
 		  (step-rule (car (plan-step-list (car (planscorr-plan-list plnsc1a)))))
-		  (rule-from "[00/00/01/00]")))
+		  (rule-from-str "[00/00/01/00]")))
     (assert (rule-eq
 		  (step-rule (car (plan-step-list (car (planscorr-plan-list plnsc2a)))))
-		  (rule-from "[01/00/11/00]")))
+		  (rule-from-str "[01/00/11/00]")))
 
     (setf lnk (planscorr-link plnsc2 plnsc1))
     ;(format t "~&lnk ~A" lnk)

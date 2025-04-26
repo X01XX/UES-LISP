@@ -170,6 +170,7 @@
   (assert (regionscorr-p sub))
 
   ;; Check for nothing to subtract.
+  ;; This is required, so it may be better to run this instead of running regionscorr-intersects followed by regionscorr-subtract.
   (if (not (regionscorr-intersects min sub))
     (return-from regionscorr-subtract (regionscorrstore-new (list min))))
 

@@ -2,7 +2,7 @@
 
 ;;; The statestore struct.
 (defstruct statestore
-  states  ; A list of zero, or more, non-duplicate, same number bits, states.
+  states  ; A list of zero, or more, states.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -20,46 +20,62 @@
 
 ;;; Return a new statestore, given a list of states.
 (defun statestore-new (states) ; -> statestore.
-  ;(format t "~&states ~A" states)
-  (assert (state-list-p states))
+  (let (listx)
+    ;; Check argument, convert a state to a state list.
+    (cond ((state-p states) (setf listx (list states)))
+          ((listp states) (setf listx states))
+          (t (error "unexpected argument")))
+        
+    (assert (state-list-p listx))
 
-  (make-statestore :states states)
+    ;; Construct results.
+    (make-statestore :states listx)
+  )
 )
 
 ;;; Push a new state into a statestore, suppress dups.
 (defun statestore-push (store state) ; -> nothing, side-effect statestore is changed.
+  ;; Check arguments.
   (assert (statestore-p store))
   (assert (state-p state))
 
+  ;; Add state.
   (if (not (statestore-member store state))
     (push state (statestore-states store)))
 )
 
 ;;; Return the number of states in a statestore.
 (defun statestore-length (storex) ; -> number.
+  ;; Check argument.
   (assert (statestore-p storex))
 
+  ;; Calc result.
   (length (statestore-states storex)))
 
 ;;; Return true if a statestore is empty.
 (defun statestore-is-empty (storex) ; -> bool
+  ;; Check argument.
   (assert (statestore-p storex))
 
+  ;; Calc result.
   (zerop (statestore-length storex))
 )
 
 ;;; Return true if a statestore is not empty.
 (defun statestore-is-not-empty (storex) ; -> bool
+  ;; Check argument.
   (assert (statestore-p storex))
 
+  ;; Calc result.
   (plusp (statestore-length storex))
 )
 
 ;;; Return a string representing a statestore.
 (defun statestore-str (storex) ; -> string.
-  ;(format t "~&statestore-str")
+  ;; Check argument.
   (assert (statestore-p storex))
 
+  ;; Construct result.
   (let ((ret "(") (start t))
 
     (loop for stax in (statestore-states storex) do
@@ -69,47 +85,52 @@
     )
     (setf ret (concatenate 'string ret ")"))
 
-    ret)
+    ;; Return result.
+    ret
+  )
 )
 
 ;;; Return true if a statestore contains a given state.
 (defun statestore-member (storex stax) ; -> bool
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (state-p stax))
+  (assert (statestore-same-num-bits storex))
+  (assert (or (statestore-is-empty storex)
+              (= (state-num-bits (car (statestore-states storex))) (state-num-bits stax))))
 
+  ;; Return result.
   (member stax (statestore-states storex) :test #'state-eq)
 )
 
 ;;; Return the first state of a non-empty statestore.
 (defun statestore-first-state (storex) ; -> state
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
 
+  ;; Return result.
   (car (statestore-states storex))
 )
 
 ;;; Return the last state of a non-empty statestore.
 (defun statestore-last-state (storex) ; -> state
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
 
+  ;; Return result.
   (car (last (statestore-states storex)))
-)
-
-;;; Return the number of bits used by states in a non-empty statestore.
-(defun statestore-num-bits (storex) ; -> number
-  (assert (statestore-p storex))
-  (assert (statestore-is-not-empty storex))
-
-  (state-num-bits (statestore-first-state storex))
 )
 
 ;;; Return an x-mask for states in a statestore.
 (defun statestore-x-mask (storex) ; -> mask
-  ;(format t "~&statestore-x-mask ~A" storex)
+  ;; Check argument.
   (assert (statestore-p storex))
   (assert (statestore-is-not-empty storex))
+  (assert (statestore-same-num-bits storex))
 
+  ;; Calc result.
   (let (ret (first-state (statestore-first-state storex)))
 
     (setf ret (value-new :num-bits (state-num-bits first-state) :bits 0))
@@ -117,33 +138,36 @@
     (loop for stax in (cdr (statestore-states storex)) do
        (setf ret (value-or ret (state-xor stax first-state)))
     )
+    ;; Return result.
     (mask-new ret)
   )
 )
 
 ;;; Return true if all states in a statestore use the same number of bits.
 (defun statestore-same-num-bits (storex) ; -> bool
+  ;; Check argument.
   (assert (statestore-p storex))
-  (assert (statestore-is-not-empty storex))
 
   (if (< (statestore-length storex) 2)
-    (return-from statestore-same-num-bits true))
+    (return-from statestore-same-num-bits true)) ; Return positive result.
 
   (let ((num-bits (state-num-bits (car (statestore-states storex)))))
     (loop for stax in (cdr (statestore-states storex)) do
       (if (/= (state-num-bits stax) num-bits)
-        (return-from statestore-same-num-bits false))
+        (return-from statestore-same-num-bits false)) ; Return negative result.
     )
+    ;; Return positive result.
     true
   )
 )
 
 ;;; Return a statestore with only states required to make a region.
 (defun statestore-remove-unneeded (storex) ; -> statestore.
+  ;; Check argument.
   (assert (statestore-p storex))
 
   (if (< (statestore-length storex) 3)
-    (return-from statestore-remove-unneeded storex))
+    (return-from statestore-remove-unneeded storex)) ; Return empty statestore.
 
   (let (options (targ-x (statestore-x-mask storex)) opt-x storey)
 
@@ -151,14 +175,21 @@
     ;; Return first successful combination.
     (loop for num from 2 below (statestore-length storex) do
 
+      ;; Get lists of different combinations of num states.
       (setf options (any-x-of-n num (statestore-states storex)))
+
+      ;; Check each option list.
       (loop for optx in options do
 
+        ;; Make statestore fron state list.
         (setf storey (statestore-new optx))
+
+        ;; Get statestore x-mask.
         (setf opt-x (statestore-x-mask storey))
 
+        ;; Check for an x-mask equal to what is needed.
         (if (mask-eq opt-x targ-x)
-          (return-from statestore-remove-unneeded storey))
+          (return-from statestore-remove-unneeded storey)) ; Return statestore with fewer states.
       )
     )
   )
@@ -167,49 +198,59 @@
 )
 
 ;;; Ruturn a statestore instance from a list of symbols.
+;;; Like (), (s101), (s1000 s1010)
 (defun statestore-from (symbols) ; -> statestore
-    ;(format t "~&statestore-from ~A" symbols)
-    (assert (listp symbols))
+  ;; Check argument.
+  (assert (listp symbols))
 
-    ;(assert (eq (car symbols) 'QUOTE))
-    ;(setf symbols (second symbols))
-
-    (let (states)
-        (loop for tokx in symbols do
-            ;(format t "~&statestore-from ~A ~A" (type-of tokx) tokx)
-            (push (state-from tokx) states)
-        )
-        (statestore-new (reverse states))
+  (let (states)
+    ;; Construct result.
+    (loop for tokx in symbols do
+        (push (state-from tokx) states)
     )
+    ;; Return result.
+    (statestore-new (reverse states))
+  )
 )
 
 ;;; Return two statestores combined, no dups.
 (defun statestore-append (storex storey) ; -> statestore
+  ;; Check arguments.
+  (assert (statestore-p storex))
+  (assert (statestore-p storey))
+
   (let ((ret (statestore-new nil)))
+
+    ;; Construct result.
     (loop for stax in (statestore-states storex) do
       (statestore-push ret stax)
     )
     (loop for stax in (statestore-states storey) do
       (statestore-push ret stax)
     )
+    ;; Return result.
     ret
   )
 )
 
 ;;; Return true if a statestore is congruent, by state number bits, with the domain list.
 (defun statestore-congruent (statestore1) ; -> bool
-  ;(format t "~&statestore-congruent: rcx ~A dnbl: ~A" (statestore-str statestore1) *domain-num-bits-list*)
+  ;; Check argument.
   (assert (statestore-p statestore1))
 
+  ;; Check length.
   (if (/= (statestore-length statestore1) (length *domain-num-bits-list*))
-    (return-from statestore-congruent false))
+    (return-from statestore-congruent false)) ; Return negative result.
 
+  ;; Check each state.
   (loop for stax in (statestore-states statestore1)
         for numx in *domain-num-bits-list* do
 
+    ;; Compare number bits.
     (if (/= (state-num-bits stax) numx)
-      (return-from statestore-congruent false))
+      (return-from statestore-congruent false)) ; Return negative result.
   )
+  ;; Return positive result.
   true
 )
 

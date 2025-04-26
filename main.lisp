@@ -30,16 +30,19 @@
 
 (load #p "state.lisp")
 (load #p "state_t.lisp")
+
 (load #p "statestore.lisp")
 (load #p "statestore_t.lisp")
 
 (load #p "mask.lisp")
 (load #p "mask_t.lisp")
+
 (load #p "maskstore.lisp")
 (load #p "maskstore_t.lisp")
 
 (load #p "region.lisp")
 (load #p "region_t.lisp")
+
 (load #p "regionstore.lisp")
 (load #p "regionstore_t.lisp")
 
@@ -54,16 +57,19 @@
 
 (load #p "group.lisp")
 (load #p "group_t.lisp")
+
 (load #p "groupstore.lisp")
 (load #p "groupstore_t.lisp")
 
 (load #p "action.lisp")
 (load #p "action_t.lisp")
+
 (load #p "actionstore.lisp")
 (load #p "actionstore_t.lisp")
 
 (load #p "step.lisp")
 (load #p "step_t.lisp")
+
 (load #p "stepstore.lisp")
 (load #p "stepstore_t.lisp")
 
@@ -74,7 +80,9 @@
 (load #p "domain_t.lisp")
 
 (load #p "anyxofn.lisp")
+
 (load #p "rate.lisp")
+(load #p "rate_t.lisp")
 
 (load #p "regionscorr.lisp")
 (load #p "regionscorr_t.lisp")
@@ -113,11 +121,16 @@
 
 (load #p "needstore.lisp")
 (load #p "needstore_t.lisp")
+
 (load #p "tools_t.lisp")
 
 (load #p "sessiondata.lisp")
+
 (load #p "statescorr.lisp")
+(load #p "statescorr_t.lisp")
+
 (load #p "squarestore.lisp")
+(load #p "squarestore_t.lisp")
 
 
 (defun main ()
@@ -676,6 +689,9 @@
   (planscorr-tests)
   (planscorrstore-tests)
   (tools-tests)
+  (rate-tests)
+  (squarestore-tests)
+  (statescorr-tests)
 
   (format t "~&All tests done")
   t

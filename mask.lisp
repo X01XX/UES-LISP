@@ -83,7 +83,7 @@
   (let (strx2)
 
     ;; Trim spaces.
-    (setf strx2 (string-left-trim '(#\Space) (string-right-trim '(#\Space) strx)))
+    (setf strx2 (string-left-trim '(#\Space #\Tab #\Newline) (string-right-trim '(#\Space #\Tab #\Newline) strx)))
 
     ;; Check prefix.
     (if (not (string-equal (subseq strx2 0 1) "m"))
@@ -101,6 +101,15 @@
 
   ;; Construct result.
   (mask-new (value-msb (mask-value msk)))
+)
+
+;;; Return a mask with the least significant bit set to one.
+(defun mask-lsb (msk) ; -> mask.
+  ;; Check argument.
+  (assert (mask-p msk))
+
+  ;; Construct result.
+  (mask-new (value-lsb (mask-value msk)))
 )
 
 ;;; Return a mask with bits shifted right by one bit.

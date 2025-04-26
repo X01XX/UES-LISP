@@ -85,7 +85,7 @@
   (assert (region-p regx))
 
   ;; Return result.
-  (statestore-num-bits (region-states regx))
+  (state-num-bits (statestore-first-state (region-states regx)))
 )
 
 ;;; Return the first state in a region.
@@ -239,7 +239,7 @@
        (state-first "s") (state-second "s")) ; Init string prefixs.
 
     ;; Trim spaces.
-    (setf strx2 (string-left-trim '(#\Space) (string-right-trim '(#\Space) strx)))
+    (setf strx2 (string-left-trim '(#\Space #\Tab #\Newline) (string-right-trim '(#\Space #\Tab #\Newline) strx)))
 
     ;; Check prefix.
     (if (not (string-equal (subseq strx2 0 1) "r"))

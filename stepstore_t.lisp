@@ -5,7 +5,7 @@
   ; Test stepstore-new.
   (let (store1 step1)
 
-    (setf step1 (step-new 0 (rule-from "[XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX]")))
 
     (setf store1 (stepstore-new (list step1)))
     (assert (stepstore-p store1))
@@ -17,10 +17,10 @@
 
   ; Test stepstore-intersection.
   (let (storex storey storez step1 step2 step3 step4)
-    (setf step1 (step-new 0 (rule-from "[XX]")))
-    (setf step2 (step-new 1 (rule-from "[XX]")))
-    (setf step3 (step-new 1 (rule-from "[XX]")))
-    (setf step4 (step-new 2 (rule-from "[XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX]")))
+    (setf step2 (step-new 1 (rule-from-str "[XX]")))
+    (setf step3 (step-new 1 (rule-from-str "[XX]")))
+    (setf step4 (step-new 2 (rule-from-str "[XX]")))
 
     (setf storex (stepstore-new (list step1 step2)))
     (setf storey (stepstore-new (list step3 step4)))
@@ -36,10 +36,10 @@
 
   ; Test stepstore-union.
   (let (storex storey storez step1 step2 step3 step4)
-    (setf step1 (step-new 0 (rule-from "[XX]")))
-    (setf step2 (step-new 1 (rule-from "[XX]")))
-    (setf step3 (step-new 1 (rule-from "[XX]")))
-    (setf step4 (step-new 2 (rule-from "[XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX]")))
+    (setf step2 (step-new 1 (rule-from-str "[XX]")))
+    (setf step3 (step-new 1 (rule-from-str "[XX]")))
+    (setf step4 (step-new 2 (rule-from-str "[XX]")))
 
     (setf storex (stepstore-new (list step1 step2)))
     (setf storey (stepstore-new (list step3 step4)))
@@ -57,10 +57,10 @@
 
   ; Test stepstore-difference.
   (let (storex storey storez step1 step2 step3 step4)
-    (setf step1 (step-new 0 (rule-from "[XX]")))
-    (setf step2 (step-new 1 (rule-from "[XX]")))
-    (setf step3 (step-new 1 (rule-from "[XX]")))
-    (setf step4 (step-new 2 (rule-from "[XX]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX]")))
+    (setf step2 (step-new 1 (rule-from-str "[XX]")))
+    (setf step3 (step-new 1 (rule-from-str "[XX]")))
+    (setf step4 (step-new 2 (rule-from-str "[XX]")))
 
     (setf storex (stepstore-new (list step1 step2)))
     (setf storey (stepstore-new (list step3 step4)))
@@ -75,9 +75,9 @@
 
   ; Test stepstore-initial-region-intersects.
   (let (storex storez step1 step2 step3)
-    (setf step1 (step-new 0 (rule-from "[XX/10/00/11]")))
-    (setf step2 (step-new 1 (rule-from "[XX/00/00/10]")))
-    (setf step3 (step-new 2 (rule-from "[XX/00/00/00]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX/10/00/11]")))
+    (setf step2 (step-new 1 (rule-from-str "[XX/00/00/10]")))
+    (setf step3 (step-new 2 (rule-from-str "[XX/00/00/00]")))
 
     (setf storex (stepstore-new (list step1 step2 step3)))
     (setf storez (stepstore-initial-region-intersects storex (region-from 'r10X1)))
@@ -90,9 +90,9 @@
 
   ; Test stepstore-result-region-intersects.
   (let (storex storez step1 step2 step3)
-    (setf step1 (step-new 0 (rule-from "[XX/10/00/11]")))
-    (setf step2 (step-new 1 (rule-from "[XX/00/00/10]")))
-    (setf step3 (step-new 2 (rule-from "[XX/00/00/00]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX/10/00/11]")))
+    (setf step2 (step-new 1 (rule-from-str "[XX/00/00/10]")))
+    (setf step3 (step-new 2 (rule-from-str "[XX/00/00/00]")))
 
     (setf storex (stepstore-new (list step1 step2 step3)))
     (setf storez (stepstore-result-region-intersects storex (region-from 'r10X1)))
@@ -105,9 +105,9 @@
 
   ; Test stepstore-aggregate-changes.
   (let (storex step1 step2 step3 cngx)
-    (setf step1 (step-new 0 (rule-from "[XX/10/01/11]")))
-    (setf step2 (step-new 1 (rule-from "[XX/00/00/10]")))
-    (setf step3 (step-new 2 (rule-from "[XX/01/00/00]")))
+    (setf step1 (step-new 0 (rule-from-str "[XX/10/01/11]")))
+    (setf step2 (step-new 1 (rule-from-str "[XX/00/00/10]")))
+    (setf step3 (step-new 2 (rule-from-str "[XX/01/00/00]")))
 
     (setf storex (stepstore-new (list step1 step2 step3)))
     (setf cngx (stepstore-aggregate-changes storex))

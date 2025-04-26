@@ -66,7 +66,7 @@
          strx2)         ; Work string.
 
     ;; Trim spaces.
-    (setf strx2 (string-left-trim '(#\Space) (string-right-trim '(#\Space) strx)))
+    (setf strx2 (string-left-trim '(#\Space #\Tab #\Newline) (string-right-trim '(#\Space #\Tab #\Newline) strx)))
 
     ;; Check for v prefix.
     (if (not (string-equal (subseq strx2 0 1) "v"))
@@ -255,6 +255,15 @@
 
   ;; Construct return value.
   (value-new :num-bits (value-num-bits val) :bits (expt 2 (1- (value-num-bits val))))
+)
+
+;;; Return a value with the least significant bit set to one.
+(defun value-lsb (val) ; -> value.
+  ;; Check argument.
+  (assert (value-p val))
+
+  ;; Construct return value.
+  (value-new :num-bits (value-num-bits val) :bits 1)
 )
 
 ;;; Return a value with bits shifted right by one bit.

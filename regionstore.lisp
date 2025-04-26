@@ -18,13 +18,19 @@
 ;   (make-regionstore [:<field-name> <field-regionstore>]*), use regionstore-new instead.
 ;   (copy-regionstore <instance>) copies a regionstore instance.
 
-;;; Return a new regionstore instance, from a list of regions.
+;;; Return a new regionstore instance, from a region, or a list of regions.
 (defun regionstore-new (regions) ; -> regionstore.
-  ;; Check argument.
-  (assert (region-list-p regions))
+  (let (listx)
+    ;; Check argument, convert a region to a region list.
+    (cond ((region-p regions) (setf listx (list regions)))
+          ((listp regions) (setf listx regions))
+          (t (error "unexpected argument")))
+    
+    (assert (region-list-p listx))
 
-  ;; Calc results.
-  (make-regionstore :regions regions)
+    ;; Construct results.
+    (make-regionstore :regions listx)
+  )
 )
 
 ;;; Push region into a regionstore.

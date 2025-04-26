@@ -75,7 +75,7 @@
   (let (strx2) ; working string.
 
     ;; Trim spaces.
-    (setf strx2 (string-left-trim '(#\Space) (string-right-trim '(#\Space) strx)))
+    (setf strx2 (string-left-trim '(#\Space #\Tab #\Newline) (string-right-trim '(#\Space #\Tab #\Newline) strx)))
 
     ;; Check for prefix.
     (if (not (string-equal (subseq strx2 0 1) "s"))

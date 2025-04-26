@@ -73,3 +73,6 @@
 (progn (format t "~& ") (compile-file "need_t.lisp"))
 (progn (format t "~& ") (compile-file "needstore_t.lisp"))
 (progn (format t "~& ") (compile-file "tools_t.lisp"))
+(progn (format t "~& ") (compile-file "rate_t.lisp"))
+(progn (format t "~& ") (compile-file "squarestore_t.lisp"))
+(progn (format t "~& ") (compile-file "statescorr_t.lisp"))

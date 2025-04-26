@@ -187,19 +187,28 @@
   (assert (groupstore-p groups))
   (assert (square-p sqrx))
 
-  (let ((ret (groupstore-new nil)) (stax (square-state sqrx)))
+  (let ((ret (groupstore-new nil)))
+
     (loop for grpx in (groupstore-groups groups) do
 
-      (if (region-superset-of-state (group-region grpx) stax)
-
-         (if (rulestore-invalidated-by-square (group-rules grpx) sqrx)
-             (groupstore-push ret grpx))
-
+      ;; Check if pn values match.
+      (if (pn-eq (square-pn sqrx) (group-pn grpx))
+        (progn
+          (if (pn-lt (square-pn sqrx) *pn-none*) ; if *pn-none*, it matches group, so OK.
+            ;; Compare rules for answer.
+            (if (not (rulestore-subset-of :sup (group-rules grpx) :sub (square-rules sqrx)))
+              (groupstore-push ret grpx)))
+        )
+        ;; else pn values do not match.
+        (progn
+          (if (square-pnc sqrx)
+              (groupstore-push ret grpx)
+              ; else, square is not *pn-none*, since that is automatically pnc.
+              (if (not (rulestore-subset-of :sup (group-rules grpx) :sub (square-rules sqrx)))
+                (groupstore-push ret grpx)))
+        )
       )
     ) ; next grpx
-    ;(if (groupstore-is-not-empty ret)
-    ;  (format t "~&groupstore-groups-invalidated-by-square: ~A returning ~A" (state-str (square-state sqrx)) (groupstore-str ret))
-    ;)
     ret
   )
 )
