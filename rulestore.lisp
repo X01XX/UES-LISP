@@ -224,7 +224,7 @@
   (when (= (rulestore-length storex) 1)
     (let (ret)
       (setf ret (rule-intersection (rulestore-first storex) (rulestore-first storey)))
-      (if (rule-is-valid-intersection ret)
+      (if (rule-p ret)
         (return-from rulestore-intersection (rulestore-new (list ret)))
         (return-from rulestore-intersection nil))
     )
@@ -237,7 +237,7 @@
       (setf rul1 (rule-intersection (rulestore-first storex) (rulestore-first storey)))
       (setf rul2 (rule-intersection (rulestore-second storex) (rulestore-second storey)))
 
-      (when (and (rule-is-valid-intersection rul1) (rule-is-valid-intersection rul2))
+      (when (and (rule-p rul1) (rule-p rul2))
           (return-from rulestore-intersection (rulestore-new (list rul1 rul2))) ; Return intersection.
       )
 
@@ -245,7 +245,7 @@
       (setf rul1 (rule-intersection (rulestore-first storex) (rulestore-second storey)))
       (setf rul2 (rule-intersection (rulestore-second storex) (rulestore-first storey)))
 
-      (when (and (rule-is-valid-intersection rul1) (rule-is-valid-intersection rul2))
+      (when (and (rule-p rul1) (rule-p rul2))
           (return-from rulestore-intersection (rulestore-new (list rul1 rul2))) ; Return intersection.
       )
     )
