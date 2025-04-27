@@ -354,8 +354,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (regionstore-p storey))
-  (assert (regionstore-same-num-bits storex))
-  (assert (regionstore-same-num-bits storey))
   (assert (or (regionstore-is-empty storex)
               (regionstore-is-empty storey)
               (= (regionstore-num-bits storex) (regionstore-num-bits storey))))
@@ -368,6 +366,29 @@
 
     (loop for regy in (regionstore-regions storey) do
       (regionstore-push-nosubs ret regy)
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Append two regionstores.
+(defun regionstore-append (storex storey) ; -> RegionStore.
+  ;; Check arguments.
+  (assert (regionstore-p storex))
+  (assert (regionstore-p storey))
+  (assert (or (regionstore-is-empty storex)
+              (regionstore-is-empty storey)
+              (= (regionstore-num-bits storex) (regionstore-num-bits storey))))
+
+  (let ((ret (regionstore-new nil)))
+
+    (loop for regx in (regionstore-regions storex) do
+      (regionstore-push ret regx)
+    )
+
+    (loop for regy in (regionstore-regions storey) do
+      (regionstore-push ret regy)
     )
     ;; Return result.
     ret
@@ -463,7 +484,7 @@
 )
 
 ;;; Return true if all regions in a regionstore use the same number of bits.
-(defun regionstore-same-num-bits (storex) ; -> bool                                                                                    
+(defun regionstore-same-num-bits (storex) ; -> bool
   (assert (regionstore-p storex))
 
   (if (< (regionstore-length storex) 2)

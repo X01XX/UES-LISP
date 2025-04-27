@@ -165,6 +165,7 @@
 (defun statestore-remove-unneeded (storex) ; -> statestore.
   ;; Check argument.
   (assert (statestore-p storex))
+  (assert (statestore-same-num-bits storex))
 
   (if (< (statestore-length storex) 3)
     (return-from statestore-remove-unneeded storex)) ; Return empty statestore.
@@ -218,6 +219,9 @@
   ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-p storey))
+  (assert (or (statestore-is-empty storex)
+              (statestore-is-empty storey)
+              (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
   (let ((ret (statestore-new nil)))
 
@@ -252,5 +256,16 @@
   )
   ;; Return positive result.
   true
+)
+
+;;; Return the number of bits used by states in a non-empty statestore.
+(defun statestore-num-bits (storex) ; -> number
+  ;; Check arguments.
+  (assert (statestore-p storex))
+  (assert (statestore-is-not-empty storex))
+  (assert (statestore-same-num-bits storex))
+
+  ;; Return result.
+  (state-num-bits (statestore-first-state storex))
 )
 

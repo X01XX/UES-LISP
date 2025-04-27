@@ -62,14 +62,101 @@
   )
 
   ; Test rule-union.
-  (let (rulx rul1 rul2)
+  (let (rul1 rul2 rul3)
+    ;; There are 8 possible bit-position values,                                                                                                    
+    ;; Since order does not matter, there are 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 = 36 combinations.
 
-    ; Init rules.
-    (setf rul1 (rule-from-str "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
-    (setf rul2 (rule-from-str "[00/11/10_01/11/10_11/00/01_10/00/01_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
+    ;; Test 20 combinations that should work.
+    (setf rul1 (rule-from-str                 "[00/00/00/00/00_01/01/01/01/01_11/11/11_10/10/10_Xx_XX_X0_X1]"))
+    (setf rul2 (rule-from-str                 "[00/11/10/XX/X0_01/11/10/Xx/X1_11/XX/X1_10/Xx/X0_Xx_XX_X0_X1]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (rule-p rul3))
+    (assert (rule-eq rul3 (rule-from-str      "[00/XX/X0/XX/X0_01/X1/Xx/Xx/X1_11/XX/X1_10/Xx/X0_Xx_XX_X0_X1]")))
 
-    (setf rulx (rule-union rul1 rul2))
-    (assert (and (rule-p rulx) (rule-eq rulx (rule-from-str "[00/XX/X0_01/X1/Xx_11/XX/X1_10/X0/Xx_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))))
+    ;; Combinations that should fail union, 16.
+    ;; For example, union Xx (10, 01) and X1 (11, 01), contains more than two items (10, 11, 01). 1X is disallowed, as is 0X.
+    ;; [00/00/00_01/01_11/11/11_10/10_Xx/Xx/Xx_XX/XX_X0]
+    ;; [01/Xx/X1_XX/X0_10/Xx/X0_XX/X1_XX/X0/X1_X0/X1_X1]
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[01]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[Xx]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[XX]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[X0]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[10]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[Xx]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[X0]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[10]"))
+    (setf rul2 (rule-from-str "[XX]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[10]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[Xx]"))
+    (setf rul2 (rule-from-str "[XX]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[Xx]"))
+    (setf rul2 (rule-from-str "[X0]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[Xx]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[XX]"))
+    (setf rul2 (rule-from-str "[X0]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[XX]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[X0]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-union rul1 rul2))
+    (assert (null rul3))
 
     (format t "~&  rule-union OK")
   )
@@ -99,16 +186,101 @@
   )
 
   ; Test rule-intersection.
-  (let (rulx rul1 rul2)
+  (let (rul1 rul2 rul3)
+    ;; There are 8 possible bit-position values,                                                                                                    
+    ;; Since order does not matter, there are 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 = 36 combinations.
 
-    ; Init rules.
-    (setf rul1 (rule-from-str "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
-    (setf rul2 (rule-from-str "[00/XX/X0_01/Xx/X1_11/XX/X1_10/X0/Xx_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
+    ;; Test 20 combinations that should work.
+    (setf rul1 (rule-from-str                 "[00/00/00_01/01/01_11/11/11_10/10/10_Xx/Xx/Xx_XX/XX/XX_X0_X1]"))
+    (setf rul2 (rule-from-str                 "[00/XX/X0_01/Xx/X1_11/XX/X1_10/Xx/X0_Xx/X0/X1_XX/X0/X1_X0_X1]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (rule-p rul3))
+    (assert (rule-eq rul3 (rule-from-str      "[00/00/00_01/01/01_11/11/11_10/10/10_Xx/10/01_XX/00/11_X0_X1]")))
 
-    ; Test good intersection.
-    (setf rulx (rule-intersection rul1 rul2))
-    ;(format t "~&rul ~A" (rule-str rul))
-    (assert (and (rule-p rulx) (rule-eq rulx (rule-from-str "[00/00/00_01/01/01_11/11/11_10/10/10_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))))
+    ;; Combinations that should fail intersection, 16.
+    ;; For example, Xx (10, 01) has no intersection with XX (00, 11).
+    ;; [00/00/00/00/00_01/01/01/01_11/11/11_10/10_Xx_X0]
+    ;; [01/11/10/Xx/X1_11/10/XX/X0_10/Xx/X0_XX/X1_XX_X1]
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[01]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[11]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[10]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[Xx]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[00]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[11]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[10]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[XX]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[01]"))
+    (setf rul2 (rule-from-str "[X0]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[10]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[Xx]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[11]"))
+    (setf rul2 (rule-from-str "[X0]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[10]"))
+    (setf rul2 (rule-from-str "[XX]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[10]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[Xx]"))
+    (setf rul2 (rule-from-str "[XX]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
+
+    (setf rul1 (rule-from-str "[X0]"))
+    (setf rul2 (rule-from-str "[X1]"))
+    (setf rul3 (rule-intersection rul1 rul2))
+    (assert (null rul3))
 
     (format t "~&  rule-intersection OK")
   )
