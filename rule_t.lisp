@@ -161,26 +161,79 @@
     (format t "~&  rule-union OK")
   )
 
-  ; Test rule-is-valid-union.
-  (let (rulx rul1 rul2 boolx)
+  ;; Test rule-is-valid-union.
+  ;; That is, no 0->X or 1->X positions.
+  ;; Note zero one bits set is the hallmark of an invalid intersection, but passes the
+  ;; valid union test.
+  (let (rul1)
 
-    ; Test invalid unions.
-    (setf rul1 (rule-from-str "[00]"))
-    (setf rul2 (rule-from-str "[01]"))
-    (setf rulx (rule-union rul1 rul2))
-    (assert (null rulx))
-    (assert (and (bool-p boolx) (null boolx)))
+    ; The vertical column of 4 bit positions can be treated as a 4-bit number, so 16 different patterns.
 
-    (setf rul1 (rule-from-str "[11]"))
-    (setf rul2 (rule-from-str "[10]"))
-    (setf rulx (rule-union rul1 rul2))
-    (assert (null rulx))
+    ; Test valid unions.                    01245689A = 9 bit patterns.
+    (setf rul1 (make-rule :m00 (mask-from 'm000000111)
+                          :m01 (mask-from 'm000111000)
+                          :m11 (mask-from 'm001001001)
+                          :m10 (mask-from 'm010010010)))
+               
+    (assert (rule-is-valid-union  rul1))
 
-    ; Test valid unions.
-    (setf rul1 (rule-from-str "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
-    (setf rul2 (rule-from-str "[00/XX/X0_01/Xx/X1_11/XX/X1_10/X0/Xx_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
-    (setf rulx (rule-union rul1 rul2))
-    (assert (rule-p rulx))
+    ; Test invalid unions.                  37BCDEF = 7 bit patterns.
+
+    ; Test invalid union.                   3
+    (setf rul1 (make-rule :m00 (mask-from 'm0)
+                          :m01 (mask-from 'm0)
+                          :m11 (mask-from 'm1)
+                          :m10 (mask-from 'm1)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
+
+    ; Test invalid union.                   7
+    (setf rul1 (make-rule :m00 (mask-from 'm0)
+                          :m01 (mask-from 'm1)
+                          :m11 (mask-from 'm1)
+                          :m10 (mask-from 'm1)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
+
+    ; Test invalid union.                   B
+    (setf rul1 (make-rule :m00 (mask-from 'm1)
+                          :m01 (mask-from 'm0)
+                          :m11 (mask-from 'm1)
+                          :m10 (mask-from 'm1)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
+
+    ; Test invalid union.                   C
+    (setf rul1 (make-rule :m00 (mask-from 'm1)
+                          :m01 (mask-from 'm1)
+                          :m11 (mask-from 'm0)
+                          :m10 (mask-from 'm0)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
+
+    ; Test invalid union.                   D
+    (setf rul1 (make-rule :m00 (mask-from 'm1)
+                          :m01 (mask-from 'm1)
+                          :m11 (mask-from 'm0)
+                          :m10 (mask-from 'm1)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
+
+    ; Test invalid union.                   E
+    (setf rul1 (make-rule :m00 (mask-from 'm1)
+                          :m01 (mask-from 'm1)
+                          :m11 (mask-from 'm1)
+                          :m10 (mask-from 'm0)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
+
+    ; Test invalid union.                   F
+    (setf rul1 (make-rule :m00 (mask-from 'm1)
+                          :m01 (mask-from 'm1)
+                          :m11 (mask-from 'm1)
+                          :m10 (mask-from 'm1)))
+               
+    (assert (not (rule-is-valid-union  rul1)))
 
     (format t "~&  rule-is-valid-union OK")
   )
@@ -285,26 +338,27 @@
     (format t "~&  rule-intersection OK")
   )
 
-  ; Test rule-is-valid-intersection.
-  (let (rulx rul1 rul2 boolx)
+  ;; Test rule-is-valid-intersection, that is, no column of four zeros.
+  ;; Note: 37BCDEF are invalid unions, but pass the valid intersection test.
+  (let (rul1)
 
-    ; Test invalid intersections.
-    (setf rul1 (rule-from-str "[10]"))
-    (setf rul2 (rule-from-str "[X1]"))
-    (setf rulx (rule-intersection rul1 rul2))
-    (assert (null rulx))
-    (assert (and (bool-p boolx) (null boolx)))
+    ; The vertical column of 4 bit positions can be treated as a 4-bit number, so 16 different patterns.
 
-    (setf rul1 (rule-from-str "[11]"))
-    (setf rul2 (rule-from-str "[X0]"))
-    (setf rulx (rule-intersection rul1 rul2))
-    (assert (null rulx))
+    ; Test valid intersections.             123456789ABCDEF, 15 patterns.
+    (setf rul1 (make-rule :m00 (mask-from 'm000000011111111)
+                          :m01 (mask-from 'm000111100001111)
+                          :m11 (mask-from 'm011001100110011)
+                          :m10 (mask-from 'm101010101010101)))
+               
+    (assert (rule-is-valid-intersection  rul1))
 
-    ; Test valid intersections.
-    (setf rul1 (rule-from-str "[00/00/00_01/01/01_11/11/11_10/10/10_X0/X0/X0_X1/X1/X1_XX/XX/XX_Xx/Xx/Xx]"))
-    (setf rul2 (rule-from-str "[00/XX/X0_01/Xx/X1_11/XX/X1_10/X0/Xx_X0/00/10_X1/11/01_XX/00/11_Xx/01/10]"))
-    (setf rulx (rule-intersection rul1 rul2))
-    (assert (rule-p rulx))
+    ; Test invalid union.                   0
+    (setf rul1 (make-rule :m00 (mask-from 'm0)
+                          :m01 (mask-from 'm0)
+                          :m11 (mask-from 'm0)
+                          :m10 (mask-from 'm0)))
+               
+    (assert (not (rule-is-valid-intersection  rul1)))
 
     (format t "~&  rule-is-valid-intersection OK")
   )

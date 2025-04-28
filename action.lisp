@@ -648,21 +648,15 @@
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (critical-non-adj-pairs (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
         (logical-structure reachable)               ; Best guess for logical structure.
+        max-region                                  ; Region formed by the union of all sampled squares.
         max-regionstore                             ; A Regionstore of one region.
-        (needs (needstore-new nil)))                ; Needstore for adjacent incompatible squares to return.
+        (needs (needstore-new nil))                 ; Needstore for adjacent incompatible squares to return.
+        (sqrs (squarestore-squares (action-squares actx)))) ; All squares sampled so far.
 
-    (let ((sqrs (squarestore-squares (action-squares actx))) sqr-y max-region)
+    (let (sqr-y)
 
       (when (< (length sqrs) 2)
         (return-from action-structure-needs needs))
-
-      ;; Calc the max region.
-      (setf max-region (region-new (square-state (car sqrs))))
-      (loop for sqrx in (cdr sqrs) do
-        (if (not (region-superset-of-state max-region (square-state sqrx)))
-          (setf max-region (region-union-state max-region (square-state sqrx))))
-      )
-      (setf max-regionstore (regionstore-new (list max-region)))
 
       ;; Check each pair of squares.
       ;; Store incompatible pairs, with no incompatible pairs between them.
@@ -704,6 +698,14 @@
         (regionstore-push adj-pairs prx)
         (regionstore-push non-adj-pairs prx))
     )
+
+    ;; Calc the max region.
+    (setf max-region (region-new (square-state (car sqrs))))
+    (loop for sqrx in (cdr sqrs) do
+      (if (not (region-superset-of-state max-region (square-state sqrx)))
+        (setf max-region (region-union-state max-region (square-state sqrx))))
+    )
+    (setf max-regionstore (regionstore-new (list max-region)))
 
     ;; Calculate structure, based on adjacent pairs.
     (setf logical-structure max-regionstore)
@@ -749,7 +751,7 @@
     (if (needstore-is-not-empty needs)
       (return-from action-structure-needs needs))
 
-    ;; Check for non-adjacent incompatible square between needs.
+    ;; Check for non-adjacent incompatible square between needs, which should culminate in a new adjacent dissimilar pair.
     (action-non-adjacent-incompatible-square-needs actx critical-non-adj-pairs)
   )
 )
