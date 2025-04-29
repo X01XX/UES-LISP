@@ -262,7 +262,7 @@
 (defun sessiondata-get-needs (sessx) ; -> (values can-do cant-do)
   (assert (sessiondata-p sessx))
 
-  (format t "~& ~&Getting needs.")
+  ;(format t "~& ~&Getting needs.")
   (multiple-value-bind (needs can-do cant-do)
       (domainstore-get-needs (sessiondata-domains sessx))
       (setf (sessiondata-needs sessx) needs)

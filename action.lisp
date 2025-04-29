@@ -94,6 +94,10 @@
         (if (not (null (action-logical-structure actx)))
           (setf str (concatenate 'string str (format nil " calced structure: ~A"
              (regionstore-str (action-logical-structure actx))))))
+
+        (if (> (regionstore-length (action-structure-pairs actx)) 0)
+          (format t "~&     sturucture pairs: ~A" (regionstore-str (action-logical-structure actx)))
+        )
         str
     )
 )
@@ -370,6 +374,21 @@
       ) ; end if
     )
 
+    ;; Return needs, if any.
+    (if (needstore-is-not-empty needs)
+      (return-from action-get-needs needs))
+
+    ;; Check for remainder needs.
+    (let ((remainders reachable))
+      (loop for grpx in (groupstore-groups (action-groups actx)) do
+        (setf remainders (regionstore-subtract-region remainders (group-region grpx)))
+      )
+      ;(format t "~&remainders: ~A" (regionstore-str remainders))
+      (loop for regx in (regionstore-regions remainders) do
+        (setf needs (needstore-append needs (action-needs-for-region actx regx *state-not-in-group*)))
+      )
+    )
+
     (if (needstore-is-empty needs)
       (if (action-cleanup-flag actx)
         (action-cleanup actx)
@@ -559,7 +578,6 @@
         (setf sta-y (region-second-state prx))
 
         (when (not (state-is-adjacent sta-x sta-y))
-
           (setf sqr-x (action-find-square actx sta-x))
           (if (null sqr-x) (error "sqr-x not found?"))
 
@@ -631,6 +649,8 @@
           )
         )
       ) ; next prx
+      ;(format t "~&action-non-adjacent-incompatible-square-needs:  returning ~A" (needstore-str needs))
+ 
       needs
     )
 )
@@ -648,8 +668,6 @@
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (critical-non-adj-pairs (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
         (logical-structure reachable)               ; Best guess for logical structure.
-        max-region                                  ; Region formed by the union of all sampled squares.
-        max-regionstore                             ; A Regionstore of one region.
         (needs (needstore-new nil))                 ; Needstore for adjacent incompatible squares to return.
         (sqrs (squarestore-squares (action-squares actx)))) ; All squares sampled so far.
 
@@ -698,17 +716,11 @@
         (regionstore-push adj-pairs prx)
         (regionstore-push non-adj-pairs prx))
     )
-
-    ;; Calc the max region.
-    (setf max-region (region-new (square-state (car sqrs))))
-    (loop for sqrx in (cdr sqrs) do
-      (if (not (region-superset-of-state max-region (square-state sqrx)))
-        (setf max-region (region-union-state max-region (square-state sqrx))))
-    )
-    (setf max-regionstore (regionstore-new (list max-region)))
+    ;(format t "~&adj-pairs:     ~A" (regionstore-str adj-pairs))
+    ;(format t "~&non-adj-pairs: ~A" (regionstore-str non-adj-pairs))
 
     ;; Calculate structure, based on adjacent pairs.
-    (setf logical-structure max-regionstore)
+    (setf logical-structure reachable)
     (loop for prx in (regionstore-regions adj-pairs) do
       (setf logical-structure (regionstore-intersection logical-structure
          (state-regions-implied-by-dissimilarity (region-first-state prx) (region-second-state prx))))
@@ -719,6 +731,7 @@
       (if (regionstore-any-superset-of logical-structure prx)
         (regionstore-push critical-non-adj-pairs prx))
     )
+    ;(format t "~&critical-non-adj-pairs: ~A" (regionstore-str critical-non-adj-pairs))
 
     ;; Continue structure calculation, based on critical non-adjacent pairs.
     (loop for prx in (regionstore-regions critical-non-adj-pairs) do
@@ -728,9 +741,11 @@
 
     ;; Store important pairs.
     (setf (action-structure-pairs actx) (regionstore-append adj-pairs critical-non-adj-pairs))
+    ;(format t "~&action-structure-pairs ~A" (regionstore-str (action-structure-pairs actx)))
 
     ;; Store structure.
     (setf (action-logical-structure actx) logical-structure)
+    ;(format t "~&action-logical-structure: ~A" (regionstore-str (action-logical-structure actx)))
 
     ;; If there are adjacent dissimilar pnc needs, return them.
     (if (needstore-is-not-empty needs)
@@ -1424,6 +1439,10 @@
   )
 
   (format t " number squares: ~D" (squarestore-length (action-squares actx)))
+
+  (if (> (regionstore-length (action-structure-pairs actx)) 0)
+    (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
+  )
 ; (format t "~&   base rules: " (action-base-rules actx))
 ; (loop for rulsx in (action-base-rules actx) do
 ;   (format t " ~A" (rulestore-str rulsx))

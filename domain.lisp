@@ -479,7 +479,7 @@
 ;;; Take an arbitrary sample, given act-id and state.
 (defun domain-take-sample-arbitrary (domx act-id state) ; -> ?
   (assert (domain-p domx))
-  (assert (actionstore-valid-id act-id))
+  (assert (actionstore-valid-id (domain-actions domx) act-id))
   (assert (state-p state))
 
   (let ((*dom-id* (domain-id domx)))

@@ -37,9 +37,6 @@
 (load #p "mask.lisp")
 (load #p "mask_t.lisp")
 
-(load #p "maskstore.lisp")
-(load #p "maskstore_t.lisp")
-
 (load #p "region.lisp")
 (load #p "region_t.lisp")
 
@@ -169,8 +166,6 @@
   (format t "~& ~&    q - Quit.")
   (format t "~& ~&    dn <number> - Do Need.")
   (format t "~& ~&    ss <domain-number> <action-number> state - Sample State for a domain and action.")
-  (format t "~& ~&    act-sqrs <domain-number> <action-number> - Show squares of a domain and action.")
-  (format t "~& ~&    grp-sqrs <domain-number> <action-number> <region> - Show squares used to define a group in a domain and action.")
   (format t "~& ~&    reg-sqrs <domain-number> <action-number> <region> - Show squares in a region of a domain and action.")
   (format t "~& ~&    run - Run cycles until no more needs can be done.")
   (format t "~& ~&    to <regionscorr> - Change position to. Like: to (rc (r1010 r111))")
@@ -376,84 +371,6 @@
         )
       )
 
-      (if (string-equal (car tokens) "act-sqrs")
-        (let (dom-id act-id)
-          (setf tokens-processed true)
-          (if (= (length tokens) 3)
-            (progn
-              (setf dom-id (read-from-string (second tokens)))
-              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                (progn
-                  (setf act-id (read-from-string (third tokens)))
-                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                    (loop for sqrx in (squarestore-squares (action-squares (actionstore-nth
-                                             (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id))
-                                                  act-id))) do
-                      (format t "~&~A" (square-str sqrx))
-                    )
-                    (format t "~&Did not understand action id in act-sqrs command")
-                  )
-                )
-                (format t "~&Did not understand domain id in act-sqrs command")
-              )
-            )
-            (format t "~&Did not understand act-sqrs command")
-          )
-          (format t "~& ~&Press Enter to continue: ")
-          (setf inp (read-line *STANDARD-INPUT*))
-        )
-      )
-
-      (if (string-equal (car tokens) "grp-sqrs")
-        (let (dom-id act-id regx grpx sqrx actx)
-          (setf tokens-processed true)
-          (if (= (length tokens) 4)
-            (progn
-              (setf dom-id (read-from-string (second tokens)))
-              (if (and (integerp dom-id) (>= dom-id 0) (< dom-id (sessiondata-num-domains sessx)))
-                (progn
-                  (setf act-id (read-from-string (third tokens)))
-                  (if (and (integerp act-id) (>= act-id 0) (< act-id (sessiondata-num-actions sessx dom-id)))
-                    (progn
-                      (setf regx (region-from-str (fourth tokens)))
-                      (if (err-p regx)
-                        (format t "~&~A" (err-str regx))
-                        (progn
-                          (setf actx (actionstore-nth
-                                     (domain-actions (domainstore-nth (sessiondata-domains sessx) dom-id)) act-id))
-                          (if (/= (action-num-bits actx) (region-num-bits regx))
-                            (format t "~&The number of bits used by the region do not match the number of bits used by the action")
-                            (progn
-                              (setf grpx (groupstore-find (action-groups actx) regx))
-                              (if grpx
-                                (progn
-                                  (loop for stax in (region-state-list (group-region grpx)) do
-                                    (setf sqrx (squarestore-find (action-squares actx) stax))
-                                    (if sqrx
-                                       (format t "~&~A" (square-str sqrx))
-                                       (format t "~&Square ~A not found?" (state-str sqrx)))
-                                  )
-                                )
-                                (format t "~&Group not found in grp-sqrs command")
-                              )
-                            )
-                          )
-                        )
-                      )
-                    )
-                    (format t "~&Did not understand action id in grp-sqrs command")
-                  )
-                )
-                (format t "~&Did not understand domain id in grp-sqrs command")
-              )
-            )
-            (format t "~&Did not understand grp-sqrs command")
-          )
-          (format t "~& ~&Press Enter to continue: ")
-          (setf inp (read-line *STANDARD-INPUT*))
-        )
-      )
-
       (if (string-equal (car tokens) "reg-sqrs")
         (let (dom-id act-id regx actx sqrs)
           (setf tokens-processed true)
@@ -648,7 +565,6 @@
   (statestore-tests)
 
   (mask-tests)
-  (maskstore-tests)
 
   (rule-tests)
   (rulestore-tests)

@@ -130,6 +130,20 @@
      (format t "~&  state-or OK")
   )
 
+  ;; Test state-is-adjacent.
+  (let (sta1 sta2 sta3)
+
+     (setf sta1 (state-from 's0101))
+     (setf sta2 (state-from 's0001))
+     (setf sta3 (state-from 's0011))
+
+     (assert (state-is-adjacent sta1 sta2))
+     (assert (not (state-is-adjacent sta1 sta1)))
+     (assert (not (state-is-adjacent sta1 sta3)))
+
+     (format t "~&  state-is-adjacent OK")
+  )
+
   (format t "~&state-tests done")
   t
 )

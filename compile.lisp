@@ -27,7 +27,6 @@
 (progn (format t "~& ") (compile-file "planstore.lisp"))
 (progn (format t "~& ") (compile-file "pn.lisp"))
 (progn (format t "~& ") (compile-file "square.lisp"))
-(progn (format t "~& ") (compile-file "maskstore.lisp"))
 (progn (format t "~& ") (compile-file "planscorr.lisp"))
 (progn (format t "~& ") (compile-file "planscorrstore.lisp"))
 (progn (format t "~& ") (compile-file "action.lisp"))
@@ -43,7 +42,6 @@
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
 (progn (format t "~& ") (compile-file "mask_t.lisp"))
-(progn (format t "~& ") (compile-file "maskstore_t.lisp"))
 (progn (format t "~& ") (compile-file "state_t.lisp"))
 (progn (format t "~& ") (compile-file "region_t.lisp"))
 (progn (format t "~& ") (compile-file "regionstore_t.lisp"))
