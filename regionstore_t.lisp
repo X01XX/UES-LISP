@@ -1,4 +1,4 @@
-;;; Run tests.
+;;; Run regionstore tests.
 (defun regionstore-tests ()
   (format t "~&regionstore-tests beginning")
 

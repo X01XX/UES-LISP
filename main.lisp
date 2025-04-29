@@ -129,6 +129,11 @@
 (load #p "squarestore.lisp")
 (load #p "squarestore_t.lisp")
 
+(load #p "vertex.lisp")
+(load #p "vertex_t.lisp")
+
+(load #p "vertexstore.lisp")
+(load #p "vertexstore_t.lisp")
 
 (defun main ()
   (run)
@@ -171,6 +176,7 @@
   (format t "~& ~&    to <regionscorr> - Change position to. Like: to (rc (r1010 r111))")
   (format t "~& ~&    write-session file-path - Write session to a file.")
   (format t "~& ~&    read-session  file-path - Read a session from a file. Struct changes may invalidate previously stored sessions.")
+  (format t "~& ~&    Note: vertex: A state followed by more than one state, each state having dissimilar samples to the first.")
 
   (assert (sessiondata-p sessx))
 
@@ -609,6 +615,9 @@
   (squarestore-tests)
   (statescorr-tests)
 
+  (vertex-tests)
+  (vertexstore-tests)
+  
   (format t "~&All tests done")
   t
 )

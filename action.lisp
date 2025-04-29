@@ -10,6 +10,7 @@
   logical-structure ; A regionstore.
   structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
+  vertices          ; A vertexstore, of zero, or more, vertices.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -62,7 +63,8 @@
                             :base-memory memory
                             :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
                             :structure-pairs (regionstore-new nil)
-                            :cleanup-flag true))
+                            :cleanup-flag true
+                            :vertices (vertexstore-new nil)))
     ;(format t "~&returning act: ~A" (action-str actx))
     actx
   )
@@ -763,6 +765,39 @@
       )
     )
 
+    ;; Find vertices.
+    (let (adj-pair-states sta-list (vertices (vertexstore-new nil)))
+      ;; Get all adjacent states into a list, no dups.
+      (loop for regx in (regionstore-regions adj-pairs) do
+        (loop for stax in (statestore-states (region-states regx)) do
+          (if (not (member stax adj-pair-states :test #'state-eq))
+            (push stax adj-pair-states)
+          )
+        )
+      )
+      ;(format t "~&adj-pair-states (")
+      ;(mapcar #'(lambda (x) (format t " ~A" (state-str x))) adj-pair-states)
+      ;(format t ") - ")
+
+      ;; Look for all adjacent states to each state.
+      (loop for stax in adj-pair-states do
+        (setf sta-list (list stax))
+        (loop for prx in (regionstore-regions adj-pairs) do
+
+          (if (state-eq stax (region-first-state prx))
+            (push (region-second-state prx) sta-list))
+
+          (if (state-eq stax (region-second-state prx))
+            (push (region-first-state prx) sta-list))
+        )
+        (setf sta-list (reverse sta-list))
+        (if (and (> (length sta-list) 2))
+          (vertexstore-push vertices (vertex-new (car sta-list) (statestore-new (cdr sta-list)))))
+      )
+      (setf (action-vertices actx) vertices)
+    )
+    ;; Test end
+
     (if (needstore-is-not-empty needs)
       (return-from action-structure-needs needs))
 
@@ -1428,11 +1463,11 @@
 ;     (format t "(no groups)")
 ;     (groupstore-print (action-groups actx)))
   (when (not (null (action-logical-structure actx)))
-    (format t " calced structure: ~A" (regionstore-str (action-logical-structure actx)))
+    (format t "~&           calced structure: ~A" (regionstore-str (action-logical-structure actx)))
     (when (> (regionstore-length (action-logical-structure actx)) 2)
       (let ((defining (regionstore-defining-regions (action-logical-structure actx))))
         (if (/= (regionstore-length (action-logical-structure actx)) (regionstore-length defining))
-          (format t " defining regions: ~A" (regionstore-str defining))
+          (format t "~&           defining regions: ~A" (regionstore-str defining))
         )
       )
     )
@@ -1442,6 +1477,10 @@
 
   (if (> (regionstore-length (action-structure-pairs actx)) 0)
     (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
+  )
+
+  (if (> (vertexstore-length (action-vertices actx)) 0)
+    (format t "~&           structure vertices: ~A" (vertexstore-str (action-vertices actx)))
   )
 ; (format t "~&   base rules: " (action-base-rules actx))
 ; (loop for rulsx in (action-base-rules actx) do

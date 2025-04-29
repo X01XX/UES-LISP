@@ -50,7 +50,8 @@
   (assert (statestore-p storex))
 
   ;; Calc result.
-  (length (statestore-states storex)))
+  (length (statestore-states storex))
+)
 
 ;;; Return true if a statestore is empty.
 (defun statestore-is-empty (storex) ; -> bool
@@ -268,4 +269,28 @@
   ;; Return result.
   (state-num-bits (statestore-first-state storex))
 )
+
+;;; Add a state to the end of a statestore.
+(defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.                                                     
+  (assert (statestore-p storex))
+  (assert (state-p stax))
+
+  (setf (statestore-states storex) (append (statestore-states storex) (list stax)))
+)
+
+;;; Return true if two statestores have the same length and states, in any order.
+(defun statestore-eq (storex storey) ; -> bool
+  (assert (statestore-p storex))
+  (assert (statestore-p storey))
+
+  (if (/= (statestore-length storex) (statestore-length storey))
+    (return-from statestore-eq false))
+
+  (loop for stax in (statestore-states storex) do
+    (if (not (statestore-member storey stax))
+      (return-from statestore-eq false))
+  )
+  true
+)
+
 

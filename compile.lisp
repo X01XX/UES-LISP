@@ -39,6 +39,8 @@
 (progn (format t "~& ") (compile-file "squarestore.lisp"))
 (progn (format t "~& ") (compile-file "rate.lisp"))
 (progn (format t "~& ") (compile-file "tools.lisp"))
+(progn (format t "~& ") (compile-file "vertex.lisp"))
+(progn (format t "~& ") (compile-file "vertexstore.lisp"))
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
 (progn (format t "~& ") (compile-file "mask_t.lisp"))
@@ -74,3 +76,5 @@
 (progn (format t "~& ") (compile-file "rate_t.lisp"))
 (progn (format t "~& ") (compile-file "squarestore_t.lisp"))
 (progn (format t "~& ") (compile-file "statescorr_t.lisp"))
+(progn (format t "~& ") (compile-file "vertex_t.lisp"))
+(progn (format t "~& ") (compile-file "vertexstore_t.lisp"))
