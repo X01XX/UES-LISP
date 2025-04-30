@@ -87,3 +87,19 @@
     ret 
   )
 )
+
+;;; Return possible regions implied by the vertex.
+(defun vertex-structure-implied (vx) ; -> regionstore.
+  ;; Check argument.
+  (assert (vertex-p vx))
+
+  (let (tmp-regs)
+    ;; Init summation of edge complements.
+    (setf tmp-regs (state-complement (car (statestore-states (vertex-edges vx)))))
+    (loop for stax in (cdr (statestore-states (vertex-edges vx))) do
+      (setf tmp-regs (regionstore-intersection tmp-regs (state-complement stax)))
+    )
+    ;; Add pinnacle complement to get result.
+    (regionstore-union tmp-regs (state-complement (vertex-pinnacle vx)))
+  )
+)

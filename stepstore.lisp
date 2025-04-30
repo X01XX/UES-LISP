@@ -65,7 +65,7 @@
   (let ((ret "(steps: ") (start t))
 
     (loop for stpx in (stepstore-steps storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (format nil " ~&  ~A" (step-str stpx))))
     )

@@ -59,7 +59,7 @@
       ;; Add separator, if not at start.
       (if start
         (setf start false)
-        (setf ret (concatenate 'string ret ", ")))
+        (setf ret (concatenate 'string ret " ")))
 
       ;; Add rule string.
       (setf ret (concatenate 'string ret (rule-str rulx)))

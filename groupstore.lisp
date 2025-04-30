@@ -261,7 +261,7 @@
     (loop for grpx in (groupstore-groups storex) do
       (if first
         (setf first false)
-        (format t ", ")
+        (format t " ")
       )
       (group-print grpx)
     )

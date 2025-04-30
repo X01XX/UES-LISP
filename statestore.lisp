@@ -271,7 +271,7 @@
 )
 
 ;;; Add a state to the end of a statestore.
-(defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.                                                     
+(defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.
   (assert (statestore-p storex))
   (assert (state-p stax))
 

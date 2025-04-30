@@ -182,25 +182,17 @@
 )
 
 ;;; Return a string representing a regionstore.
-(defun regionstore-str (storex) ; -> string, RS[...]
+(defun regionstore-str (storex) ; -> string, (...)
   ;; Check argument.
   (assert (regionstore-p storex))
 
-  ;; Construct result
-  (concatenate 'string "RS" (regionstore-str2 storex))
-)
-
-(defun regionstore-str2 (storex) ; -> string, [...]
-  ;; Check argument.
-  (assert (regionstore-p storex))
-
-  (let ((ret "[") (start t))
+  (let ((ret "(") (start t))
     (loop for regx in (regionstore-regions storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (region-str regx)))
     )
-    (setf ret (concatenate 'string ret "]"))
+    (setf ret (concatenate 'string ret ")"))
 
     ;; Return result.
     ret
@@ -513,6 +505,21 @@
 
     (if (/= (region-num-bits regx) numx)
       (return-from regionstore-congruent false))
+  )
+  true
+)
+
+;;; Return true if two regionstores have the same length and regions, in any order.
+(defun regionstore-eq (storex storey) ; -> bool
+  (assert (regionstore-p storex))
+  (assert (regionstore-p storey))
+
+  (if (/= (regionstore-length storex) (regionstore-length storey))
+    (return-from regionstore-eq false))
+
+  (loop for regx in (regionstore-regions storex) do
+    (if (not (regionstore-member storey regx))
+      (return-from regionstore-eq false))
   )
   true
 )

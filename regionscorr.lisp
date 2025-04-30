@@ -51,7 +51,7 @@
   (assert (regionscorr-p regionscorrx))
 
   ;; Construct result.
-  (format nil "(RC ~A)" (regionstore-str2 (regionscorr-regionstore regionscorrx)))
+  (format nil "(RC~A)" (regionstore-str (regionscorr-regionstore regionscorrx)))
 )
 
 ;;; Return true if two regionscorrs intersect.

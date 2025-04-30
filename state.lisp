@@ -277,12 +277,18 @@
   (assert (= (state-num-bits stax) (state-num-bits stay)))
   (assert (not (state-eq stax stay)))
 
-  ;; Init region with all positions set to X.
+  ;; Calc result.
+  (regionstore-union (state-complement stax) (state-complement stay))
+)
+
+;;; Return the complement of a state.
+(defun state-complement (stax) ; -> regionstore.
+  ;; Check argument.
+  (assert (state-p stax))
+
   (let ((max-regionstore (regionstore-new (list (region-new (list (state-new-high stax) (state-new-low stax)))))))
     ;; Calc result.
-    (regionstore-union
-      (regionstore-subtract-state max-regionstore stax)
-      (regionstore-subtract-state max-regionstore stay))
+    (regionstore-subtract-state max-regionstore stax)
   )
 )
 

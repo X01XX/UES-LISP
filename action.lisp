@@ -125,7 +125,10 @@
   (assert (region-p within))
 
   ;(format t "~&action-get-steps")
-  (let ((ret-steps (stepstore-new nil)) group-steps)
+  (let ((ret-steps (stepstore-new nil)) group-steps (*act-id* (action-id actx)))
+    (if (zerop (action-id actx))
+      (return-from action-get-steps ret-steps))
+
     (setf group-steps (groupstore-get-steps (action-groups actx) rule-from-to within no-alt))
     (loop for stpx in (stepstore-steps group-steps) do
       (setf (step-act-id stpx) (action-id actx))
@@ -227,177 +230,179 @@
   (assert (or (regionstore-is-empty reachable)
               (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
-  (let ((needs (needstore-new nil)))
-
-    ;; Generate need for a cur-state that is not in a group.
-    (when (not (groupstore-state-in-group (action-groups actx) cur-state))
-      (let ((sqrx (squarestore-find (action-squares actx) cur-state)))
-
-        (cond (sqrx
-               (if (square-pnc sqrx)
-                 (format t "~&square ~A pnc, not in a group?" cur-state) ; should not happen once group logic is set up.
-                 (needstore-push needs (action-get-need-resample-state actx cur-state *state-not-in-group*)))
-              )
-              (t (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*)))
+  (let ((*act-id* (action-id actx)))
+    (let ((needs (needstore-new nil)))
+  
+      ;; Generate need for a cur-state that is not in a group.
+      (when (not (groupstore-state-in-group (action-groups actx) cur-state))
+        (let ((sqrx (squarestore-find (action-squares actx) cur-state)))
+  
+          (cond (sqrx
+                 (if (square-pnc sqrx)
+                   (format t "~&square ~A pnc, not in a group?" cur-state) ; should not happen once group logic is set up.
+                   (needstore-push needs (action-get-need-resample-state actx cur-state *state-not-in-group*)))
+                )
+                (t (needstore-push needs (action-get-need-sample-state actx cur-state *state-not-in-group*)))
+          )
         )
       )
-    )
-
-    ;; Recheck single-square groups.
-    (let (sqrx sqrs)
-      (loop for grpx in (groupstore-groups (action-groups actx)) do
-        (when (and (= 1 (region-number-states (group-region grpx))) (group-pnc grpx))
-            (setf sqrx (action-find-square actx (region-first-state (group-region grpx))))
-            (if sqrx
-              (push sqrx sqrs)
-              (error "Square defining group not found?"))
+  
+      ;; Recheck single-square groups.
+      (let (sqrx sqrs)
+        (loop for grpx in (groupstore-groups (action-groups actx)) do
+          (when (and (= 1 (region-number-states (group-region grpx))) (group-pnc grpx))
+              (setf sqrx (action-find-square actx (region-first-state (group-region grpx))))
+              (if sqrx
+                (push sqrx sqrs)
+                (error "Square defining group not found?"))
+          )
         )
-      )
-
-      (loop for sqrx in sqrs do
-        (when (not (groupstore-multistate-groups-state-in (action-groups actx) (square-state sqrx)))
-           ;(format t "~&running expand check for group ~A" (state-str (square-state sqrx)))
-           (action-make-groups-from-square actx sqrx)
+  
+        (loop for sqrx in sqrs do
+          (when (not (groupstore-multistate-groups-state-in (action-groups actx) (square-state sqrx)))
+             ;(format t "~&running expand check for group ~A" (state-str (square-state sqrx)))
+             (action-make-groups-from-square actx sqrx)
+          )
         )
-      )
-    ) ; end let.
-
-    ;; Generate needs to confirm groups.
-    (let (grp-needs)
-      (loop for grpx in (groupstore-groups (action-groups actx)) do
-        ;(format t "~&checking group ~A" (region-str (group-region grpx)))
-        (when (not (group-pnc grpx))
-          ;; Get needs for group, possibly replace group region with one made of two states.
-          (setf grp-needs (action-confirm-group-needs actx grpx))
-          (when (needstore-is-not-empty grp-needs)
-            ;(format t "~&grp-needs ~A" (needstore-str grp-needs))
-            (setf needs (needstore-append needs grp-needs)))
-        )
-      ) ; next grpx
-    ) ; end let
-
-    ;; Generate needs to further confirm unused pnc groups.
-    (let (grp-needs)
-      (loop for grpx in (groupstore-groups (action-groups actx)) do
-
-        (when (and (group-pnc grpx)
-                   (not (group-makes-predictable-change grpx))               ; Group will not be tested through use.
-                   (> (mask-num-ones (region-x-mask (group-region grpx))) 1) ; Two non-adjacent states.
-              )
-
-          (setf grp-needs (action-confirm-unused-group-needs actx grpx))
-          (when (needstore-is-not-empty grp-needs)
-            (setf needs (needstore-append needs grp-needs)))
-        )
-      ) ; next grpx
-    ) ; end let
-
-    ;; Generate needs for resolving contradictory intersections.
-    (let (grpx grpy reg-int rules-int reg-far)
-      (loop for inx from 0 below (1- (groupstore-length (action-groups actx))) do
-
-        (setf grpx (groupstore-nth (action-groups actx) inx))
-
-        (when (group-pnc grpx)
-
-          (loop for iny from (1+ inx) below (groupstore-length (action-groups actx)) do
-
-            (setf grpy (groupstore-nth (action-groups actx) iny))
-
-            (when (group-pnc grpy)
-
-              (setf reg-int (region-intersection (group-region grpx) (group-region grpy)))
-
-              (when reg-int
-                (cond ((pn-ne (group-pn grpx) (group-pn grpy))
-                        (setf needs (needstore-append needs (action-needs-for-region actx reg-int *contradictory-intersection*
-                                    (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
-                      )
-                      ((pn-eq (group-pn grpx) *pn-none*) nil)
-                      (t
-                        ;; both pn-one or pn-two.
-                        (setf rules-int (rulestore-intersection (group-rules grpx) (group-rules grpy)))
-                        (cond ((null rules-int)
-                                (setf needs (needstore-append needs (action-needs-for-region actx reg-int *contradictory-intersection*
-                                    (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
-                              )
-                              ((region-eq reg-int (rulestore-initial-region rules-int)) nil)
-                              (t
-                                (setf reg-far (region-far-region reg-int (rulestore-initial-region rules-int)))
-                                (setf needs (needstore-append needs (action-needs-for-region actx reg-far *contradictory-intersection*
-                                    (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
-                              )
+      ) ; end let.
+  
+      ;; Generate needs to confirm groups.
+      (let (grp-needs)
+        (loop for grpx in (groupstore-groups (action-groups actx)) do
+          ;(format t "~&checking group ~A" (region-str (group-region grpx)))
+          (when (not (group-pnc grpx))
+            ;; Get needs for group, possibly replace group region with one made of two states.
+            (setf grp-needs (action-confirm-group-needs actx grpx))
+            (when (needstore-is-not-empty grp-needs)
+              ;(format t "~&grp-needs ~A" (needstore-str grp-needs))
+              (setf needs (needstore-append needs grp-needs)))
+          )
+        ) ; next grpx
+      ) ; end let
+  
+      ;; Generate needs to further confirm unused pnc groups.
+      (let (grp-needs)
+        (loop for grpx in (groupstore-groups (action-groups actx)) do
+  
+          (when (and (group-pnc grpx)
+                     (not (group-makes-predictable-change grpx))               ; Group will not be tested through use.
+                     (> (mask-num-ones (region-x-mask (group-region grpx))) 1) ; Two non-adjacent states.
+                )
+  
+            (setf grp-needs (action-confirm-unused-group-needs actx grpx))
+            (when (needstore-is-not-empty grp-needs)
+              (setf needs (needstore-append needs grp-needs)))
+          )
+        ) ; next grpx
+      ) ; end let
+  
+      ;; Generate needs for resolving contradictory intersections.
+      (let (grpx grpy reg-int rules-int reg-far)
+        (loop for inx from 0 below (1- (groupstore-length (action-groups actx))) do
+  
+          (setf grpx (groupstore-nth (action-groups actx) inx))
+  
+          (when (group-pnc grpx)
+  
+            (loop for iny from (1+ inx) below (groupstore-length (action-groups actx)) do
+  
+              (setf grpy (groupstore-nth (action-groups actx) iny))
+  
+              (when (group-pnc grpy)
+  
+                (setf reg-int (region-intersection (group-region grpx) (group-region grpy)))
+  
+                (when reg-int
+                  (cond ((pn-ne (group-pn grpx) (group-pn grpy))
+                          (setf needs (needstore-append needs (action-needs-for-region actx reg-int *contradictory-intersection*
+                                      (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
                         )
-                      )
+                        ((pn-eq (group-pn grpx) *pn-none*) nil)
+                        (t
+                          ;; both pn-one or pn-two.
+                          (setf rules-int (rulestore-intersection (group-rules grpx) (group-rules grpy)))
+                          (cond ((null rules-int)
+                                  (setf needs (needstore-append needs (action-needs-for-region actx reg-int *contradictory-intersection*
+                                      (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
+                                )
+                                ((region-eq reg-int (rulestore-initial-region rules-int)) nil)
+                                (t
+                                  (setf reg-far (region-far-region reg-int (rulestore-initial-region rules-int)))
+                                  (setf needs (needstore-append needs (action-needs-for-region actx reg-far *contradictory-intersection*
+                                      (format nil "for grp ~A and ~A" (region-str (group-region grpx)) (region-str (group-region grpy))))))
+                                )
+                          )
+                        )
+                  )
                 )
               )
-            )
-          ) ; next iny.
-        )
-      ) ; next inx.
-    ) ; end let
-
-    ;; Get structure needs.
-    (let ((structure-needs (action-structure-needs actx reachable)) (defining-regions (regionstore-new nil)) regs-in sta-far regy
-           structure-reachable)
-
-      (if (needstore-is-not-empty structure-needs)
-        (setf needs (needstore-append needs structure-needs))
-        ;; else
-        ;; Find defining regions in action-logical-structure, using action-structure-pairs.
-        (progn
-          (setf structure-reachable (regionstore-intersection reachable (action-logical-structure actx)))
-          (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
+            ) ; next iny.
+          )
+        ) ; next inx.
+      ) ; end let
   
-            ;; Check regions states.
-            (loop for stax in (statestore-states (region-states regx)) do
-              (setf regs-in (regionstore-regions-state-in structure-reachable stax))
-              (when (= 1 (regionstore-length regs-in))
-                (setf sta-far (region-far-state (regionstore-first-region regs-in) stax))
-                (setf regy (region-new (list stax sta-far)))
-                (regionstore-push-nosubs defining-regions regy)
+      ;; Get structure needs.
+      (let ((structure-needs (action-structure-needs actx reachable)) (defining-regions (regionstore-new nil)) regs-in sta-far regy
+             structure-reachable)
+  
+        (if (needstore-is-not-empty structure-needs)
+          (setf needs (needstore-append needs structure-needs))
+          ;; else
+          ;; Find defining regions in action-logical-structure, using action-structure-pairs.
+          (progn
+            (setf structure-reachable (regionstore-intersection reachable (action-logical-structure actx)))
+            (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
+    
+              ;; Check regions states.
+              (loop for stax in (statestore-states (region-states regx)) do
+                (setf regs-in (regionstore-regions-state-in structure-reachable stax))
+                (when (= 1 (regionstore-length regs-in))
+                  (setf sta-far (region-far-state (regionstore-first-region regs-in) stax))
+                  (setf regy (region-new (list stax sta-far)))
+                  (regionstore-push-nosubs defining-regions regy)
+                )
+              )
+    
+              ;; Generate needs for each region.
+              (loop for regy in (regionstore-regions defining-regions) do
+                (setf needs (needstore-append needs (action-structure-group-needs actx regy)))
+              )
+            ) ; next regx
+  
+            ;; Check for groups not supported by the logical structure.
+            (when (> (regionstore-length (action-logical-structure actx)) 1)
+              (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
+                (if (groupstore-is-not-empty invalidated-groups)
+                  (action-process-invalidated-groups actx invalidated-groups))
               )
             )
+          ) ; end progn
+        ) ; end if
+      )
   
-            ;; Generate needs for each region.
-            (loop for regy in (regionstore-regions defining-regions) do
-              (setf needs (needstore-append needs (action-structure-group-needs actx regy)))
-            )
-          ) ; next regx
-
-          ;; Check for groups not supported by the logical structure.
-          (when (> (regionstore-length (action-logical-structure actx)) 1)
-            (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
-              (if (groupstore-is-not-empty invalidated-groups)
-                (action-process-invalidated-groups actx invalidated-groups))
-            )
-          )
-        ) ; end progn
-      ) ; end if
-    )
-
-    ;; Return needs, if any.
-    (if (needstore-is-not-empty needs)
-      (return-from action-get-needs needs))
-
-    ;; Check for remainder needs.
-    (let ((remainders reachable))
-      (loop for grpx in (groupstore-groups (action-groups actx)) do
-        (setf remainders (regionstore-subtract-region remainders (group-region grpx)))
+      ;; Return needs, if any.
+      (if (needstore-is-not-empty needs)
+        (return-from action-get-needs needs))
+  
+      ;; Check for remainder needs.
+      (let ((remainders reachable))
+        (loop for grpx in (groupstore-groups (action-groups actx)) do
+          (setf remainders (regionstore-subtract-region remainders (group-region grpx)))
+        )
+        ;(format t "~&remainders: ~A" (regionstore-str remainders))
+        (loop for regx in (regionstore-regions remainders) do
+          (setf needs (needstore-append needs (action-needs-for-region actx regx *state-not-in-group*)))
+        )
       )
-      ;(format t "~&remainders: ~A" (regionstore-str remainders))
-      (loop for regx in (regionstore-regions remainders) do
-        (setf needs (needstore-append needs (action-needs-for-region actx regx *state-not-in-group*)))
+  
+      (if (needstore-is-empty needs)
+        (if (action-cleanup-flag actx)
+          (action-cleanup actx)
+        )
+        (setf (action-cleanup-flag actx) true)
       )
+      needs
     )
-
-    (if (needstore-is-empty needs)
-      (if (action-cleanup-flag actx)
-        (action-cleanup actx)
-      )
-      (setf (action-cleanup-flag actx) true)
-    )
-    needs
   )
 )
 

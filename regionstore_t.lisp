@@ -61,8 +61,8 @@
       (setf pos-8c (state-regions-implied-by-dissimilarity (state-from 's1000) (state-from 's1100)))
 
       (setf pos-regs (regionstore-intersection pos-57 pos-8c))
-      (assert (string-equal (regionstore-str pos-regs)
-               "RS[rX1X0, r0XX0, rXX1X, rX0XX, r1XX1, r11XX, rXX01, rX10X, r0X0X]"))
+      (assert (regionstore-eq pos-regs
+               (regionstore-from '(rX1X0 r0XX0 rXX1X rX0XX r1XX1 r11XX rXX01 rX10X r0X0X))))
 
       (setf storex (regionstore-regions-state-in pos-regs (state-from 's0101)))
       (assert (= (regionstore-length storex) 3))

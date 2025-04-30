@@ -112,7 +112,7 @@
   (let ((ret "#S(REGIONCORRSTORE ") (start t))
 
     (loop for regx in (regionscorrstore-regionscorrs storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (regionscorr-str regx)))
     )

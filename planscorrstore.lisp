@@ -84,7 +84,7 @@
       (setf ret (concatenate 'string ret (format nil " ~D " (planscorrstore-value storex)))))
 
     (loop for plnx in (planscorrstore-planscorrs storex) do
-      (if start (setf start nil) (setf ret (concatenate 'string ret ", ")))
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
 
       (setf ret (concatenate 'string ret (planscorr-str plnx)))
     )
