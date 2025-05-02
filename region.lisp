@@ -591,3 +591,38 @@
   ;; Calc result.
   (statestore-member (region-states regx) stax)
 )
+
+;;; Return true if two regions are adjacent,
+(defun region-is-adjacent (reg1 reg2) ; -> bool
+  ;; Check arguments.
+  (assert (region-p reg1))
+  (assert (region-p reg2))
+  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
+
+  (= 1 (region-distance reg1 reg2))
+)
+
+;;; Return the symmetric overlapping region of two adjacent regions.
+;;; Like intersection, with the one different bit set to X.
+;;; X10X  000X  01X1
+;;; 1X1X  010X  1X0X
+;;; ----  ----  ----
+;;; 11XX  0X0X  X101
+(defun region-symmetric-overlapping-region (reg1 reg2) ; -> region
+  ;; Check arguments.
+  (assert (region-p reg1))
+  (assert (region-p reg2))
+  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
+  (assert (region-is-adjacent reg1 reg2))
+
+  (let ((to-x (mask-new-or (mask-new-and (region-1-mask reg1) (region-0-mask reg2))
+                           (mask-new-and (region-0-mask reg1) (region-1-mask reg2))))
+        reg-a reg-b)
+
+    (setf reg-a (region-set-to-x reg1 to-x))
+    (setf reg-b (region-set-to-x reg2 to-x))
+
+    (region-intersection reg-a reg-b)
+  )
+)
+

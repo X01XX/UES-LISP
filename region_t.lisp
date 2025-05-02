@@ -366,7 +366,35 @@
     (format t "~&  region-edge-dif-mask OK")
   )
 
- (format t "~&region-tests done")
- t
+  ;; Test region-is-adjacent.
+  (let (reg1 reg2 reg3 bl1)
+    (setf reg1 (region-from 'rX01X))
+    (setf reg2 (region-from 'rXX01))
+    (setf reg3 (region-from 'rXX10))
+
+    ;; Test two adjacent regions.
+    (setf bl1 (region-is-adjacent reg1 reg2))
+    (assert bl1)
+
+    ;; Test two non-adjacent regions.
+    (setf bl1 (region-is-adjacent reg2 reg3))
+    (assert (not bl1))
+
+    (format t "~&  region-is-adjacent OK")
+  )
+
+  ;; Test region-symmetric-overlapping-region.
+  (let (reg1 reg2 reg3)
+    (setf reg1 (region-from 'r1100_XXXX_0))
+    (setf reg2 (region-from 'rXXXX_1100_1))
+    (setf reg3 (region-symmetric-overlapping-region reg1 reg2))
+    (assert (region-p reg3))
+    (assert (region-eq reg3 (region-from 'r1100_1100_X)))
+
+    (format t "~&  region-symmetric-overlapping-region OK")
+  )
+
+  (format t "~&region-tests done")
+  t
 )
 

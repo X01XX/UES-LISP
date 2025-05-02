@@ -524,3 +524,51 @@
   true
 )
 
+;;; Return the nth element of a regionstore.
+(defun regionstore-nth (storex inx) ; -> region instance, or nil.                                                        
+  (assert (regionstore-p storex))
+  (assert (integerp inx))
+
+  (if (>= inx (regionstore-length storex))
+    (return-from regionstore-nth nil))
+
+  (nth inx (regionstore-regions storex))
+)
+
+;;; Return the maximxm intersections of a regionstore.
+(defun regionstore-max-intersections (storex) ; -> regionstore
+  (assert (regionstore-p storex))
+
+  (let ((rslt storex) (tmp-store storex) regx regy reg-int)
+
+    ;; Gather intersections, successivelly, until there are no more.
+    ;; Return the last non-empty result.
+    (loop while (regionstore-is-not-empty tmp-store) do
+
+      (setf rslt tmp-store)
+      (setf tmp-store (regionstore-new nil))
+      
+      ;; Check each pair for intersection.
+      (loop for inx from 0 below (1- (regionstore-length rslt)) do
+        (setf regx (regionstore-nth rslt inx))
+
+        (loop for iny from (1+ inx) below (regionstore-length rslt) do
+          (setf regy (regionstore-nth rslt iny))
+
+          ;; Get intersection.
+          (setf reg-int (region-intersection regx regy))
+
+          ;; If there is an intersection, add it to tmp-store.
+          ;; non-duplicate subsets are OK.
+          (if reg-int
+            (if (not (regionstore-member tmp-store reg-int))
+              (regionstore-push tmp-store reg-int)))
+
+        ) ; next regy
+      ) ; next regx
+    )
+    rslt
+  )
+)
+
+

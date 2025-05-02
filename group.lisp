@@ -130,14 +130,14 @@
 
 ;;; Return possible steps.
 ;;;
-;;; rule-from-to; A rule. A step should cause at least one change needed by this.
+;;; rule-from-to: A rule. A step should cause at least one change needed by this.
 ;;;
 ;;; within: A region. The initial region, and result region, for a step must be in the given region,
 ;;;                   The region may be all X.
 ;;;                   If an alternate rule is possible, for a two-rule group, that rule must also be within the region.
 ;;;
 ;;; The no-alt option in used by the caller, for finding an alternate plan, when needed for a two-result group,
-;;; without getting into an infinte regress af alternate plans.
+;;; without getting into an infinte regress of alternate plans.
 (defun group-get-steps (grpx rule-from-to within &optional no-alt) ; -> stepstore.
   ;(format t "~&group-get-steps: group ~A rule ~A within ~A no-alt ~A" (type-of grpx) (type-of rule-from-to) (type-of within) (type-of no-alt))
   (assert (group-p grpx))
@@ -158,6 +158,10 @@
     (if (not (region-intersects (group-region grpx) within))
       (return-from group-get-steps ret-steps))
 
+    ;; Skip group that does not make a change.
+    (if (not (group-makes-predictable-change grpx))
+      (return-from group-get-steps ret-steps))
+
     ;; Handle *pn-one* group.
     (when (pn-eq (group-pn grpx) *pn-one*)
 
@@ -173,55 +177,52 @@
     )
 
     ;; Handle *pn-two* group.
-    (when (pn-eq (group-pn grpx) *pn-two*)
+    (let (rulx ruly initial-int)
 
-      (let (rulx ruly initial-int)
+      ;; Restrict the two rules.
+      (setf rulx (rule-restrict-by (rulestore-first (group-rules grpx)) rule-from-to within))
+      (setf ruly (rule-restrict-by (rulestore-second (group-rules grpx)) rule-from-to within))
 
-        ;; Restrict the two rules.
-        (setf rulx (rule-restrict-by (rulestore-first (group-rules grpx)) rule-from-to within))
-        (setf ruly (rule-restrict-by (rulestore-second (group-rules grpx)) rule-from-to within))
+      (when (and rulx ruly)
+        ;; Restriction of the result region, due to the within region, may have caused
+        ;; the rule initial regions to diverge.
+        (when (region-intersects (rule-initial-region rulx) (rule-initial-region ruly))
 
-        (when (and rulx ruly)
-          ;; Restriction of the result region, due to the within region, may have caused
-          ;; the rule initial regions to diverge.
-          (when (region-intersects (rule-initial-region rulx) (rule-initial-region ruly))
+          (when (not (region-eq (rule-initial-region rulx) (rule-initial-region ruly)))
+            ;; Put rules back in sync.
+            (setf initial-int (region-intersection (rule-initial-region rulx) (rule-initial-region ruly)))
+            (setf rulx (rule-restrict-initial-region rulx initial-int))
+            (setf ruly (rule-restrict-initial-region ruly initial-int))
+          )
 
-            (when (not (region-eq (rule-initial-region rulx) (rule-initial-region ruly)))
-              ;; Put rules back in sync.
-              (setf initial-int (region-intersection (rule-initial-region rulx) (rule-initial-region ruly)))
-              (setf rulx (rule-restrict-initial-region rulx initial-int))
-              (setf ruly (rule-restrict-initial-region ruly initial-int))
+          ;; Process rulx.
+          (when (change-is-not-low (change-and (rule-changes rulx) (rule-changes rule-from-to)))
+
+            (if (rule-makes-change ruly)
+              (if (null no-alt)
+                (stepstore-push ret-steps (step-new *act-id* rulx ruly))) ; Caller will try to find a recovery plan.
+              ; else ruly does not make a change.
+              (stepstore-push ret-steps (step-new *act-id* rulx)) ; This will depend on the heuristic of trying a second time.
             )
+          ) ; End process rulx.
 
-            ;; Process rulx.
-            (when (change-is-not-low (change-and (rule-changes rulx) (rule-changes rule-from-to)))
-  
-              (if (rule-makes-change ruly)
-                (if (null no-alt)
-                  (stepstore-push ret-steps (step-new *act-id* rulx ruly))) ; Caller will try to find a recovery plan.
-                ; else ruly does not make a change.
-                (stepstore-push ret-steps (step-new *act-id* rulx)) ; This will depend on the heuristic of trying a second time.
-              )
-            ) ; End process rulx.
-  
-            ;; Process ruly.
-            (when (change-is-not-low (change-and (rule-changes ruly) (rule-changes rule-from-to)))
-  
-              (if (rule-makes-change rulx)
-                (if (null no-alt)
-                  (stepstore-push ret-steps (step-new *act-id* rulx ruly))) ; Caller will try to find a recovery plan.
-                ; else rulx does not make a change.
-                (stepstore-push ret-steps (step-new *act-id* ruly)) ; This will depend on the heuristic of trying a second time.
-              )
-            ) ; end process ruly
-          ) ; end when region-intersects 
-        ) ; end when rulx ruly
-      ) ; end let
-    )
+          ;; Process ruly.
+          (when (change-is-not-low (change-and (rule-changes ruly) (rule-changes rule-from-to)))
+
+            (if (rule-makes-change rulx)
+              (if (null no-alt)
+                (stepstore-push ret-steps (step-new *act-id* rulx ruly))) ; Caller will try to find a recovery plan.
+              ; else rulx does not make a change.
+              (stepstore-push ret-steps (step-new *act-id* ruly)) ; This will depend on the heuristic of trying a second time.
+            )
+          ) ; end process ruly
+        ) ; end when region-intersects 
+      ) ; end when rulx ruly
+    ) ; end let
 
     ret-steps
   ) ; end-let
-)
+) ; end group-get-steps.
 
 ;;; Return the number of bits used by elements withn a group.
 (defun group-num-bits (grpx) ; -> integer ge 0.
