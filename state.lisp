@@ -109,7 +109,10 @@
   ;; Check arguments.
   (assert (state-p sta1))
   (assert (state-p sta2))
-  (assert (= (state-num-bits sta1) (state-num-bits sta2)))
+
+  ;; Check states num-bits.
+  (if (/= (state-num-bits sta1) (state-num-bits sta2))
+    (return-from state-eq false)) ; Return negative result.
 
   ;; Calc result.
   (value-eq (state-value sta1) (state-value sta2))

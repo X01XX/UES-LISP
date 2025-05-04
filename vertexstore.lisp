@@ -27,26 +27,12 @@
           ((listp vertices) (setf listx vertices))
           (t (error "unexpected argument")))
     
-    ;; Check each list item.
-    (loop for vx in listx do
-      (assert (vertex-p vx))
-    )
-    
-    ;; Check for same num bits used across vertices.
-    (when (> (length listx) 1)
-      (let ((num-bits (vertex-num-bits (car listx))))
-        (loop for stastorex in (cdr listx) do
-          (assert (= (vertex-num-bits stastorex) num-bits))
-        )
-      )
-    )
-  
-    (let ((retvert (make-vertexstore :vertices nil)))
-      ;; Construct results.
+    ;; Construct results.
+    (let ((rslt (make-vertexstore :vertices nil)))
       (loop for vx in listx do
-        (vertexstore-push retvert vx)
+        (vertexstore-push rslt vx)
       )
-      retvert
+      rslt
     )
   )
 )
@@ -72,8 +58,12 @@
 
 ;;; Add a vertex to a vertex store.
 (defun vertexstore-push (storex vx) ; -> side-effect, vertexstore changed.
+  ;; Check arguments.
   (assert (vertexstore-p storex))
   (assert (vertex-p vx))
+  (when (vertexstore-is-not-empty storex)
+    (assert (= (vertex-num-bits (car (vertexstore-vertices storex)))
+               (vertex-num-bits vx))))
 
   (if (not (member vx (vertexstore-vertices storex) :test #'vertex-eq))
      (push vx (vertexstore-vertices storex)))
@@ -96,6 +86,156 @@
 
     ;; Return result.
     ret 
+  )
+)
+
+;;; Return true if a vertexstore is empty.
+(defun vertexstore-is-empty (storex) ; -> bool
+  ;; Check argument.
+  (assert (vertexstore-p storex))
+
+  ;; Calc result.
+  (zerop (vertexstore-length storex))
+)
+
+;;; Return true if a vertexstore is not empty.
+(defun vertexstore-is-not-empty (storex) ; -> bool                                                     
+  ;; Check argument.
+  (assert (vertexstore-p storex))
+
+  ;; Calc result.
+  (plusp (vertexstore-length storex))
+)
+
+;;; Return the structure impled by all vertices in a vertexstore.
+(defun vertexstore-structure-implied (storex) ; -> regionstore.
+  ;; Check argument.
+  (assert (vertexstore-p storex))
+  (assert (vertexstore-is-not-empty storex))
+
+  (let ((rslt (vertex-structure-implied (car (vertexstore-vertices storex)))))
+    (loop for vtx in (cdr (vertexstore-vertices storex))  do
+      (setf rslt (regionstore-intersection rslt (vertex-structure-implied vtx)))
+    )
+    rslt
+  )
+)
+
+;;; Return edge states in a region.
+(defun vertexstore-edges-in-region (storex regx) ; -> statestore.
+  ;; Check arguments.
+  (assert (vertexstore-p storex))
+  (assert (region-p regx))
+
+  (let ((ret (statestore-new nil)))
+
+    (loop for vtx in (vertexstore-vertices storex)  do
+      (loop for stax in (statestore-states (vertex-edges vtx)) do
+        (if (region-superset-of-state regx stax)
+          (statestore-push ret stax))
+      )
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Return verticies in region.
+(defun vertexstore-vertices-in-region (storex regx) ; -> vertexstore.
+  ;; Check arguments.
+  (assert (vertexstore-p storex))
+  (assert (region-p regx))
+
+  (let ((ret (vertexstore-new nil)))
+
+    (loop for vtx in (vertexstore-vertices storex)  do
+      (if (region-superset-of-state regx (vertex-pinnacle vtx))
+        (vertexstore-push ret vtx))
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Return vertices that cantain a given state.
+(defun vertexstore-vertices-containing-state (storex stax) ; -> vertexstore.
+  ;; Check arguments.
+  (assert (vertexstore-p storex))
+  (assert (state-p stax))
+
+  (let ((ret (vertexstore-new nil)))
+    ;; Check each vertex.
+    (loop for vx in (vertexstore-vertices storex) do
+  
+      (if (vertex-contains-state vx stax)
+        (vertexstore-push ret vx))
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Return the difference of two vertexstores.
+(defun vertexstore-difference (storex storey) ; -> vertexstore.
+  (assert (vertexstore-p storex))
+  (assert (vertexstore-p storey))
+
+  (vertexstore-new (set-difference (vertexstore-vertices storex) (vertexstore-vertices storey) :test #'vertex-eq))
+)
+
+;;; Return the states connected to a given state though vertices.
+(defun vertexstore-states-connected (storex stax) ; -> statestore.
+  (assert (vertexstore-p storex))
+  (assert (state-p stax))
+
+  (let (
+        ;; Current vertices not connected to yet.
+        (vertices storex)
+        ;; List of new states to process.
+        (new-states (statestore-new (list stax)))
+        ;; List of processed states.
+        (processed (statestore-new nil))
+        ;; Verticies the current state is in.
+        verts-state-in
+        ;; Union of states in processed and new-states statestores.
+        all-stored-states
+        ;; Current state to use to look for vertex connections.
+        cur-state
+       )
+
+    (loop
+
+      ;; Get next state to process.
+      (setf cur-state (statestore-pop new-states))
+      (statestore-push processed cur-state)
+
+      ;; Get verticies the state is in.
+      (setf verts-state-in (vertexstore-vertices-containing-state vertices cur-state))
+
+      (when (vertexstore-is-not-empty verts-state-in)
+
+        ;; Take found vertices out of the working list.
+        (setf vertices (vertexstore-difference vertices verts-state-in))
+
+        ;; Process each vertex.
+        (loop for vtx in (vertexstore-vertices verts-state-in) do
+          ;; Get all current states.
+          (setf all-stored-states (statestore-union processed new-states))
+          ;; Get states in vertex not currently stored.
+          (setf new-states (statestore-union new-states (statestore-difference (vertex-states vtx) all-stored-states)))
+        )
+      )
+
+      ;;  Check for no more verticies to process.
+      (if (vertexstore-is-empty vertices)
+        (return-from vertexstore-states-connected (statestore-union processed new-states))
+      )
+
+      ;; Check for no more states to process.
+      (if (statestore-is-empty new-states)
+        (return-from vertexstore-states-connected processed)
+      )
+    ) ; next new square.
   )
 )
 

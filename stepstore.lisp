@@ -154,7 +154,7 @@
 (defun stepstore-difference (storex storey) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (stepstore-p storey))
-  (assert (or (or (stepstore-is-empty storex) (stepstore-is-empty storey))
+  (assert (or (stepstore-is-empty storex) (stepstore-is-empty storey)
               (= (stepstore-num-bits storex) (stepstore-num-bits storey))))
 
   (let ((ret (stepstore-new nil)))
@@ -170,7 +170,7 @@
 (defun stepstore-union (storex storey) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (stepstore-p storey))
-  (assert (or (or (stepstore-is-empty storex) (stepstore-is-empty storey))
+  (assert (or (stepstore-is-empty storex) (stepstore-is-empty storey)
               (= (stepstore-num-bits storex) (stepstore-num-bits storey))))
 
   (let ((ret (stepstore-new nil)))
@@ -201,7 +201,7 @@
 (defun stepstore-intersection (storex storey) ; -> stepstore.
   (assert (stepstore-p storex))
   (assert (stepstore-p storey))
-  (assert (or (or (stepstore-is-empty storex) (stepstore-is-empty storey))
+  (assert (or (stepstore-is-empty storex) (stepstore-is-empty storey)
               (= (stepstore-num-bits storex) (stepstore-num-bits storey))))
 
   (let ((ret (stepstore-new nil)))

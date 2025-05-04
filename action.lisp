@@ -801,13 +801,16 @@
       )
       (setf (action-vertices actx) vertices)
     )
-    ;; Test end
 
     (if (needstore-is-not-empty needs)
       (return-from action-structure-needs needs))
 
+    ;(when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 2))
+    ;)
+
     ;; Check for non-adjacent incompatible square between needs, which should culminate in a new adjacent dissimilar pair.
     (action-non-adjacent-incompatible-square-needs actx critical-non-adj-pairs)
+
   )
 )
 

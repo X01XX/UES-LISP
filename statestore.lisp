@@ -33,15 +33,14 @@
   )
 )
 
-;;; Push a new state into a statestore, suppress dups.
+;;; Push a new state into a statestore.
 (defun statestore-push (store state) ; -> nothing, side-effect statestore is changed.
   ;; Check arguments.
   (assert (statestore-p store))
   (assert (state-p state))
 
   ;; Add state.
-  (if (not (statestore-member store state))
-    (push state (statestore-states store)))
+  (push state (statestore-states store))
 )
 
 ;;; Return the number of states in a statestore.
@@ -96,9 +95,9 @@
   ;; Check arguments.
   (assert (statestore-p storex))
   (assert (state-p stax))
-  (assert (statestore-same-num-bits storex))
-  (assert (or (statestore-is-empty storex)
-              (= (state-num-bits (car (statestore-states storex))) (state-num-bits stax))))
+; (assert (statestore-same-num-bits storex))
+; (assert (or (statestore-is-empty storex)
+;             (= (state-num-bits (car (statestore-states storex))) (state-num-bits stax))))
 
   ;; Return result.
   (member stax (statestore-states storex) :test #'state-eq)
@@ -220,9 +219,9 @@
   ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-p storey))
-  (assert (or (statestore-is-empty storex)
-              (statestore-is-empty storey)
-              (= (statestore-num-bits storex) (statestore-num-bits storey))))
+; (assert (or (statestore-is-empty storex)
+;             (statestore-is-empty storey)
+;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
   (let ((ret (statestore-new nil)))
 
@@ -293,4 +292,64 @@
   true
 )
 
+;;; Return states not equal states in a second store.
+(defun statestore-difference (storex storey) ; -> statestore.
+  (assert (statestore-p storex))
+  (assert (statestore-p storey))
+; (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
+;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
+  (let ((ret (statestore-new nil)))
+    (loop for stax in (statestore-states storex) do
+      (if (not (statestore-member storey stax))
+        (statestore-push ret stax))
+    )
+    ret
+  )
+)
+
+;;; Return the union of two statestores.
+(defun statestore-union (storex storey) ; -> statestore.
+  (assert (statestore-p storex))
+  (assert (statestore-p storey))
+; (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
+;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
+
+  (let ((ret (statestore-new nil)))
+    (loop for stax in (statestore-states storex) do
+      (if (not (statestore-member ret stax))
+        (statestore-push ret stax))
+    )
+    (loop for stax in (statestore-states storey) do
+      (if (not (statestore-member ret stax))
+        (statestore-push ret stax))
+    )
+    ret
+  )
+)
+
+;;; Return states in both statestores.
+(defun statestore-intersection (storex storey) ; -> statestore.
+  (assert (statestore-p storex))
+  (assert (statestore-p storey))
+; (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
+;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
+
+  (let ((ret (statestore-new nil)))
+    (loop for stax in (statestore-states storex) do
+      (if (statestore-member storey stax)
+        (statestore-push ret stax))
+    )
+    ret
+  )
+)
+
+;;; Pop a state from a statestore.
+(defun statestore-pop (store) ; -> State, side-effect statestore is changed.
+  ;; Check arguments.
+  (assert (statestore-p store))
+  (assert (statestore-is-not-empty store))
+
+  ;; Remove state, return it.
+  (pop (statestore-states store))
+)

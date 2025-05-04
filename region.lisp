@@ -272,16 +272,17 @@
   ;; Check arguments.
   (assert (region-p reg1))
   (assert (region-p reg2))
-  (assert (= (region-num-bits reg1) (region-num-bits reg2)))
+  (if (/= (region-num-bits reg1) (region-num-bits reg2))
+    (return-from region-eq false)) ; Return a negative result.
 
   ;; Regions can be equal, even though defined by different states.
   ;; Check highest possible state.
   (if (not (state-eq (region-high-state reg1) (region-high-state reg2)))
-    (return-from region-eq false))
+    (return-from region-eq false)) ; Return a negative result.
 
   ;; Check lowest possible state.
   (if (not (state-eq (region-low-state reg1) (region-low-state reg2)))
-    (return-from region-eq false))
+    (return-from region-eq false)) ; Return a negative result.
 
   ;; Return a positive result.
   true

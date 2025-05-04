@@ -62,12 +62,8 @@
   (assert (vertex-p vx))
   (assert (vertex-p vy))
 
-  ;; Check pinnacle.
-  (if (not (state-eq (vertex-pinnacle vx) (vertex-pinnacle vy)))
-    (return-from vertex-eq false)) ; Return negative result.
-
   ;; Return result.
-  (statestore-eq (vertex-edges vx) (vertex-edges vy))
+  (state-eq (vertex-pinnacle vx) (vertex-pinnacle vy))
 )
 
 ;;; Return a string representing a vertex.
@@ -103,3 +99,29 @@
     (regionstore-union tmp-regs (state-complement (vertex-pinnacle vx)))
   )
 )
+
+;;; Return true if a vertex cotians a given state.
+(defun vertex-contains-state (vx stax) ; -> bool
+  ;; Check arguments.
+  (assert (vertex-p vx))
+  (assert (state-p stax))
+
+  ;; Check pinnacle state.
+  (if (state-eq (vertex-pinnacle vx) stax)
+    (return-from vertex-contains-state true)) ; Return positive result.
+
+  ;; Check edges.
+  (statestore-member (vertex-edges vx) stax)
+)
+
+;;; Return a statestore of states in a vertex.
+(defun vertex-states (vx) ; -> statestore.
+  ;; Check argument.
+  (assert (vertex-p vx))
+
+  ;; Construct result.
+  (let ((ret (statestore-new (list (vertex-pinnacle vx)))))
+    (statestore-append ret (vertex-edges vx))
+  )
+)
+

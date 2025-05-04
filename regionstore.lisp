@@ -83,6 +83,8 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
+  (assert (regionstore-same-num-bits storex))
+  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (loop for regy in (regionstore-regions storex) do
     (if (region-superset-of :sup regy :sub regx)
@@ -97,6 +99,8 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
+  (assert (regionstore-same-num-bits storex))
+  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (loop for regy in (regionstore-regions storex) do
     (if (region-superset-of :sub regy :sup regx)
@@ -111,6 +115,8 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
+  (assert (regionstore-same-num-bits storex))
+  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (loop for regy in (regionstore-regions storex) do
     (if (region-intersects regy regx)
@@ -126,6 +132,8 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
+  (assert (regionstore-same-num-bits storex))
+  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   ;; Check if the new region is a superset of any store region.
   (loop for regy in (regionstore-regions storex) do
@@ -204,8 +212,8 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
-  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
+; (assert (regionstore-same-num-bits storex))
+; (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   ;; Calc result.
   (member regx (regionstore-regions storex) :test #'region-eq)
@@ -455,7 +463,7 @@
 (defun regionstore-defining-regions (storex) ; -> regionstore
   ;; Check argument.
   (assert (regionstore-p storex))
-  (assert (regionstore-same-num-bits storex))
+  (assert (or (regionstore-is-empty storex) (regionstore-same-num-bits storex)))
 
   (let ((ret-store (regionstore-new nil)) tmp-store)
     ;; Test each region.
@@ -525,7 +533,7 @@
 )
 
 ;;; Return the nth element of a regionstore.
-(defun regionstore-nth (storex inx) ; -> region instance, or nil.                                                        
+(defun regionstore-nth (storex inx) ; -> region instance, or nil.
   (assert (regionstore-p storex))
   (assert (integerp inx))
 
@@ -535,40 +543,86 @@
   (nth inx (regionstore-regions storex))
 )
 
-;;; Return the maximxm intersections of a regionstore.
-(defun regionstore-max-intersections (storex) ; -> regionstore
-  (assert (regionstore-p storex))
+;;; Return the largest intersections of regions within a regionstore.
+(defun regionstore-largest-intersections (strx) ; -> regionstore
+  (assert (regionstore-p strx))
+  ;(format t "~&regionstore-largest-intersections: ~A" strx)
 
-  (let ((rslt storex) (tmp-store storex) regx regy reg-int)
+  ;; Check for regions that are a subset of the new region.
+  (let ((int-regs (regionstore-new nil)) regx regy)
+    ;; Find regions that are a subset of the new region.
+    (loop for inx from 0 below (1- (regionstore-length strx)) do
+      (setf regx (nth inx (regionstore-regions strx)))
 
-    ;; Gather intersections, successivelly, until there are no more.
-    ;; Return the last non-empty result.
-    (loop while (regionstore-is-not-empty tmp-store) do
+      (loop for iny from (1+ inx) below (regionstore-length strx) do
+        (setf regy (nth iny (regionstore-regions strx)))
 
-      (setf rslt tmp-store)
-      (setf tmp-store (regionstore-new nil))
-      
-      ;; Check each pair for intersection.
-      (loop for inx from 0 below (1- (regionstore-length rslt)) do
-        (setf regx (regionstore-nth rslt inx))
-
-        (loop for iny from (1+ inx) below (regionstore-length rslt) do
-          (setf regy (regionstore-nth rslt iny))
-
-          ;; Get intersection.
-          (setf reg-int (region-intersection regx regy))
-
-          ;; If there is an intersection, add it to tmp-store.
-          ;; non-duplicate subsets are OK.
-          (if reg-int
-            (if (not (regionstore-member tmp-store reg-int))
-              (regionstore-push tmp-store reg-int)))
-
-        ) ; next regy
-      ) ; next regx
+        (if (region-intersects regx regy)
+          (regionstore-push-nosubs int-regs (region-intersection regx regy))
+        )
+      )
     )
-    rslt
+    ;(format t "~&regionstore-largest-intersections: returning ~A" int-regs)
+    int-regs
+  )
+)
+;;; Return self split by intersections.
+;;; Each fragment returned will be a subset of any original item it intersects.
+(defun regionstore-split-by-intersections (strx) ; -> regionstore
+  (assert (regionstore-p strx))
+  ;(format t "~&regionstore-split-by-intersections ~A" strx)
+
+  (let ((fragments (regionstore-new nil)) (remaining (regionstore-new nil)) intersections intreg)
+
+    ;; Remove duplicates, if any.
+    (loop for regx in (regionstore-regions strx) do
+        (if (not (regionstore-member remaining regx))
+          (regionstore-push remaining regx))
+    )
+
+    (if (< (regionstore-length remaining) 2)
+      (return-from regionstore-split-by-intersections remaining))
+
+    (loop while (regionstore-is-not-empty remaining) do
+      ;(format t "~&remaining ~A" remaining)
+
+      (setf intersections (regionstore-largest-intersections remaining))
+      ;(format t "~& ~&intersections ~A" intersections)
+
+      (setf remaining (regionstore-subtract :min-store remaining :sub-store intersections))
+      ;(format t "~&remaining ~A" remaining)
+
+      (setf fragments (regionstore-append fragments remaining))
+      ;(format t "~&fragments ~A" fragments)
+
+      ;; Gather remaining regions from the original store.
+      (setf remaining (regionstore-new nil))
+      (loop for regx in (regionstore-regions strx) do
+        (loop for regy in (regionstore-regions intersections) do
+          (when (region-intersects regx regy)
+            (setf intreg (region-intersection regx regy))
+            (if (not (regionstore-member remaining intreg))
+              (regionstore-push remaining intreg))
+          )
+        )
+      )
+    )
+    ;(format t "~& ~&returning ~A" fragments)
+    fragments
   )
 )
 
+;;; Return the number af superset regions in a regionstore of a given region.
+(defun regionstore-num-superset (storex regx) ; -> integer GE 0.
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+  (assert (or (regionstore-is-empty storex) (regionstore-same-num-bits storex)))
 
+  (let ((cnt 0))
+    (loop for regy in (regionstore-regions storex) do
+        (if (region-superset-of :sup regy :sub regx)
+          (incf cnt))
+    )
+    cnt
+  )
+)

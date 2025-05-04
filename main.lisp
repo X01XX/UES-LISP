@@ -617,7 +617,7 @@
 
   (vertex-tests)
   (vertexstore-tests)
-  
+
   (format t "~&All tests done")
   t
 )

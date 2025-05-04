@@ -27,6 +27,31 @@
     (format t "~&  vertex-structure-implied OK")
   )
 
+  ;; Test vertex-contains-state.
+  (let (vert1)
+    (setf vert1 (vertex-new (state-from 's0001) (statestore-new (list (state-from 's0101) (state-from 's0011)))))
+
+    (assert (vertex-contains-state vert1 (state-from 's0001)))
+    (assert (vertex-contains-state vert1 (state-from 's0101)))
+    (assert (not (vertex-contains-state vert1 (state-from 's0111))))
+
+    (format t "~&  vertex-contains-state OK")
+  )
+
+  ;; Test vertex-states.
+  (let (vert1 stas)
+    (setf vert1 (vertex-new (state-from 's0001) (statestore-new (list (state-from 's0101) (state-from 's0011)))))
+
+    (setf stas (vertex-states vert1))
+    (assert (statestore-p stas))
+    (assert (= (statestore-length stas) 3))
+    (assert (statestore-member stas (state-from 's0001)))
+    (assert (statestore-member stas (state-from 's0101)))
+    (assert (statestore-member stas (state-from 's0011)))
+    
+    (format t "~&  vertex-states OK")
+  )
+
   (format t "~&vertex-tests done")
   t
 )

@@ -26,7 +26,7 @@
     (setf storey (stepstore-new (list step3 step4)))
     (setf storez (stepstore-intersection storex storey))
 
-    ;(format t "~&storez ~A" (stepstore-str storez))
+    (format t "~&storez ~A" (stepstore-str storez))
     (assert (= 1 (stepstore-length storez)))
     (assert (stepstore-member storez step2))
     (assert (stepstore-member storez step3))

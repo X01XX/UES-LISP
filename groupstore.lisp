@@ -16,7 +16,10 @@
 ;   (make-groupstore [:<field-name> <field-groupstore>]*), use groupstore-new instead.
 ;   (copy-groupstore <instance>) copies a groupstore instance.
 (defun groupstore-new (groups) ; -> groupstore.
-  ;(format t "~&groups ~A" groups)
+  ;; Check argumont.
+  (assert (listp groups))
+
+  ;; Construct result.
   (let ((ret (make-groupstore :groups nil)))
     (loop for grpx in groups do
       (groupstore-push ret grpx)

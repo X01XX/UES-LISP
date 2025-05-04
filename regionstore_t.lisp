@@ -122,15 +122,21 @@
     (format t "~&  regionstore-defining-regions OK")
   )
 
-  ;; Test regionstore-max-intersections
-  (let (rslt (regstr (regionstore-from
-               (read-from-string "(r010X rX101 r01X1 r0X11 r011X)"))))
+  ;; Test regionstore-split-by-intersections.
+  (let ((regstr (regionstore-from (read-from-string "(rX10X  rX1X1  r1X01 r0X11)")))      
+        rslt
+       )
 
-    (setf rslt (regionstore-max-intersections regstr))
-    (assert (regionstore-p rslt))
-    (assert (regionstore-eq rslt (regionstore-from (read-from-string "(r0101 r0111)"))))
+    ;(format t "~&regstr: ~A" (regionstore-str regstr))
+    ;(setf rslt (regionstore-max-intersections regstr))
+    ;(assert (regionstore-p rslt))
+    ;(format t "~&rslt: ~A" (regionstore-str rslt))
 
-    (format t "~&  regionstore-max-intersections OK")
+    (setf rslt (regionstore-split-by-intersections regstr))
+    (format t "~&rslt: ~A" (regionstore-str rslt))
+    (assert (= (regionstore-length rslt) 7))
+
+    (format t "~&  regionstore-split-by-intersections OK")
   )
 
   (format t "~&regionstore-tests done")
