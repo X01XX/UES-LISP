@@ -11,9 +11,12 @@
 (defvar *compatible* 2323)
 (defvar *not-compatible* 2324)
 (defvar *more-samples-needed* 2325)
-(defvar *domain-num-bits-list* nil) ; Will be shadowed, as needed.
-(defvar *dom-id* nil) ; Will be shadowed, as needed.
-(defvar *act-id* nil) ; Will be shadowed, as needed.
+
+;; Let-scope shadowed variables.
+(defvar *domain-num-bits-list* nil)
+(defvar *dom-id* nil)
+(defvar *act-id* nil)
+(defvar *max-region* nil)
 
 ;; Bool vars.
 (defvar true t)

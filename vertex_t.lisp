@@ -12,7 +12,7 @@
   )
 
   ;; Test vertex-structure-implied.
-  (let (vert1 rslt1 rslt2)
+  (let (vert1 rslt1 rslt2 (*max-region* (region-new (list (state-from 's1111) (state-from 's0000)))))
     (setf vert1 (vertex-new (state-from 's0001) (statestore-new (list (state-from 's0101) (state-from 's0011)))))
     (setf rslt1 (vertex-structure-implied vert1))
     ;(format t "~&rslt1: ~A" (regionstore-str rslt1))

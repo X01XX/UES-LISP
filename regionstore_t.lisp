@@ -54,7 +54,7 @@
   )
 
   ;; Test adjacent, dissimilar squares.
-  (let* (pos-57 pos-8c pos-regs storex)
+  (let* (pos-57 pos-8c pos-regs storex (*max-region* (region-new (list (state-from 's1111) (state-from 's0000)))))
 
       (setf pos-57 (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
 
@@ -94,7 +94,7 @@
   )
 
   ;; Test regionstore-defining-regions.
-  (let (storex storey defining-regions)
+  (let (storex storey defining-regions (*max-region* (region-new (list (state-from 's1111) (state-from 's0000)))))
     (setf storex (regionstore-new nil))
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))

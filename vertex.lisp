@@ -26,7 +26,7 @@
 (defun vertex-new (pinnacle edges) ; -> vertex.
   (assert (state-p pinnacle))
   (assert (statestore-p edges))
-  (assert (> (statestore-length edges) 1))
+  (assert (> (statestore-length edges) 0))
   (assert (= (state-num-bits pinnacle) (statestore-num-bits edges)))
   
   ;; Check that edge states are adjacent the pinnacl state.
@@ -90,8 +90,9 @@
   (assert (vertex-p vx))
 
   (let (tmp-regs)
-    ;; Init summation of edge complements.
+    ;; Init summation of edge complements, (A + B) & (A + C) = A + (B & C).
     (setf tmp-regs (state-complement (car (statestore-states (vertex-edges vx)))))
+
     (loop for stax in (cdr (statestore-states (vertex-edges vx))) do
       (setf tmp-regs (regionstore-intersection tmp-regs (state-complement stax)))
     )

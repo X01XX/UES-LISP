@@ -353,3 +353,17 @@
   ;; Remove state, return it.
   (pop (statestore-states store))
 )
+
+;;; Return a statestore with state list reversed.
+(defun statestore-reverse (storex) ; -> statestore
+  ;; Check arguments.
+  (assert (statestore-p storex))
+
+  (let ((ret (statestore-new nil)))
+    (loop for stax in (statestore-states storex) do
+      (statestore-push ret stax)
+    )
+    ret
+  )
+)
+

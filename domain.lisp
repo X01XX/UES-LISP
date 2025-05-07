@@ -4,6 +4,7 @@
   id		; A number id, GE zero.
   actions	; A actionstore.
   current-state	; The current state of the domain. Actions change this.
+  max-region    ; The maximum region for the domain.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -24,22 +25,36 @@
   (assert (state-p initial-state))
   (assert (and (integerp id) (>= id 0)))
 
-  (let (act0 high-state low-state sample1 sample2 (*dom-id* id))
-    ;; Create a no-op action as action 0.
+  (let (act0 high-state low-state sample-low sample-high (*dom-id* id) max-region)
+    ;; Create highest state, lowest state, max-region.
     (setf high-state (state-new-high initial-state))
     (setf low-state (state-new-low initial-state))
-    (setf sample1 (sample-new :initial low-state :result low-state))
-    (setf sample2 (sample-new :initial high-state :result high-state))
+    (setf max-region (region-new (list high-state low-state)))
 
-    (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample1) (rule-new sample2)))))))
-    (action-take-sample-arbitrary act0 high-state)
-    (action-take-sample-arbitrary act0 low-state)
-    (action-take-sample-arbitrary act0 high-state)
-    (action-take-sample-arbitrary act0 low-state)
-    (action-take-sample-arbitrary act0 high-state)
-    (action-take-sample-arbitrary act0 low-state)
-
-    (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state)
+    (let ((*max-region* max-region))
+      ;; Create a no-op action as action 0.
+  
+      ;; Create no-op samples for highest state.
+      (setf sample-high (sample-new :initial high-state :result high-state))
+  
+      ;; Create no-op samples for lowest state.
+      (setf sample-low (sample-new :initial low-state :result low-state))
+  
+      ;; Create act 0 with no-op base rules.
+      (setf act0 (action-new :id 0 :rules (list (rulestore-new (list (rule-union  (rule-new sample-low) (rule-new sample-high)))))))
+  
+      ;; Generate act 0 rules-by-experiance..
+      (action-take-sample-arbitrary act0 high-state)
+      (action-take-sample-arbitrary act0 low-state)
+      (action-take-sample-arbitrary act0 high-state)
+      (action-take-sample-arbitrary act0 low-state)
+      (action-take-sample-arbitrary act0 high-state)
+      (action-take-sample-arbitrary act0 low-state)
+  
+      ;; Construct result.
+      (make-domain :id id :actions (actionstore-new (list act0)) :current-state initial-state
+            :max-region max-region)
+    )
   )
 )
 
@@ -89,7 +104,7 @@
   (assert (= (domain-num-bits domx) (rule-num-bits rule-from-to)))
   (assert (= (domain-num-bits domx) (region-num-bits within)))
 
-  (let  ((*dom-id* (domain-id domx)))
+  (let  ((*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
     (actionstore-get-steps (domain-actions domx) rule-from-to within no-alt)
   )
 )
@@ -99,11 +114,6 @@
   (assert (domain-p domx))
 
   (state-num-bits (domain-current-state domx))
-)
-
-;;; Return the maximum region for a domain.
-(defun domain-max-region (domx) ; -> region.
-  (region-new (list (domain-current-state domx) (state-new (state-not (domain-current-state domx)))))
 )
 
 ;;; Return a plan to change a current region to a goal region.
@@ -119,8 +129,9 @@
   (assert (region-superset-of :sup with-reg :sub (rule-result-region rule-from-to)))
 
   (let (plan
-       (*dom-id* (domain-id domx))
+       (*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx))
        (num-changes (rule-num-changes rule-from-to))) ; adjust depth limit by number chnages needed.
+
     (loop for i from 0 to 2
           while (null plan) do
       (setf plan (domain-get-plan2 domx rule-from-to with-reg (* 2 num-changes) no-alt))
@@ -139,15 +150,15 @@
 ;;; Choose one step randomly, then recurse.
 ;;; So random forward-chaining, backward-chaining, with each step.
 (defun domain-get-plan2 (domx rule-from-to with-reg depth &optional no-alt) ; -> plan, or nil.
-  ;(format t "~&domain-get-plan2: domx ~D rule ~A within ~A depth ~D no-alt ~A" (domain-id domx) (rule-str rule-from-to)
-  ;   (region-str with-reg) depth no-alt)
+ ; (format t "~&domain-get-plan2: domx ~D rule ~A within ~A depth ~D no-alt ~A" (domain-id domx) (rule-str rule-from-to)
+ ;    (region-str with-reg) depth no-alt)
 
   ;; If no changes are needed, return a act zero plan.
   (if (change-is-low (rule-changes rule-from-to))
     (return-from domain-get-plan2 (plan-new (list (step-new 0 rule-from-to)))))
 
   ;; Check for recursion limit.
-  (if (zerop depth)
+  (if (not (plusp depth))
     (return-from domain-get-plan2 nil))
 
   (let (steps
@@ -299,11 +310,11 @@
   ;(format t "~&domain-get-needs: ~A" (type-of domx))
   (assert (domain-p domx))
 
-  (let (needs (*dom-id* (domain-id domx)))
+  (let (needs (*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
 
     (setf needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-reachable domx)))
 
-    (needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
+    ;(needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
 
     ;; Find plan for each need.
     (loop for needx in (needstore-needs needs) do
@@ -333,7 +344,7 @@
   (assert (action-p actx))
   (assert (= (domain-num-bits domx) (action-num-bits actx)))
 
-  (let ((*dom-id* (domain-id domx)))
+  (let ((*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
     (action-set-id actx (actionstore-length (domain-actions domx)))
     (actionstore-push (domain-actions domx) actx)
   )
@@ -377,7 +388,7 @@
   (if (zerop (step-act-id (plan-first-step planx)))
      (return-from domain-run-plan true))
 
-  (let (smpl (*dom-id* (domain-id domx)))
+  (let (smpl (*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
     (format t "~&Dom: ~D Running plan: ~A" (domain-id domx) (plan-str planx))
     (loop for stepx in (plan-step-list planx) do
 
@@ -436,7 +447,7 @@
    (assert (need-p needx))
    (assert (= (domain-id domx) (need-dom-id needx)))
 
-   (let ((act-id (need-act-id needx)) smpl  (*dom-id* (domain-id domx)))
+   (let ((act-id (need-act-id needx)) smpl  (*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
       (if (plan-is-not-empty (need-plan needx))
         (domain-run-plan domx (need-plan needx))
       )
@@ -482,7 +493,7 @@
   (assert (actionstore-valid-id (domain-actions domx) act-id))
   (assert (state-p state))
 
-  (let ((*dom-id* (domain-id domx)))
+  (let ((*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
     (action-take-sample-arbitrary (actionstore-nth (domain-actions domx) act-id) state)
   )
 )
@@ -492,7 +503,7 @@
   (assert (domain-p domx))
   (assert (need-p nedx))
 
-  (let ((*dom-id* (domain-id domx)))
+  (let ((*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
     (action-take-sample-for-need (actionstore-nth (domain-actions domx) (need-act-id nedx)) (domain-current-state domx) nedx)
   )
 )

@@ -289,7 +289,7 @@
   ;; Check argument.
   (assert (state-p stax))
 
-  (let ((max-regionstore (regionstore-new (list (region-new (list (state-new-high stax) (state-new-low stax)))))))
+  (let ((max-regionstore (regionstore-new (list *max-region*))))
     ;; Calc result.
     (regionstore-subtract-state max-regionstore stax)
   )

@@ -394,6 +394,24 @@
     (format t "~&  region-symmetric-overlapping-region OK")
   )
 
+  ;; Test region-adjacent-external-states.
+  (let (reg1 sta1 ext1)
+    (setf reg1 (region-from 'r1X0X))
+    (assert (region-p reg1))
+
+    (setf sta1 (state-from  's1001))
+    (assert (state-p sta1))
+
+    (setf ext1 (region-adjacent-external-states reg1 sta1))
+    (assert (statestore-p ext1))
+
+    (assert (= (statestore-length ext1) 2))
+    (assert (statestore-member ext1 (state-from  's0001)))
+    (assert (statestore-member ext1 (state-from  's1011)))
+ 
+    (format t "~&  region-adjacent-external-states OK")
+  )
+
   (format t "~&region-tests done")
   t
 )

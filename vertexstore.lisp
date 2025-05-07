@@ -19,7 +19,7 @@
 ;   (make-vertexstore [:<field-name> <field-vertexstore>]*), use vertexstore-new instead.
 ;   (copy-vertexstore <instance>) copies a vertexstore instance.
 
-;;; Return a new vertexstore instance, from a vertex, or a list of vertexs.
+;;; Return a new vertexstore instance, from a vertex, or a list of vertices.
 (defun vertexstore-new (vertices) ; -> vertexstore.
   (let (listx)
     ;; Check argument, convert a vertex to a vertex list.
@@ -65,6 +65,7 @@
     (assert (= (vertex-num-bits (car (vertexstore-vertices storex)))
                (vertex-num-bits vx))))
 
+  ;; If no duplicate exists in the store, add it.
   (if (not (member vx (vertexstore-vertices storex) :test #'vertex-eq))
      (push vx (vertexstore-vertices storex)))
 )
@@ -141,6 +142,7 @@
 )
 
 ;;; Return verticies in region.
+;;; An applicable vertex should have the same number of edges as the region.
 (defun vertexstore-vertices-in-region (storex regx) ; -> vertexstore.
   ;; Check arguments.
   (assert (vertexstore-p storex))
@@ -150,7 +152,7 @@
 
     (loop for vtx in (vertexstore-vertices storex)  do
       (if (region-superset-of-state regx (vertex-pinnacle vtx))
-        (vertexstore-push ret vtx))
+          (vertexstore-push ret vtx))
     )
     ;; Return result.
     ret
@@ -175,6 +177,22 @@
   )
 )
 
+;;; Return vertices that cantain a given state.
+(defun vertexstore-find (storex stax) ; -> vertex, or nil.
+  ;; Check arguments.
+  (assert (vertexstore-p storex))
+  (assert (state-p stax))
+
+  ;; Check each vertex.
+  (loop for vx in (vertexstore-vertices storex) do
+  
+    (if (state-eq (vertex-pinnacle vx) stax)
+      (return-from vertexstore-find vx)) ; Return positive result.
+  )
+  ;; Return negative result.
+  nil
+)
+
 ;;; Return the difference of two vertexstores.
 (defun vertexstore-difference (storex storey) ; -> vertexstore.
   (assert (vertexstore-p storex))
@@ -184,6 +202,7 @@
 )
 
 ;;; Return the states connected to a given state though vertices.
+;;; The given state will be the first in the result list.
 (defun vertexstore-states-connected (storex stax) ; -> statestore.
   (assert (vertexstore-p storex))
   (assert (state-p stax))
@@ -228,12 +247,12 @@
 
       ;;  Check for no more verticies to process.
       (if (vertexstore-is-empty vertices)
-        (return-from vertexstore-states-connected (statestore-union processed new-states))
+        (return-from vertexstore-states-connected (statestore-reverse (statestore-union new-states processed)))
       )
 
       ;; Check for no more states to process.
       (if (statestore-is-empty new-states)
-        (return-from vertexstore-states-connected processed)
+        (return-from vertexstore-states-connected (statestore-reverse processed))
       )
     ) ; next new square.
   )

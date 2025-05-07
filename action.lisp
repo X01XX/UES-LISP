@@ -28,11 +28,9 @@
 
 ;;; Return an action.
 (defun action-new (&key id rules)
-  ;(format t "~&action-new: Act: ~D base-rules:" id)
-  ;(loop for rulsx in rules do
-  ;   (format t " ~A" (rulestore-str rulsx))
-  ;)
+  ;; Check arguments.
   (assert (rulestore-list-p rules))
+  (assert (not (null rules)))
   (assert (and (integerp id) (>= id 0)))
 
   (let (rulsx rulsy actx memory tmp-state)
@@ -65,7 +63,7 @@
                             :structure-pairs (regionstore-new nil)
                             :cleanup-flag true
                             :vertices (vertexstore-new nil)))
-    ;(format t "~&returning act: ~A" (action-str actx))
+    ;; Return result.
     actx
   )
 )
@@ -796,21 +794,110 @@
             (push (region-first-state prx) sta-list))
         )
         (setf sta-list (reverse sta-list))
-        (if (and (> (length sta-list) 2))
+        (if (and (> (length sta-list) 1))
           (vertexstore-push vertices (vertex-new (car sta-list) (statestore-new (cdr sta-list)))))
       )
+  
+      (when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
+  
+        (let (
+              ;; Defining regions.
+              (defining (regionstore-defining-regions (action-logical-structure actx)))
+              ;; Vertices in a defining region.
+              verts-in
+              ;; Vertex edges in a defining region.
+              edges-in
+              regions-in
+              options
+              )
+  
+          (loop for defx in (regionstore-regions defining) do
+            (setf verts-in (vertexstore-vertices-in-region vertices defx))
+            (setf edges-in (vertexstore-edges-in-region vertices defx))
+  
+;            (cond ((vertexstore-is-empty verts-in)
+;                    (format t "~& ~&Dom: ~D Act: ~D 0 defining region ~A ~&              vertex ~A ~&              edges ~A"
+;                       *dom-id* *act-id* (region-str defx) (vertexstore-str verts-in) (statestore-str edges-in))
+;                  )
+;                  ((= (vertexstore-length verts-in) 1)
+;                    (format t "~& ~&Dom: ~D Act: ~D 1 defining region ~A ~&              vertex ~A ~&              edges ~A"
+;                       *dom-id* *act-id* (region-str defx) (vertexstore-str verts-in) (statestore-str edges-in))
+;                  )
+;                  (t
+;                    (format t "~& ~&Dom: ~D Act: ~D gt 1 defining region ~A ~&              vertices ~A ~&              edges ~A"
+;                       *dom-id* *act-id* (region-str defx) (vertexstore-str verts-in) (statestore-str edges-in))
+;                  )
+;            )
+  
+            ;; Get vertex and edge rates
+            (let ((tmp-states (statestore-new nil)) connected-states in-one-region region-options rate (max-rate 0))
+              ;; Get states to rate, no dups.
+              (loop for vtx in (vertexstore-vertices verts-in) do
+                (if (not (statestore-member tmp-states (vertex-pinnacle vtx)))
+                  (statestore-push tmp-states (vertex-pinnacle vtx)))
+              )
+              (loop for stax in (statestore-states edges-in) do
+                (if (not (statestore-member tmp-states stax))
+                  (statestore-push tmp-states stax))
+              )
+              ;; Rate states.
+              (loop for stax in (statestore-states tmp-states) do
+                (setf connected-states (vertexstore-states-connected vertices stax))
+                (setf regions-in (regionstore-regions-state-in (action-logical-structure actx) stax))
+                (setf in-one-region (= (regionstore-length regions-in) 1))
+                (setf rate (statestore-length connected-states))
+;               (format t "~&                     ~A rate: ~D connections: ~A in-one: ~A ~A" (state-str stax)
+;                           rate (statestore-str connected-states) in-one-region (regionstore-str regions-in))
+                (when in-one-region
+                  (if (> rate max-rate)
+                    (setf region-options nil max-rate rate)
+                  )
+                  (if (= rate max-rate)
+                    (push stax region-options)
+                  )
+                )
+              ) ; next stax
+              ; Save options
+              (push region-options options)
+            )
+          ) ; next defx
+          (when (not (null options))
+          (let (tmp-sta vtx (tmp-verts (vertexstore-new nil)) poss-regions tmp-defining)
+            (setf options (reverse options)) ; sync list with defining regions.
+;           (format t "~&options: (")
+;           (loop for lstx in options do
+;             (format t " ~A" (statestore-str (statestore-new lstx)))
+;           )
+;           (format t ")")
+            (loop for lstx in options do
+              (setf tmp-sta (nth (random (length lstx)) lstx))
+              (setf vtx (vertexstore-find vertices tmp-sta))
+              (if vtx
+                (progn
+;                 (format t "~& vertex for ~A is ~A" (state-str tmp-sta) (vertex-str vtx))
+                  (vertexstore-push tmp-verts vtx)
+                )
+                ; else
+;               (format t "~& vertex for ~A not found??" (state-str tmp-sta))
+              )
+            ) ; next lstx
+            (setf poss-regions (vertexstore-structure-implied tmp-verts))
+            (setf tmp-defining (regionstore-defining-regions poss-regions))
+;           (format t "~&poss-regs ~A defining: ~A" (regionstore-str poss-regions) (regionstore-str tmp-defining))
+          )
+          )
+        )
+      )
+      ;; Save vertices.
       (setf (action-vertices actx) vertices)
     )
 
+    ;; Return higher priority needs, if any.
     (if (needstore-is-not-empty needs)
       (return-from action-structure-needs needs))
-
-    ;(when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 2))
-    ;)
-
+  
     ;; Check for non-adjacent incompatible square between needs, which should culminate in a new adjacent dissimilar pair.
     (action-non-adjacent-incompatible-square-needs actx critical-non-adj-pairs)
-
   )
 )
 
@@ -872,7 +959,8 @@
 
     (action-get-need-resample-state actx stax reason)
 
-    (need-new :act-id (action-id actx)
+    (need-new :dom-id *dom-id*
+              :act-id (action-id actx)
               :kind *first-sample-of-state*
               :reason reason
               :target stax
@@ -900,7 +988,8 @@
     (if (square-pnc sqrx)
       (error "action-get-need-resample-state: square pnc is true?"))
 
-    (need-new :act-id (action-id actx)
+    (need-new :dom-id *dom-id*
+              :act-id (action-id actx)
               :kind *resample-state*
               :reason reason
               :target stax
@@ -923,7 +1012,8 @@
   (if (squarestore-pnc-square-in-region (action-squares actx) regx)
       (error "action-get-needs-sample-region: pnc squares in region"))
 
-  (need-new :act-id (action-id actx)
+  (need-new :dom-id *dom-id*
+            :act-id (action-id actx)
             :kind *sample-in-region*
             :reason reason
             :target regx
@@ -1487,9 +1577,9 @@
     (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
   )
 
-  (if (> (vertexstore-length (action-vertices actx)) 0)
-    (format t "~&           structure vertices: ~A" (vertexstore-str (action-vertices actx)))
-  )
+; (if (> (vertexstore-length (action-vertices actx)) 0)
+;   (format t "~&           structure vertices: ~A" (vertexstore-str (action-vertices actx)))
+; )
 ; (format t "~&   base rules: " (action-base-rules actx))
 ; (loop for rulsx in (action-base-rules actx) do
 ;   (format t " ~A" (rulestore-str rulsx))

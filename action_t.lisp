@@ -3,7 +3,7 @@
   (format t "~&action-tests beginning")
 
   ; Test action-non-adjacent-incompatible-square-needs
-  (let (actx needs)
+  (let (actx needs (*dom-id* 0) (*max-region* (region-new (list (state-from 's1111) (state-from 's0000)))))
 
     (setf actx (action-from '(ACT ("[00/XX/XX/Xx]") ("[11/XX/XX/XX]"))))
     (assert (action-p actx))

@@ -269,39 +269,45 @@
       (setf (sessiondata-can-do sessx) can-do)
       (setf (sessiondata-cant-do sessx) cant-do)
   )
+  ;; Can do list has needs that have a target satisfied by the domain current state,
+  ;; or a preliminary attemp to get a plan within the domain worked.
 
   ;; Get domain needs while avoiding negative selectregions.
-  (let ((dmxs (sessiondata-domains sessx)))
-
-    (loop for nedx in (needstore-need-list (sessiondata-can-do sessx)) do
-
-      (when (plan-is-not-empty (need-plan nedx))
-
-        (let (targetx new-target plans targets)
-
-          (if (state-p (need-target nedx))
-            (setf targetx (region-new (need-target nedx)))
-            (setf targetx (need-target nedx)))
-
-          ;; Calc all-domains target.
-          (loop for domx in (domainstore-domains dmxs) do
-            (if (= (domain-id domx) (need-dom-id nedx))
-              (push targetx targets)
-              (push (domain-max-region domx) targets)
+  ;; If a plan is found, replace the domain-centric plan.
+  (when (selectregionsstore-negative-selectregions-exist (sessiondata-selectregions-store sessx))
+    (format t "~&Getting plans avoiding negative selectregions.")
+    (let ((dmxs (sessiondata-domains sessx)))
+  
+      (loop for nedx in (needstore-need-list (sessiondata-can-do sessx)) do
+  
+        (when (plan-is-not-empty (need-plan nedx))
+  
+          (let (targetx new-target plans targets)
+  
+            (if (state-p (need-target nedx))
+              (setf targetx (region-new (need-target nedx)))
+              (setf targetx (need-target nedx)))
+  
+            ;; Calc all-domains target.
+            (loop for domx in (domainstore-domains dmxs) do
+              (if (= (domain-id domx) (need-dom-id nedx))
+                (push targetx targets)
+                (push (domain-max-region domx) targets)
+              )
+            ) ; next domx
+            (setf new-target (regionscorr-new (regionstore-new (reverse targets))))
+  
+            ;; Get plans
+            (setf plans (sessiondata-get-plans sessx new-target))
+  
+            (when (not (null plans))
+              ;(format t "~&planxx: ~A vs ~A" (plan-str (need-plan nedx)) (planscorrstore-str plans))
+              (setf (need-plan nedx) plans)
             )
-          ) ; next domx
-          (setf new-target (regionscorr-new (regionstore-new (reverse targets))))
-
-          ;; Get plans
-          (setf plans (sessiondata-get-plans sessx new-target))
-
-          (when (not (null plans))
-            ;(format t "~&planxx: ~A vs ~A" (plan-str (need-plan nedx)) (planscorrstore-str plans))
-            (setf (need-plan nedx) plans)
-          )
-        ) ; end let
-      ) ; end when
-    ) ; next nedx
+          ) ; end let
+        ) ; end when
+      ) ; next nedx
+    )
   )
 
   ;; If no domain needs can be done, check status of current states.

@@ -182,9 +182,8 @@
   (assert (value-p (car vals)))
 
   ;; Init working values based on the first value.
-  (let* ((first-val (car vals))
-         (num-bits (value-num-bits first-val))
-         (ret-bits (value-bits first-val)))
+  (let ((num-bits (value-num-bits (car vals)))
+        (ret-bits (value-bits (car vals))))
 
     ;; Boolean AND the initial value with subsequent values.
     (loop for valx in (cdr vals) do

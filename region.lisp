@@ -627,3 +627,22 @@
   )
 )
 
+;;; Return the adjacent external states for a given state, in a region.
+(defun region-adjacent-external-states (regx stax) ; -> statestore
+  ;; Check arguments.
+  (assert (region-p regx))
+  (assert (state-p stax))
+  (assert (= (region-num-bits regx) (state-num-bits stax)))
+  (assert (region-intersects-state regx stax))
+
+  ;; Calc result.
+  (let ((ret (statestore-new nil))
+        (bits (mask-split (region-edge-mask regx))))
+
+    (loop for bitx in bits do
+      (statestore-push ret (state-new-xor stax bitx))
+    )
+    ret
+  )
+)
+
