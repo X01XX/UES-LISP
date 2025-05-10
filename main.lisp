@@ -40,6 +40,9 @@
 (load #p "mask.lisp")
 (load #p "mask_t.lisp")
 
+(load #p "maskstore.lisp")
+(load #p "maskstore_t.lisp")
+
 (load #p "region.lisp")
 (load #p "region_t.lisp")
 
@@ -137,6 +140,12 @@
 
 (load #p "vertexstore.lisp")
 (load #p "vertexstore_t.lisp")
+
+(load #p "regionpair.lisp")
+(load #p "regionpair_t.lisp")
+
+(load #p "regionpairstore.lisp")
+(load #p "regionpairstore_t.lisp")
 
 (defun main ()
   (run)
@@ -574,6 +583,7 @@
   (statestore-tests)
 
   (mask-tests)
+  (maskstore-tests)
 
   (rule-tests)
   (rulestore-tests)
@@ -620,6 +630,9 @@
 
   (vertex-tests)
   (vertexstore-tests)
+
+  (regionpair-tests)
+  (regionpairstore-tests)
 
   (format t "~&All tests done")
   t

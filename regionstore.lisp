@@ -49,7 +49,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   ;; Check for region in store that is a superset (or dup) of the new region.
@@ -83,7 +82,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (loop for regy in (regionstore-regions storex) do
@@ -99,7 +97,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (loop for regy in (regionstore-regions storex) do
@@ -115,7 +112,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (loop for regy in (regionstore-regions storex) do
@@ -132,7 +128,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   ;; Check if the new region is a superset of any store region.
@@ -212,8 +207,7 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-; (assert (regionstore-same-num-bits storex))
-; (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
+  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   ;; Calc result.
   (member regx (regionstore-regions storex) :test #'region-eq)
@@ -234,7 +228,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (let ((ret (regionstore-new nil))
@@ -264,7 +257,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (state-p stax))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (state-num-bits stax))))
 
   (let ((ret (regionstore-new nil)) tmpstore)
@@ -307,8 +299,6 @@
   ;; Check arguments.
   (assert (regionstore-p min-store))
   (assert (regionstore-p sub-store))
-  (assert (regionstore-same-num-bits min-store))
-  (assert (regionstore-same-num-bits sub-store))
   (assert (or (regionstore-is-empty min-store)
               (regionstore-is-empty sub-store)
               (= (regionstore-num-bits min-store) (regionstore-num-bits sub-store))))
@@ -327,8 +317,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (regionstore-p storey))
-  (assert (regionstore-same-num-bits storex))
-  (assert (regionstore-same-num-bits storey))
   (assert (or (regionstore-is-empty storex)
               (regionstore-is-empty storey)
               (= (regionstore-num-bits storex) (regionstore-num-bits storey))))
@@ -411,7 +399,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (state-p stax))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (state-num-bits stax))))
 
   (let ((cnt 0))
@@ -429,7 +416,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (state-p stax))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (state-num-bits stax))))
 
   (loop for regx in (regionstore-regions storex) do
@@ -445,7 +431,6 @@
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (state-p stax))
-  (assert (regionstore-same-num-bits storex))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (state-num-bits stax))))
 
   (let ((ret-store (regionstore-new nil)))
@@ -463,7 +448,6 @@
 (defun regionstore-defining-regions (storex) ; -> regionstore
   ;; Check argument.
   (assert (regionstore-p storex))
-  (assert (or (regionstore-is-empty storex) (regionstore-same-num-bits storex)))
 
   (let ((ret-store (regionstore-new nil)) tmp-store)
     ;; Test each region.
@@ -480,6 +464,23 @@
     )
     ;; Return result.
     ret-store
+  )
+)
+
+;;; Return unique subregions of a given region, assuming the given region is in the
+;;; store, which will be skipped.
+(defun regionstore-unique-subregions (storex regx) ; -> regionstore
+  ;; Check arguments.
+  (assert (regionstore-p storex))
+  (assert (region-p regx))
+
+  (let ((ret (regionstore-new (list regx))))
+
+    (loop for regy in (regionstore-regions storex) do
+      (if (and (null (region-eq regy regx)) (regionstore-any-intersection-of ret regy))
+        (setf ret (regionstore-subtract-region ret regy)))
+    )
+    ret
   )
 )
 
@@ -616,7 +617,7 @@
 (defun regionstore-num-superset (storex regx) ; -> integer GE 0.
   (assert (regionstore-p storex))
   (assert (region-p regx))
-  (assert (or (regionstore-is-empty storex) (regionstore-same-num-bits storex)))
+  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
 
   (let ((cnt 0))
     (loop for regy in (regionstore-regions storex) do

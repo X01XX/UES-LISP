@@ -258,3 +258,19 @@
   )
 )
 
+;;; Return a vertex list, from given states.
+(defun vertexstore-from-states (storex states) ; -> vertexstore
+  (assert (vertexstore-p storex))
+  (assert (statestore-p states))
+
+  (let ((ret (vertexstore-new nil)))
+    (loop for vtx in (vertexstore-vertices storex) do
+      (if (statestore-is-empty (statestore-difference (vertex-states vtx) states))
+        (vertexstore-push ret vtx)
+      )
+    )
+    ret
+  )
+)
+
+

@@ -768,129 +768,100 @@
       )
     )
 
-    ;; Find vertices.
-    (let (adj-pair-states sta-list (vertices (vertexstore-new nil)))
-      ;; Get all adjacent states into a list, no dups.
-      (loop for regx in (regionstore-regions adj-pairs) do
-        (loop for stax in (statestore-states (region-states regx)) do
-          (if (not (member stax adj-pair-states :test #'state-eq))
-            (push stax adj-pair-states)
-          )
+    ;; Vertex optimization.
+    (when (and (= *dom-id* 0) (= *act-id* 5)
+               (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
+
+      (let (defining-regions    ; A regionstore. Regions that have some parts, even as little as a single state, that are only in one region.
+            defining-subregions ; A list of regionstores. Subregions in defining-regions that are only in one region.
+            symadj-reg          ; Symmetric overlapping region of two adjacent subregions, from different defining regions.
+            symadj-pair         ; A regionpair. symadj-reg split by intersection with the twe adjacent regions that it was formed from.
+            symadj-pair-list    ; A regionpairstore of pairs of adjacent subregions, from different defining regions.
+           )
+        (setf defining-regions (regionstore-defining-regions (action-logical-structure actx)))
+        ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
+
+        ;; For each defining region, get unique subregions.
+        (loop for defx in (regionstore-regions defining-regions) do
+          (push (regionstore-unique-subregions (action-logical-structure actx) defx) defining-subregions)
         )
-      )
-      ;(format t "~&adj-pair-states (")
-      ;(mapcar #'(lambda (x) (format t " ~A" (state-str x))) adj-pair-states)
-      ;(format t ") - ")
 
-      ;; Look for all adjacent states to each state.
-      (loop for stax in adj-pair-states do
-        (setf sta-list (list stax))
-        (loop for prx in (regionstore-regions adj-pairs) do
+        ;; Compare each possible pair of subregions for adjacency.
+        ;; If so, get symmetrical overlaping region.
+        (setf symadj-pair-list (regionpairstore-new nil))
+        (loop for unqx in defining-subregions
+              for count1 from 0 do
 
-          (if (state-eq stax (region-first-state prx))
-            (push (region-second-state prx) sta-list))
+          (loop for unqy in defining-subregions
+                for count2 from 0 do
+            (when (> count2 count1)
+              ;(format t "~&count1 ~D count2 ~D" count1 count2)
+              ;(format t "~&unqx: ~A unqy: ~A" (regionstore-str unqx) (regionstore-str unqy))
 
-          (if (state-eq stax (region-second-state prx))
-            (push (region-first-state prx) sta-list))
-        )
-        (setf sta-list (reverse sta-list))
-        (if (and (> (length sta-list) 1))
-          (vertexstore-push vertices (vertex-new (car sta-list) (statestore-new (cdr sta-list)))))
-      )
-  
-      (when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
-  
-        (let (
-              ;; Defining regions.
-              (defining (regionstore-defining-regions (action-logical-structure actx)))
-              ;; Vertices in a defining region.
-              verts-in
-              ;; Vertex edges in a defining region.
-              edges-in
-              regions-in
-              options
-              )
-  
-          (loop for defx in (regionstore-regions defining) do
-            (setf verts-in (vertexstore-vertices-in-region vertices defx))
-            (setf edges-in (vertexstore-edges-in-region vertices defx))
-  
-;            (cond ((vertexstore-is-empty verts-in)
-;                    (format t "~& ~&Dom: ~D Act: ~D 0 defining region ~A ~&              vertex ~A ~&              edges ~A"
-;                       *dom-id* *act-id* (region-str defx) (vertexstore-str verts-in) (statestore-str edges-in))
-;                  )
-;                  ((= (vertexstore-length verts-in) 1)
-;                    (format t "~& ~&Dom: ~D Act: ~D 1 defining region ~A ~&              vertex ~A ~&              edges ~A"
-;                       *dom-id* *act-id* (region-str defx) (vertexstore-str verts-in) (statestore-str edges-in))
-;                  )
-;                  (t
-;                    (format t "~& ~&Dom: ~D Act: ~D gt 1 defining region ~A ~&              vertices ~A ~&              edges ~A"
-;                       *dom-id* *act-id* (region-str defx) (vertexstore-str verts-in) (statestore-str edges-in))
-;                  )
-;            )
-  
-            ;; Get vertex and edge rates
-            (let ((tmp-states (statestore-new nil)) connected-states in-one-region region-options rate (max-rate 0))
-              ;; Get states to rate, no dups.
-              (loop for vtx in (vertexstore-vertices verts-in) do
-                (if (not (statestore-member tmp-states (vertex-pinnacle vtx)))
-                  (statestore-push tmp-states (vertex-pinnacle vtx)))
-              )
-              (loop for stax in (statestore-states edges-in) do
-                (if (not (statestore-member tmp-states stax))
-                  (statestore-push tmp-states stax))
-              )
-              ;; Rate states.
-              (loop for stax in (statestore-states tmp-states) do
-                (setf connected-states (vertexstore-states-connected vertices stax))
-                (setf regions-in (regionstore-regions-state-in (action-logical-structure actx) stax))
-                (setf in-one-region (= (regionstore-length regions-in) 1))
-                (setf rate (statestore-length connected-states))
-;               (format t "~&                     ~A rate: ~D connections: ~A in-one: ~A ~A" (state-str stax)
-;                           rate (statestore-str connected-states) in-one-region (regionstore-str regions-in))
-                (when in-one-region
-                  (if (> rate max-rate)
-                    (setf region-options nil max-rate rate)
-                  )
-                  (if (= rate max-rate)
-                    (push stax region-options)
+              ;; Check every combination between unqx and unqy.
+              (loop for regx in (regionstore-regions unqx) do
+                (loop for regy in (regionstore-regions unqy) do
+                  ;(format t "~&  check ~A vs ~A adj ~A" (region-str regx) (region-str regy) (region-is-adjacent regx regy))
+                  (when (region-is-adjacent regx regy)
+                    (setf symadj-reg (region-symmetric-overlapping-region regx regy))
+                    (setf symadj-pair (regionpair-new (list (region-intersection symadj-reg regx) (region-intersection symadj-reg regy))))
+                    ;(format t " symadj-reg ~A ~A" (region-str symadj-reg) (regionpair-str symadj-pair))
+                    (regionpairstore-push-nosubs symadj-pair-list symadj-pair)
                   )
                 )
-              ) ; next stax
-              ; Save options
-              (push region-options options)
+              )
             )
-          ) ; next defx
-          (when (not (null options))
-          (let (tmp-sta vtx (tmp-verts (vertexstore-new nil)) poss-regions tmp-defining)
-            (setf options (reverse options)) ; sync list with defining regions.
-;           (format t "~&options: (")
-;           (loop for lstx in options do
-;             (format t " ~A" (statestore-str (statestore-new lstx)))
-;           )
-;           (format t ")")
-            (loop for lstx in options do
-              (setf tmp-sta (nth (random (length lstx)) lstx))
-              (setf vtx (vertexstore-find vertices tmp-sta))
-              (if vtx
-                (progn
-;                 (format t "~& vertex for ~A is ~A" (state-str tmp-sta) (vertex-str vtx))
-                  (vertexstore-push tmp-verts vtx)
-                )
-                ; else
-;               (format t "~& vertex for ~A not found??" (state-str tmp-sta))
+          )
+        ) ; next unqx
+        ;(format t "~&pairs: ~A" (regionpairstore-str symadj-pair-list))
+        (let (pairs-in)
+          (loop for regx in (regionstore-regions adj-pairs) do
+            (loop for stax in (statestore-states (region-states regx)) do
+              (when (regionstore-state-in-exactly-one (action-logical-structure actx) stax)
+                (setf pairs-in (regionpairstore-regionpairs-state-in symadj-pair-list stax))
+                ;(format t "~&state: ~A in pairs:" (state-str stax))
+                (loop for prx in (regionpairstore-regionpairs pairs-in) do
+                  (let ((masks (maskstore-new (list (regionpair-dif-mask prx))))
+                        (states (statestore-new (list stax)))
+                        try-again pairs cur-sta pair-options pair-opt dif-mask)
+                    ;(format t "~&       ~A alt: ~A dif: ~A" (regionpair-str prx)
+                    ;    (state-str (regionpair-symmetric-state prx stax)) (mask-str (regionpair-dif-mask prx)))
+                    ;; Init vars for loop.
+                    (setf try-again true)
+                    (setf cur-sta (regionpair-symmetric-state prx stax))
+                    (loop while try-again do
+                      (setf try-again false)
+                      (statestore-add-end states cur-sta)
+
+                      (setf pairs (regionpairstore-regionpairs-state-in symadj-pair-list cur-sta))
+                      (setf pair-options nil)
+
+                      (loop for next-pair in (regionpairstore-regionpairs pairs) do
+                        (setf dif-mask (regionpair-dif-mask next-pair))
+                        (when (not (maskstore-member masks dif-mask))
+                          (push next-pair pair-options)
+                        )
+                      )
+                      (when (not (null pair-options))
+                        (setf try-again true)
+                        (setf pair-opt (nth (random (length pair-options)) pair-options))
+
+                        ;(format t " ~A alt: ~A dif: ~A" (state-str cur-sta) (state-str (regionpair-symmetric-state pair-opt cur-sta)) 
+                        ;  (state-str (regionpair-symmetric-state pair-opt cur-sta)) (mask-str (regionpair-dif-mask pair-opt)))
+
+                        (maskstore-push masks (regionpair-dif-mask pair-opt))
+                        (setf cur-sta (regionpair-symmetric-state pair-opt cur-sta))
+                      )
+                    ) ; end try-again 
+                    ;(format t " states: ~A" (statestore-str states))
+                  )
+                ) ; next prx
               )
-            ) ; next lstx
-            (setf poss-regions (vertexstore-structure-implied tmp-verts))
-            (setf tmp-defining (regionstore-defining-regions poss-regions))
-;           (format t "~&poss-regs ~A defining: ~A" (regionstore-str poss-regions) (regionstore-str tmp-defining))
-          )
-          )
+            ) ; next stax
+          ) ; next regx
         )
-      )
-      ;; Save vertices.
-      (setf (action-vertices actx) vertices)
-    )
+      ) ; end let
+    ) ; end when
 
     ;; Return higher priority needs, if any.
     (if (needstore-is-not-empty needs)

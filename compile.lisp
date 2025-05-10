@@ -41,6 +41,9 @@
 (progn (format t "~& ") (compile-file "tools.lisp"))
 (progn (format t "~& ") (compile-file "vertex.lisp"))
 (progn (format t "~& ") (compile-file "vertexstore.lisp"))
+(progn (format t "~& ") (compile-file "regionpair.lisp"))
+(progn (format t "~& ") (compile-file "regionpairstore.lisp"))
+(progn (format t "~& ") (compile-file "maskstore.lisp"))
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
 (progn (format t "~& ") (compile-file "mask_t.lisp"))
@@ -78,3 +81,6 @@
 (progn (format t "~& ") (compile-file "statescorr_t.lisp"))
 (progn (format t "~& ") (compile-file "vertex_t.lisp"))
 (progn (format t "~& ") (compile-file "vertexstore_t.lisp"))
+(progn (format t "~& ") (compile-file "regionpair_t.lisp"))
+(progn (format t "~& ") (compile-file "regionpairstore_t.lisp"))
+(progn (format t "~& ") (compile-file "maskstore_t.lisp"))

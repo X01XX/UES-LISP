@@ -107,25 +107,47 @@
 
     (setf storex (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
     (setf defining-regions (regionstore-defining-regions storex))
+    ;(format t "~&storex: ~A" (regionstore-str storex))
+    (assert (= (regionstore-length storex) 5))
+
     (assert (regionstore-p defining-regions))
     (assert (= (regionstore-length defining-regions) 2))
+    ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
+    (assert (= (regionstore-length defining-regions) 2))
+    (assert (regionstore-member defining-regions (region-from 'rXX1X)))
+    (assert (regionstore-member defining-regions (region-from 'rXX0X)))
 
     (setf storex (state-regions-implied-by-dissimilarity (state-from 's0101) (state-from 's0111)))
     (setf storey (state-regions-implied-by-dissimilarity (state-from 's0111) (state-from 's1111)))
     (setf storex (regionstore-intersection storex storey))
+    ;(format t "~&storex: ~A" (regionstore-str storex))
+    (assert (= (regionstore-length storex) 5))
 
     (setf defining-regions (regionstore-defining-regions storex))
     (assert (regionstore-p defining-regions))
     (assert (= (regionstore-length defining-regions) 3))
     (assert (not (regionstore-member defining-regions (region-from 'r010x))))
+    ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
+    (assert (regionstore-member defining-regions (region-from 'rXX0X)))
+    (assert (regionstore-member defining-regions (region-from 'r1XXX)))
+    (assert (regionstore-member defining-regions (region-from 'r0X1X)))
+
+    (setf storex (state-regions-implied-by-dissimilarity (state-from 's0001) (state-from 's0011)))
+    (setf storey (state-regions-implied-by-dissimilarity (state-from 's0001) (state-from 's0000)))
+    (setf storex (regionstore-intersection storex storey))
+    ;(format t "~&storex: ~A" (regionstore-str storex))
+    (assert (= (regionstore-length storex) 5))
+    (setf defining-regions (regionstore-defining-regions storex))
+    ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
+    (assert (= (regionstore-length defining-regions) 3))
+    (assert (regionstore-member defining-regions (region-from 'rXX01)))
 
     (format t "~&  regionstore-defining-regions OK")
   )
 
   ;; Test regionstore-split-by-intersections.
   (let ((regstr (regionstore-from (read-from-string "(rX10X  rX1X1  r1X01 r0X11)")))      
-        rslt
-       )
+        rslt)
 
     ;(format t "~&regstr: ~A" (regionstore-str regstr))
     ;(setf rslt (regionstore-max-intersections regstr))
@@ -133,10 +155,28 @@
     ;(format t "~&rslt: ~A" (regionstore-str rslt))
 
     (setf rslt (regionstore-split-by-intersections regstr))
-    (format t "~&rslt: ~A" (regionstore-str rslt))
+    ;(format t "~&rslt: ~A" (regionstore-str rslt))
     (assert (= (regionstore-length rslt) 7))
+    (assert (regionstore-member rslt (region-from 'r1101)))
+    (assert (regionstore-member rslt (region-from 'rX100)))
+    (assert (regionstore-member rslt (region-from 'r1111)))
+    (assert (regionstore-member rslt (region-from 'r1001)))
+    (assert (regionstore-member rslt (region-from 'r0011)))
+    (assert (regionstore-member rslt (region-from 'r0101)))
+    (assert (regionstore-member rslt (region-from 'r0111)))
 
     (format t "~&  regionstore-split-by-intersections OK")
+  )
+
+  ;; Test regionstore-unique-subregions.
+  (let ((regstr (regionstore-from (read-from-string "(rX10X  rX1X1  r1X01 r0X11)"))) rslt (ureg (region-from 'rX10x)))
+
+    (setf rslt (regionstore-unique-subregions regstr ureg))
+    ;(format t "~&rslt: ~A" (regionstore-str rslt))
+    (assert (= (regionstore-length rslt) 1))
+    (assert (regionstore-member rslt (region-from 'rX100)))
+
+    (format t "~&  regionstore-unique-subregions OK")
   )
 
   (format t "~&regionstore-tests done")

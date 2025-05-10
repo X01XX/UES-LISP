@@ -531,18 +531,6 @@
                   (state-new-xor (region-second-state regx) stax))))
 )
 
-;;; Return true if a region intersects a state.
-(defun region-intersects-state (regx stax) ; -> bool.
-  ;; Check arguments.
-  (assert (region-p regx))
-  (assert (state-p stax))
-  (assert (= (region-num-bits regx) (state-num-bits stax)))
-
-  ;; Calc result.
-  (= (region-distance-state regx stax) 0)
-)
-
-
 ;;; Return true if the first region is a superset of a state.
 (defun region-superset-of-state (regx stax) ; -> bool.
   ;; Check arguments.
@@ -560,7 +548,7 @@
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
-  (assert (region-intersects-state regx stax))
+  (assert (region-superset-of-state regx stax))
 
   ;; Calc result.
   (state-new-xor stax (region-x-mask regx))
@@ -633,7 +621,7 @@
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
-  (assert (region-intersects-state regx stax))
+  (assert (region-superset-of-state regx stax))
 
   ;; Calc result.
   (let ((ret (statestore-new nil))
