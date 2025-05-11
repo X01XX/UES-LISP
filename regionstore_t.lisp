@@ -8,9 +8,15 @@
     (setf reg1 (region-from 'r0x10))
     (setf reg2 (region-from 'r1x10))
 
+    ;; Test with list of regions.
     (setf store1 (regionstore-new (list reg1 reg2)))
     (assert (regionstore-p store1))
     (assert (= (regionstore-length store1) 2))
+
+    ;; Test with one region.
+    (setf store1 (regionstore-new reg1))
+    (assert (regionstore-p store1))
+    (assert (= (regionstore-length store1) 1))
 
     (format t "~&  regionstore-new OK")
   )

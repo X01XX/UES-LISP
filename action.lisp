@@ -814,7 +814,8 @@
           )
         ) ; next unqx
         ;(format t "~&pairs: ~A" (regionpairstore-str symadj-pair-list))
-        (let (pairs-in)
+        (let (pairs-in
+             (vertex-paths (vertexpathstore-new nil)))
           (loop for regx in (regionstore-regions adj-pairs) do
             (loop for stax in (statestore-states (region-states regx)) do
               (when (regionstore-state-in-exactly-one (action-logical-structure actx) stax)
@@ -854,11 +855,18 @@
                       )
                     ) ; end try-again 
                     ;(format t " states: ~A" (statestore-str states))
+                    (vertexpathstore-push-nosubs vertex-paths (vertexpath-new states))
                   )
                 ) ; next prx
               )
             ) ; next stax
           ) ; next regx
+          ;(format t "~&vertexpaths: ~A" (vertexpathstore-str vertex-paths))
+          (let (unique-masks)
+            (setf unique-masks (vertexpathstore-unique-masks vertex-paths))
+            ;(format t "~&unique-masks: ")
+            ;(mapcar #'(lambda (x) (format t " ~A" (maskstore-str x))) unique-masks)
+          )
         )
       ) ; end let
     ) ; end when

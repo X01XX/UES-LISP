@@ -147,6 +147,12 @@
 (load #p "regionpairstore.lisp")
 (load #p "regionpairstore_t.lisp")
 
+(load #p "vertexpath.lisp")
+(load #p "vertexpath_t.lisp")
+
+(load #p "vertexpathstore.lisp")
+(load #p "vertexpathstore_t.lisp")
+
 (defun main ()
   (run)
 )
@@ -633,6 +639,9 @@
 
   (regionpair-tests)
   (regionpairstore-tests)
+
+  (vertexpath-tests)
+  (vertexpathstore-tests)
 
   (format t "~&All tests done")
   t

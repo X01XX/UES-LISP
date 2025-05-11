@@ -186,6 +186,45 @@
     (format t "~&  statestore-difference OK")
   )
 
+  ; Test statestore-eq.
+  (let (storex storey state1 state2 state3 state4)
+    (setf state1 (state-from 's0001))
+    (setf state2 (state-from 's0010))
+    (setf state3 (state-from 's0011))
+    (setf state4 (state-from 's0100))
+
+    (setf storex (statestore-new (list state1 state2 state3)))
+    (setf storey (statestore-new (list state3 state1 state2)))
+    (assert (statestore-eq storex storey))
+
+    (setf storey (statestore-new (list state3 state4 state2)))
+    (assert (not (statestore-eq storex storey)))
+
+    (format t "~&  statestore-eq OK")
+  )
+
+  ; Test statestore-superset-of.
+  (let (storex storey state1 state2 state3 state4)
+    (setf state1 (state-from 's0001))
+    (setf state2 (state-from 's0010))
+    (setf state3 (state-from 's0011))
+    (setf state4 (state-from 's0100))
+
+    (setf storex (statestore-new (list state1 state2 state3)))
+    (setf storey (statestore-new (list state3 state1 state2)))
+    (assert (statestore-superset-of :sup storex :sub storey))
+
+    (setf storex (statestore-new (list state1 state2 state3)))
+    (setf storey (statestore-new (list state3 state1)))
+    (assert (statestore-superset-of :sup storex :sub storey))
+
+    (setf storex (statestore-new (list state1 state2 state3)))
+    (setf storey (statestore-new (list state3 state4)))
+    (assert (not (statestore-superset-of :sup storex :sub storey)))
+
+    (format t "~&  statestore-superset-of OK")
+  )
+
   (format t "~&statestore-tests done")
   t
 )

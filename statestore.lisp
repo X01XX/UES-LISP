@@ -219,9 +219,9 @@
   ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-p storey))
-; (assert (or (statestore-is-empty storex)
-;             (statestore-is-empty storey)
-;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
+  (assert (or (statestore-is-empty storex)
+              (statestore-is-empty storey)
+              (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
   (let ((ret (statestore-new nil)))
 
@@ -271,9 +271,11 @@
 
 ;;; Add a state to the end of a statestore.
 (defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (state-p stax))
 
+  ;; Chonge passed statestore.
   (setf (statestore-states storex) (append (statestore-states storex) (list stax)))
 )
 
@@ -292,30 +294,50 @@
   true
 )
 
+;;; Return true if a statestore is a superset of anather.
+(defun statestore-superset-of (&key sup sub) ; -> bool
+  ;; Check arguments.
+  (assert (statestore-p sup))
+  (assert (statestore-p sub))
+
+  ;; Check all states in sub are in sup.
+  (loop for stax in (statestore-states sub) do
+    (if (not (statestore-member sup stax))
+      (return-from statestore-superset-of false)) ; Return negative result.
+  )
+  ;; Return positive result.
+  true
+)
+
 ;;; Return states not equal states in a second store.
 (defun statestore-difference (storex storey) ; -> statestore.
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-p storey))
-; (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
-;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
+  (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
+              (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
   (let ((ret (statestore-new nil)))
+    ;; Construct result.
     (loop for stax in (statestore-states storex) do
       (if (not (statestore-member storey stax))
         (statestore-push ret stax))
     )
+    ;; Return result.
     ret
   )
 )
 
 ;;; Return the union of two statestores.
 (defun statestore-union (storex storey) ; -> statestore.
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-p storey))
-; (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
-;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
+  (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
+              (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
   (let ((ret (statestore-new nil)))
+    ;; Construct result.
     (loop for stax in (statestore-states storex) do
       (if (not (statestore-member ret stax))
         (statestore-push ret stax))
@@ -324,22 +346,26 @@
       (if (not (statestore-member ret stax))
         (statestore-push ret stax))
     )
+    ;; Return result.
     ret
   )
 )
 
 ;;; Return states in both statestores.
 (defun statestore-intersection (storex storey) ; -> statestore.
+  ;; Check arguments.
   (assert (statestore-p storex))
   (assert (statestore-p storey))
-; (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
-;             (= (statestore-num-bits storex) (statestore-num-bits storey))))
+  (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
+              (= (statestore-num-bits storex) (statestore-num-bits storey))))
 
   (let ((ret (statestore-new nil)))
+    ;; Construct result.
     (loop for stax in (statestore-states storex) do
       (if (statestore-member storey stax)
         (statestore-push ret stax))
     )
+    ;; Return result.
     ret
   )
 )
@@ -360,9 +386,11 @@
   (assert (statestore-p storex))
 
   (let ((ret (statestore-new nil)))
+    ;; Construct result.
     (loop for stax in (statestore-states storex) do
       (statestore-push ret stax)
     )
+    ;; Return result.
     ret
   )
 )
