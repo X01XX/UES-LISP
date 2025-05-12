@@ -3,9 +3,25 @@
   (format t "~&maskstore-tests beginning")
 
   ; Test maskstore-new.
-  (let (store1)
-    (setf store1 (maskstore-new nil))
-    (assert (maskstore-p store1))
+  (let (msks msk1 msk2)
+
+    (setf msk1 (mask-from 'm0101))
+    (setf msk2 (mask-from 'm0111))
+
+    ;; Test -new with no masks.
+    (setf msks (maskstore-new nil))
+    (assert (maskstore-p msks))
+    (assert (maskstore-is-empty msks))
+
+    ;; Test -new with single masks.
+    (setf msks (maskstore-new msk1 msk2))
+    (assert (maskstore-p msks))
+    (assert (= (maskstore-length msks) 2)) 
+
+    ;; Test -new with a list of masks.
+    (setf msks (maskstore-new (list msk1 msk2)))
+    (assert (maskstore-p msks))
+    (assert (= (maskstore-length msks) 2)) 
 
     (format t "~&  maskstore-new OK")
   )

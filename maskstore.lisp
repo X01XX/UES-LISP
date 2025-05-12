@@ -17,12 +17,21 @@
 ;   (copy-maskstore <instance>) copies a maskstore instance.
 
 ;;; Return a new maskstore instance.
-(defun maskstore-new (masks) ; -> maskstore.
+(defun maskstore-new (&rest masks) ; -> maskstore.
   ;; Check argument.
-  (assert (mask-list-p masks))
+  (let (listx)
+    ;; Check argument, convert list of list to list.
+    (if (listp (car masks))
+      (setf listx (car masks))
+      (setf listx masks))
 
-  ;; Return result.
-  (make-maskstore :masks masks)
+    ;; Check each item type.
+    (loop for mskx in listx do
+      (assert (mask-p mskx))
+    )
+    ;; Construct result.
+    (make-maskstore :masks listx)
+  )
 )
 
 ;;; Push a new mask into a maskstore.

@@ -205,9 +205,9 @@
     (if sqr-far
       (progn
         (when (square-pnc sqr-far)
-          (when grpx
-            (group-set-region grpx regx)
-          )
+;         (when grpx
+;           (group-set-region grpx regx)
+;         )
           (return-from action-structure-group-needs needs)
         )
         (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
@@ -660,6 +660,77 @@
     )
 )
 
+;;; Return number of additional samples needed to make all squares, represented as states in a statestore,
+;;; into pnc squares.
+(defun action-number-additional-samples-needed (actx states) ; -> integer ge 0.
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (statestore-p states))
+
+  (let ((cnt 0) sqrx groups)
+    (loop for stax in (statestore-states states) do
+      (setf sqrx (action-find-square actx stax))
+      (setf groups (groupstore-groups-state-in (action-groups actx) stax))
+
+      (if sqrx
+        (if (not (square-pnc sqrx))
+           (if (or (groupstore-is-empty groups) (pn-eq (group-pn (groupstore-first groups)) *pn-two*))
+             (setf cnt (+ cnt (- 4 (square-count sqrx))))
+             (setf cnt (+ cnt (- 3 (square-count sqrx)))))
+        )
+        ;; else
+        (progn
+           (if (or (groupstore-is-empty groups) (pn-eq (group-pn (groupstore-first groups)) *pn-two*))
+             (setf cnt (+ cnt 4))
+             (setf cnt (+ cnt 3)))
+        )
+      )
+    )
+    ;; Return result.
+    cnt
+  )
+)
+
+;;; Return a squarestore oy statest representing states in a statestore.
+(defun action-statestore-to-squarestore (actx states) ; -> squarestore.
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (statestore-p states))
+
+  (let ((ret (squarestore-new nil)) sqrx)
+    (loop for stax in (statestore-states states) do
+      (setf sqrx (action-find-square actx stax))
+      (if sqrx
+        (squarestore-push ret sqrx))
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Return a list of verticies, given a statestore from a vertexpath, and defining regions.
+(defun action-statestore-to-vertices (actx states defining-regions) ; -> vertexstore
+  ;(format t "~&action-statestore-to-vertices: ~A ~A ~A" (type-of actx) (type-of states) (type-of defining-regions))
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (statestore-p states))
+  (assert (regionstore-p defining-regions))
+
+  (let ((ret (vertexstore-new nil)) regs adj-stas)
+    ;; Get vertex for each state.
+    (loop for stax in (statestore-states states) do
+      (setf regs (regionstore-regions-state-in defining-regions stax))
+      (assert (= (regionstore-length regs) 1))
+
+      (setf adj-stas (region-adjacent-external-states (regionstore-first-region regs) stax))
+
+      (vertexstore-push ret (vertex-new stax adj-stas))
+    )
+    ;; Return results.
+    ret
+  )
+)
+
 ;;; Calculate the logical structure, return needs to improve understanding of the structure.
 ;;; Set logical-structure field in action instance.
 (defun action-structure-needs (actx reachable) ; -> needstore
@@ -768,6 +839,10 @@
       )
     )
 
+    ;; If there are non-adjacent dissimilar pnc needs, return them.
+    (if (needstore-is-not-empty needs)
+      (return-from action-structure-needs needs))
+
     ;; Vertex optimization.
     (when (and (= *dom-id* 0) (= *act-id* 5)
                (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
@@ -777,8 +852,21 @@
             symadj-reg          ; Symmetric overlapping region of two adjacent subregions, from different defining regions.
             symadj-pair         ; A regionpair. symadj-reg split by intersection with the twe adjacent regions that it was formed from.
             symadj-pair-list    ; A regionpairstore of pairs of adjacent subregions, from different defining regions.
+            tmp-regions         ; Temporary regionstore.
            )
-        (setf defining-regions (regionstore-defining-regions (action-logical-structure actx)))
+        ;; Get abstract Defining Regions.
+        (setf tmp-regions (regionstore-defining-regions (action-logical-structure actx)))
+        ;; Get actual Defining Regions.
+        (setf defining-regions (regionstore-new nil))
+        (let (grpx)
+          (loop for regx in (regionstore-regions tmp-regions) do
+            (setf grpx (action-find-group actx regx))
+            (if grpx
+              (regionstore-push defining-regions (group-region grpx))
+              (return-from action-structure-needs needs))
+          )
+        )
+
         ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
 
         ;; For each defining region, get unique subregions.
@@ -862,10 +950,37 @@
             ) ; next stax
           ) ; next regx
           ;(format t "~&vertexpaths: ~A" (vertexpathstore-str vertex-paths))
-          (let (unique-masks)
+          (let (unique-masks cur-paths tmp-vertices vstates vsquares squares-not-pnc num-match-region-states)
             (setf unique-masks (vertexpathstore-unique-masks vertex-paths))
             ;(format t "~&unique-masks: ")
             ;(mapcar #'(lambda (x) (format t " ~A" (maskstore-str x))) unique-masks)
+            ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
+            (loop for msksx in unique-masks do
+              (setf cur-paths (vertexpathstore-matching-masks vertex-paths msksx))
+
+              (loop for vtxpthx in (vertexpathstore-vertexpaths cur-paths) do
+              
+                ; Get verticies from paths. 
+                (setf tmp-vertices (action-statestore-to-vertices actx (vertexpath-states vtxpthx) defining-regions))
+
+                (setf vstates (vertexstore-states tmp-vertices))
+
+                (setf vsquares (action-statestore-to-squarestore actx vstates))
+
+                (setf squares-not-pnc (squarestore-not-pnc vsquares))
+
+                (setf num-match-region-states (statestore-num-match-regions vstates defining-regions))
+
+                ;(format t "~&verticies: ~A states: ~D" (vertexstore-str tmp-vertices) (statestore-str (vertexstore-states tmp-vertices)))
+                ;(format t " num not pnc: ~D num match regions: ~D" (squarestore-length squares-not-pnc) num-match-region-states)
+
+                ; TODO save data to list.
+              )
+
+            ) ; next msksx
+              ; TODO choose a vertexstore.
+              ; TODO set group defining regions using vertexstore.
+              ; TODO set action verticies. change action-cleanup to save action-verticies instead of action-structure-pairs.
           )
         )
       ) ; end let
@@ -1154,7 +1269,7 @@
 
   ;; Add the square.
   (format t "~&Dom: ~D Act: ~D Adding square: ~A" *dom-id* (action-id actx) (square-str sqrx))
-  (squarestore-add (action-squares actx) sqrx)
+  (squarestore-push (action-squares actx) sqrx)
 
   ;; Process added square.
 
@@ -1407,6 +1522,15 @@
   (assert (= (action-num-bits actx) (state-num-bits stax)))
 
   (squarestore-find (action-squares actx) stax)
+)
+
+;;; Find a group.
+(defun action-find-group (actx regx) ; -> group, or nil.
+  (assert (action-p actx))
+  (assert (region-p regx))
+  (assert (= (action-num-bits actx) (region-num-bits regx)))
+
+  (groupstore-find (action-groups actx) regx)
 )
 
 

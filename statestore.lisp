@@ -19,14 +19,18 @@
 ;   (copy-statestore <instance>) copies a statestore instance.
 
 ;;; Return a new statestore, given a list of states.
-(defun statestore-new (states) ; -> statestore.
+(defun statestore-new (&rest states) ; -> statestore.
   (let (listx)
-    ;; Check argument, convert a state to a state list.
-    (cond ((state-p states) (setf listx (list states)))
-          ((listp states) (setf listx states))
-          (t (error "unexpected argument")))
-        
-    (assert (state-list-p listx))
+
+    ;; Check argument, convert list of list to list.
+    (if (listp (car states))
+      (setf listx (car states))
+      (setf listx states))
+
+    ;; Check each item type.
+    (loop for sqrx in listx do
+      (assert (state-p sqrx))
+    )
 
     ;; Construct results.
     (make-statestore :states listx)
@@ -372,7 +376,7 @@
 
 ;;; Pop a state from a statestore.
 (defun statestore-pop (store) ; -> State, side-effect statestore is changed.
-  ;; Check arguments.
+  ;; Check argument.
   (assert (statestore-p store))
   (assert (statestore-is-not-empty store))
 
@@ -382,13 +386,31 @@
 
 ;;; Return a statestore with state list reversed.
 (defun statestore-reverse (storex) ; -> statestore
-  ;; Check arguments.
+  ;; Check argument.
   (assert (statestore-p storex))
 
   (let ((ret (statestore-new nil)))
     ;; Construct result.
     (loop for stax in (statestore-states storex) do
       (statestore-push ret stax)
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Return a count of states in a statestore that match states in a regionstore.
+(defun statestore-num-match-regions (storex regions) ; -> integer, GE 0.
+  ;; Check arguments.
+  (assert (statestore-p storex))
+  (assert (regionstore-p regions))
+
+  (let ((ret 0))
+    (loop for regx in (regionstore-regions regions) do
+      (loop for stax in (statestore-states (region-states regx)) do
+        (if (statestore-member storex stax)
+          (incf ret))
+      )
     )
     ;; Return result.
     ret

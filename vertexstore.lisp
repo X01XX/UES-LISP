@@ -260,6 +260,7 @@
 
 ;;; Return a vertex list, from given states.
 (defun vertexstore-from-states (storex states) ; -> vertexstore
+  ;; Check arguments.
   (assert (vertexstore-p storex))
   (assert (statestore-p states))
 
@@ -273,4 +274,26 @@
   )
 )
 
+;;; Return all states in the vertices in a vertexstore.
+(defun vertexstore-states (storex) ; -> statestore.
+  ;; Check argument.
+  (assert (vertexstore-p storex))
+
+  (let ((ret (statestore-new nil)))
+    ;; Gather states, no duplicates.
+    (loop for vtx in (vertexstore-vertices storex) do
+      ;; Add vertex pinnacle.
+      (if (not (statestore-member ret (vertex-pinnacle vtx)))
+        (statestore-push ret (vertex-pinnacle vtx)))
+
+      ;; Add vertex adjacent, external, states.
+      (loop for stax in (statestore-states (vertex-states vtx)) do
+        (if (not (statestore-member ret stax))
+          (statestore-push ret  stax))
+      )
+    )
+    ;; Return result.
+    ret
+  )
+)
 

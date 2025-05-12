@@ -3,22 +3,25 @@
   (format t "~&statestore-tests beginning")
 
   ;; Test statestore-new.
-  (let (ssx ss1)
+  (let (stas sta1 sta2)
 
-    ; A state list.
-    (setf ss1 (list (state-from 's0001) (state-from 's0010) (state-from 's1000)))
+    (setf sta1 (state-from 's0101))
+    (setf sta2 (state-from 's0111))
 
-    ; Test a state list.
-    (setf ssx (statestore-new ss1))
-    (assert (statestore-p ssx))
+    ;; Test -new with no states.
+    (setf stas (statestore-new nil))
+    (assert (statestore-p stas))
+    (assert (statestore-is-empty stas))
 
-    (assert (= (statestore-length ssx) 3))
+    ;; Test -new with single states.
+    (setf stas (statestore-new sta1 sta2))
+    (assert (statestore-p stas))
+    (assert (= (statestore-length stas) 2)) 
 
-    ;; Test a single state.
-    (setf ssx (statestore-new (state-from 's0010)))
-    (assert (statestore-p ssx))
-
-    (assert (= (statestore-length ssx) 1))
+    ;; Test -new with a list of states.
+    (setf stas (statestore-new (list sta1 sta2)))
+    (assert (statestore-p stas))
+    (assert (= (statestore-length stas) 2)) 
 
     (format t "~&  statestore-new OK")
   )

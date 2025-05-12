@@ -133,3 +133,20 @@
   )
 )
 
+;;; Return a list of vertexpaths that have a maskstore that matches a given maststore.
+(defun vertexpathstore-matching-masks (storex msksx) ; -> vertexpathstore.
+  ;; Check arguments.
+  (assert (vertexpathstore-p storex))
+  (assert (maskstore-p msksx))
+
+  (let ((ret (vertexpathstore-new nil)))
+    ;; Check each vertexpath maskstore.
+    (loop for vtpx in (vertexpathstore-vertexpaths storex) do
+      (if (maskstore-eq (vertexpath-masks vtpx) msksx)
+        (vertexpathstore-push ret vtpx))
+    )
+    ;; Return result.
+    ret
+  )
+)
+

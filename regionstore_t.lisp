@@ -3,20 +3,25 @@
   (format t "~&regionstore-tests beginning")
 
   ; Test regionstore-new.
-  (let (reg1 reg2 store1)
+  (let (reg1 reg2 regs)
 
-    (setf reg1 (region-from 'r0x10))
-    (setf reg2 (region-from 'r1x10))
+    (setf reg1 (region-from 'r0101))
+    (setf reg2 (region-from 'r00X1))
 
-    ;; Test with list of regions.
-    (setf store1 (regionstore-new (list reg1 reg2)))
-    (assert (regionstore-p store1))
-    (assert (= (regionstore-length store1) 2))
+    ;; Test -new with no regions.
+    (setf regs (regionstore-new nil))
+    (assert (regionstore-p regs))
+    (assert (regionstore-is-empty regs))
 
-    ;; Test with one region.
-    (setf store1 (regionstore-new reg1))
-    (assert (regionstore-p store1))
-    (assert (= (regionstore-length store1) 1))
+    ;; Test -new with single regions.
+    (setf regs (regionstore-new reg1 reg2))
+    (assert (regionstore-p regs))
+    (assert (= (regionstore-length regs) 2)) 
+
+    ;; Test -new with a list of regions.
+    (setf regs (regionstore-new (list reg1 reg2)))
+    (assert (regionstore-p regs))
+    (assert (= (regionstore-length regs) 2)) 
 
     (format t "~&  regionstore-new OK")
   )

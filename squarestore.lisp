@@ -19,21 +19,31 @@
 ;   (copy-squarestore <instance>) copies a squarestore instance.
 
 ;;; Return a new squarestore, given a list of squares.
-(defun squarestore-new () ; -> squarestore.
-  ;(format t "~&squarestore-new")
+(defun squarestore-new (&rest squares) ; -> squarestore.
+  ;; Check argument.
+  (let (listx)
+    ;; Check argument, convert list of list to list.
+    (if (listp (car squares))
+      (setf listx (car squares))
+      (setf listx squares))
 
-  (make-squarestore :squares nil) ; equalp can detect state struct equality.
+    ;; Check each item type.
+    (loop for sqrx in listx do
+      (assert (square-p sqrx))
+    )
+    ;; Construct result.
+    (make-squarestore :squares listx)
+  )
 )
 
 ;;; Add a square.
-(defun squarestore-add (storex sqrx) ; -> side-effect, squarestore changed.
-  ;(format t "~&squarestore-add ~A" (square-str sqrx))
+(defun squarestore-push (storex sqrx) ; -> side-effect, squarestore changed.
+  ;; Check arguments.
   (assert (squarestore-p storex))
   (assert (square-p sqrx))
 
+  ;; Push square.
   (push sqrx (squarestore-squares storex))
-
-  ;(format t "~&squarestore-add: find after ~A" (type-of (squarestore-find storex (square-state sqrx))))
 )
 
 ;;; Find a square, given a state.
@@ -177,12 +187,20 @@
 
 ;;; Return a string of squares contained in a squarestore.
 (defun squarestore-str (storex) ; -> string
+  ;; Check argument.
   (assert (squarestore-p storex))
 
-  (let ((ret ""))
+  (let ((ret "(") (first true))
+    ;; Add string for each square.
     (loop for sqrx in (squarestore-squares storex) do
+        (if first
+          (setf first false)
+          (setf ret (concatenate 'string ret  " ")))
+
         (setf ret (concatenate 'string ret (format nil "~& ~A" (square-str sqrx))))
     )
+    (setf ret (concatenate 'string ret  ")"))
+    ;; Return result.
     ret
   )
 )
@@ -197,9 +215,35 @@
 
 ;;; Remove a square from a squarestore.
 (defun squarestore-remove (storex sqrx) ; -> squarestore.
+  ;; Check arguments.
   (assert (squarestore-p storex))
   (assert (square-p sqrx))
 
-  (make-squarestore :squares (remove sqrx (squarestore-squares storex) :test #'square-eq))
+  ;; Return result.
+  (squarestore-new (remove sqrx (squarestore-squares storex) :test #'square-eq))
+)
+
+;;; Return squares that are not pnc.
+(defun squarestore-not-pnc (storex) ; -> squarestore.
+  ;; Check argument.
+  (assert (squarestore-p storex))
+
+  (let ((ret (squarestore-new nil)))
+    (loop for sqrx in (squarestore-squares storex) do
+      (if (not (square-pnc sqrx))
+        (squarestore-push ret sqrx))
+    )
+    ;; Return result.
+    ret
+  )
+)
+
+;;; Return true if a squarestore is empty.
+(defun squarestore-is-empty (storex) ; -> bool
+  ;; Check argument.
+  (assert (squarestore-p storex))
+
+  ;; Return result.
+  (null (squarestore-squares storex))
 )
 

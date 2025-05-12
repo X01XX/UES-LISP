@@ -1,15 +1,15 @@
 ;;;; Implement the Square type.
 
 (defstruct square
-    state       ; State the squares stores samples of.
-    (count 1)   ; Number results.  (mod count 4) will be the place for the next result to be added.
-                ;                  (mod (1- count) 4) will be the place of the most recent result.
-    results     ; An array of up to four states.
-    pn          ; A pn struct instance.
-    pnc         ; bool.
-    rules       ; A RuleStore instance, containing zero, one, or two rules.
-                ; Rules, if any, must have an initial region of one state, equal to the square state.
-                ; If two rules, the rule result regions must be different.
+  state       ; State the squares stores samples of.
+  (count 1)   ; Number results.  (mod count 4) will be the place for the next result to be added.
+              ;                  (mod (1- count) 4) will be the place of the most recent result.
+  results     ; An array of up to four states.
+  pn          ; A pn struct instance.
+  pnc         ; bool.
+  rules       ; A RuleStore instance, containing zero, one, or two rules.
+              ; Rules, if any, must have an initial region of one state, equal to the square state.
+              ; If two rules, the rule result regions must be different.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -27,238 +27,256 @@
 
 ;;; Return a new Square instance.
 (defun square-new (smpl)  ; -> square instance
-    (assert (sample-p smpl))
+  ;; Check argument.
+  (assert (sample-p smpl))
 
-    (let (ary)
-        (setf ary (make-array '(4)))  ; Make a four element array, filled with nils.
-        (setf (aref ary 0) (sample-result smpl))
+  (let (ary)
+      (setf ary (make-array '(4)))  ; Make a four element array, filled with nils.
+      (setf (aref ary 0) (sample-result smpl))
 
-        (make-square
-            :state (sample-initial smpl)
-            :count 1
-            :results ary
-            :pn *pn-one*
-            :pnc nil
-            :rules (rulestore-new (list (rule-new smpl)))
-        )
-    )
+      (make-square 
+          :state (sample-initial smpl)
+          :count 1
+          :results ary
+          :pn *pn-one*
+          :pnc nil
+          :rules (rulestore-new (list (rule-new smpl)))
+      )
+  )
 )
 
 ;;; Return the length of the square results list.
 (defun square-results-length (square)  ; -> integer, 1-4
-    (assert (square-p square))
-    (min (square-count square) 4)
+  ;; Check argument.
+  (assert (square-p square))
+
+  (min (square-count square) 4)
 )
 
 ;;; Return the pn for a (probably just updated) square.
 (defun square-calc-pn (square)  ; -> pn value
+  ;; Check argument.
+  (assert (square-p square))
 
-    (assert (square-p square))
+  (if (= 1 (square-results-length square))
+    (return-from square-calc-pn *pn-one*))
 
-    (if (= 1 (square-results-length square))
-      (return-from square-calc-pn *pn-one*))
+  (let ((result0 (aref (square-results square) 0)) (pn-one t))
 
-    (let ((result0 (aref (square-results square) 0)) (pn-one t))
+      ;; Check for pn 1
+      (loop for inx from 1 to (1- (square-results-length square)) do
+          (if (state-ne (aref (square-results square) inx) result0) (setf pn-one nil))
+      )
 
-        ;; Check for pn 1
-        (loop for inx from 1 to (1- (square-results-length square)) do
-            (if (state-ne (aref (square-results square) inx) result0) (setf pn-one nil))
+      ;; Calc pn, pnc values, rules.
+      (when pn-one
+          (return-from square-calc-pn *pn-one*)
+      )
+
+      ;; Try to disprove pn-two
+      (when (> (square-count square) 2)
+
+        (if (state-ne result0 (aref (square-results square) 2))
+          (return-from square-calc-pn *pn-none*))
+
+        (when (> (square-count square) 3)
+
+          (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
+                  (return-from square-calc-pn *pn-none*))
         )
+     )
 
-        ;; Calc pn, pnc values, rules.
-        (when pn-one
-            (return-from square-calc-pn *pn-one*)
-        )
-
-        ;; Try to disprove pn-two
-        (when (> (square-count square) 2)
-
-          (if (state-ne result0 (aref (square-results square) 2))
-            (return-from square-calc-pn *pn-none*))
-
-          (when (> (square-count square) 3)
-
-            (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
-                    (return-from square-calc-pn *pn-none*))
-          )
-       )
-
-       *pn-two*
-    ) ; end-let
+     *pn-two*
+  ) ; end-let
 ) ; end square-calc-pn
 
 ;;; Calculate the pnc of a (probably just updated) square.
 (defun square-calc-pnc (square) ; -> bool
-    (assert (square-p square))
+  ;; Check argument.
+  (assert (square-p square))
 
-    (if (eq (square-pn square) *pn-one*)
-        (if (> (square-count square) 2)
-            (return-from square-calc-pnc t)
-            (return-from square-calc-pnc nil)))
+  (if (eq (square-pn square) *pn-one*)
+      (if (> (square-count square) 2)
+          (return-from square-calc-pnc t)
+          (return-from square-calc-pnc nil)))
 
-    (if (eq (square-pn square) *pn-two*)
-        (if (> (square-count square) 3)
-            (return-from square-calc-pnc t)
-            (return-from square-calc-pnc nil)))
+  (if (eq (square-pn square) *pn-two*)
+      (if (> (square-count square) 3)
+          (return-from square-calc-pnc t)
+          (return-from square-calc-pnc nil)))
 
-    t
+  t
 )
 
 ;;; Add a result to a square.
 ;;; An existing square will have at least one result already.
 ;;; Return true if the square pn value or pnc bool changes.
 (defun square-add-sample (square smpl) ; -> bool
-    (assert (square-p square))
-    (assert (sample-p smpl))
-    (assert (state-eq (sample-initial smpl) (square-state square)))
+  ;; Check arguments.
+  (assert (square-p square))
+  (assert (sample-p smpl))
+  (assert (state-eq (sample-initial smpl) (square-state square)))
 
-    ; Update results
-    ; If the number of results are over four, the oldest result will be overlaid.
-    (setf (aref (square-results square) (mod (square-count square) 4)) (sample-result smpl))
+  ; Update results
+  ; If the number of results are over four, the oldest result will be overlaid.
+  (setf (aref (square-results square) (mod (square-count square) 4)) (sample-result smpl))
 
-    (incf (square-count square))
+  (incf (square-count square))
 
 
-    (let (pnnew pncnew ret)
+  (let (pnnew pncnew ret)
 
-        (setf pnnew (square-calc-pn square))
+      (setf pnnew (square-calc-pn square))
 
-        (when (neq pnnew (square-pn square))
-            (format t "~&Dom: ~D Act: ~D square ~A pn changed from ~A to ~A" *dom-id* *act-id*
-              (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
-            (setf (square-pn square) pnnew) ; set new pn, so subsequent pnc calc works correctly.
+      (when (neq pnnew (square-pn square))
+          (format t "~&Dom: ~D Act: ~D square ~A pn changed from ~A to ~A" *dom-id* *act-id*
+            (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
+          (setf (square-pn square) pnnew) ; set new pn, so subsequent pnc calc works correctly.
 
-            (cond ((eq pnnew *pn-one*)
-                   (setf (square-rules square) (rulestore-new (list (rule-new smpl)))))
+          (cond ((eq pnnew *pn-one*)
+                 (setf (square-rules square) (rulestore-new (list (rule-new smpl)))))
 
-                  ((eq pnnew *pn-two*)
-                   (setf (square-rules square)
-                   (rulestore-new (list (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 0)))
-                                        (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 1)))))))
+                ((eq pnnew *pn-two*)
+                 (setf (square-rules square)
+                 (rulestore-new (list (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 0)))
+                                      (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 1)))))))
 
-                  ((eq pnnew *pn-none*)
-                   (setf (square-rules square) (rulestore-new nil)))
+                ((eq pnnew *pn-none*)
+                 (setf (square-rules square) (rulestore-new nil)))
 
-                  (t (error "unrecognized pn value"))
-            )
+                (t (error "unrecognized pn value"))
+          )
 
-          (setf ret t)
-        )
+        (setf ret t)
+      )
 
-        (setf pncnew (square-calc-pnc square))
-        ;(format t "~& sqr ~A pncnew ~A pnc ~A" (state-str (square-state square)) pncnew (square-pnc square))
+      (setf pncnew (square-calc-pnc square))
+      ;(format t "~& sqr ~A pncnew ~A pnc ~A" (state-str (square-state square)) pncnew (square-pnc square))
 
-        (when  (not (eq pncnew (square-pnc square)))
-            (format t "~&Dom: ~D Act: ~D Square ~A pn ~A pnc changed from ~A to ~A" *dom-id* *act-id*
-            (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
-            (setf (square-pnc square) pncnew)
-            (return-from square-add-sample t)
-        )
-        ; (if (null ret)
-        ;    (format t "~&square ~A nothing changed pn ~A pnc ~A" (state-str(square-state square)) (pn-str (square-pn square)) (square-pnc square)))
-        ret
-    ) ; end let
+      (when  (not (eq pncnew (square-pnc square)))
+          (format t "~&Dom: ~D Act: ~D Square ~A pn ~A pnc changed from ~A to ~A" *dom-id* *act-id*
+          (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
+          (setf (square-pnc square) pncnew)
+          (return-from square-add-sample t)
+      )
+      ; (if (null ret)
+      ;    (format t "~&square ~A nothing changed pn ~A pnc ~A" (state-str(square-state square)) (pn-str (square-pn square)) (square-pnc square)))
+      ret
+  ) ; end let
 ) ; end square-add-sample
 
 ;;; Return the most recent result of a square.
 (defun square-most-recent-result (sqrx) ; -> state.
+  ;; Check argument.
+  (assert (square-p sqrx))
+
   (aref (square-results sqrx) (mod (1- (square-count sqrx)) 4))
 )
 
 ;;; Return a string representing a square.
 (defun square-str (asqr)  ; -> string
-    (assert (square-p asqr))
+  ;; Check argument.
+  (assert (square-p asqr))
 
-    (let ((str "["))
-        (setf str (concatenate 'string str (state-str (square-state asqr))))
-        (setf str (concatenate 'string str (format nil " :pn ~D :pnc ~A" (pn-str (square-pn asqr)) (square-pnc asqr))))
-        (setf str (concatenate 'string str (format nil " :rules ~A" (rulestore-str (square-rules asqr)))))
-        (setf str (concatenate 'string str "]"))
-        str
-    )
+  (let ((str "["))
+      (setf str (concatenate 'string str (state-str (square-state asqr))))
+      (setf str (concatenate 'string str (format nil " :pn ~D :pnc ~A" (pn-str (square-pn asqr)) (square-pnc asqr))))
+      (setf str (concatenate 'string str (format nil " :rules ~A" (rulestore-str (square-rules asqr)))))
+      (setf str (concatenate 'string str "]"))
+      str
+  )
 )
 
 ;;; Return the number of samples needed to reach pnc
 (defun square-number-samples-needed (sqrx)  ; -> integer, 0 - 2
-    (assert (square-p sqrx))
+  ;; Check argument.
+  (assert (square-p sqrx))
 
-    (cond   ((eq *pn-none* (square-pn sqrx)) 0)
-            ((eq *pn-one* (square-pn sqrx))
-                (if (eq 1 (square-count sqrx)) 1 0))
-            ((eq *pn-two* (square-pn sqrx))
-                (if (eq 2 (square-count sqrx)) 2
-                    (if (eq 3 (square-count sqrx)) 1 0))))
+  (cond   ((eq *pn-none* (square-pn sqrx)) 0)
+          ((eq *pn-one* (square-pn sqrx))
+              (if (eq 1 (square-count sqrx)) 1 0))
+          ((eq *pn-two* (square-pn sqrx))
+              (if (eq 2 (square-count sqrx)) 2
+                  (if (eq 3 (square-count sqrx)) 1 0))))
 )
 
 ;;; Return true if two squares are equal.
 (defun square-eq (sqr1 sqr2)  ; -> bool
-    (assert (square-p sqr1))
-    (assert (square-p sqr2))
-    (state-eq (square-state sqr1) (square-state sqr2))
+  ;; Check arguments.
+  (assert (square-p sqr1))
+  (assert (square-p sqr2))
+
+  (state-eq (square-state sqr1) (square-state sqr2))
 )
 
 ;;; Return compatibility of two squares.
 (defun square-compatible (sqrx sqry) ; -> compatibility
-    (assert (square-p sqrx))
-    (assert (square-p sqry))
+  ;; Check arguments.
+  (assert (square-p sqrx))
+  (assert (square-p sqry))
 
-    ; Trying to combine the same square is probably an error in logic.
-    (assert (state-ne (square-state sqrx) (square-state sqry)))
+  ; Trying to combine the same square is probably an error in logic.
+  (assert (state-ne (square-state sqrx) (square-state sqry)))
 
-    ;; Test pnc squares.
-    (when (and (square-pnc sqrx) (square-pnc sqry))
-      (if (not (pn-eq (square-pn sqrx) (square-pn sqry)))
-        (return-from square-compatible *not-compatible*))
+  ;; Test pnc squares.
+  (when (and (square-pnc sqrx) (square-pnc sqry))
+    (if (not (pn-eq (square-pn sqrx) (square-pn sqry)))
+      (return-from square-compatible *not-compatible*))
 
-      (if (pn-eq *pn-none* (square-pn sqrx))
+    (if (pn-eq *pn-none* (square-pn sqrx))
+      (return-from square-compatible *compatible*))
+
+    (if (rulestore-union (square-rules sqrx) (square-rules sqry))
+      (return-from square-compatible *compatible*)
+      (return-from square-compatible *not-compatible*))
+  )
+
+  ;; Check if both squares are non-pnc, need more samples.
+  (when (and (not (square-pnc sqrx)) (not (square-pnc sqry)))
+    ;; Carve-out for bootstrapping groups.
+    (when (and (pn-eq (square-pn sqrx) *pn-one*) (pn-eq (square-pn sqry) *pn-one*))
+      (if (rulestore-union (square-rules sqrx) (square-rules sqry))
         (return-from square-compatible *compatible*))
+    )
+    (return-from square-compatible *more-samples-needed*)
+  )
 
+  ;; Check pnc vs non-pnc squares.
+  (let (pncsqr nonsqr)
+    ;; Figure out which square is pnc, which is not.
+    (if (square-pnc sqrx)
+      (setf pncsqr sqrx nonsqr sqry)
+      (setf pncsqr sqry nonsqr sqrx))
+
+    (if (pn-eq (square-pn pncsqr) *pn-none*)
+      (return-from square-compatible *more-samples-needed*))
+
+    (if (pn-gt (square-pn nonsqr) (square-pn pncsqr)) ; like non-pnc *pn-two* vs pnc *pn-one*.
+      (return-from square-compatible *not-compatible*))
+
+    (if (pn-eq (square-pn pncsqr) (square-pn nonsqr)) ; both have the same number of rules, 1/1 or 2/2.
       (if (rulestore-union (square-rules sqrx) (square-rules sqry))
         (return-from square-compatible *compatible*)
+        (return-from square-compatible *not-compatible*)))
+
+    ;; Check non-pnc square with one rule, vs pnc square with two rules.
+    (if (rulestore-subset-of :sup (square-rules pncsqr) :sub (square-rules nonsqr))
+        (return-from square-compatible *more-samples-needed*)
         (return-from square-compatible *not-compatible*))
-    )
-
-    ;; Check if both squares are non-pnc, need more samples.
-    (when (and (not (square-pnc sqrx)) (not (square-pnc sqry)))
-      ;; Carve-out for bootstrapping groups.
-      (when (and (pn-eq (square-pn sqrx) *pn-one*) (pn-eq (square-pn sqry) *pn-one*))
-        (if (rulestore-union (square-rules sqrx) (square-rules sqry))
-          (return-from square-compatible *compatible*))
-      )
-      (return-from square-compatible *more-samples-needed*)
-    )
-
-    ;; Check pnc vs non-pnc squares.
-    (let (pncsqr nonsqr)
-      ;; Figure out which square is pnc, which is not.
-      (if (square-pnc sqrx)
-        (setf pncsqr sqrx nonsqr sqry)
-        (setf pncsqr sqry nonsqr sqrx))
-
-      (if (pn-eq (square-pn pncsqr) *pn-none*)
-        (return-from square-compatible *more-samples-needed*))
-
-      (if (pn-gt (square-pn nonsqr) (square-pn pncsqr)) ; like non-pnc *pn-two* vs pnc *pn-one*.
-        (return-from square-compatible *not-compatible*))
-
-      (if (pn-eq (square-pn pncsqr) (square-pn nonsqr)) ; both have the same number of rules, 1/1 or 2/2.
-        (if (rulestore-union (square-rules sqrx) (square-rules sqry))
-          (return-from square-compatible *compatible*)
-          (return-from square-compatible *not-compatible*)))
-
-      ;; Check non-pnc square with one rule, vs pnc square with two rules.
-      (if (rulestore-subset-of :sup (square-rules pncsqr) :sub (square-rules nonsqr))
-          (return-from square-compatible *more-samples-needed*)
-          (return-from square-compatible *not-compatible*))
-    )
+  )
 )
 
 (defun square-is-adjacent (sqr1 sqr2) ; -> bool
+  ;; Check arguments.
+  (assert (square-p sqr1))
+  (assert (square-p sqr2))
+
   (state-is-adjacent (square-state sqr1) (square-state sqr2))
 )
 
 ;;; Return true if the argument is a list of squares.
 (defun square-list-p (squares) ; -> bool
+  ;; Check argument.
   ;(format t "~&square-list-p: ~A ~A" (type-of squares) squares)
   (if (not (listp squares))
     (return-from square-list-p false))
@@ -273,6 +291,7 @@
 
 ;;; Return a list of squares with the highest number of results.
 (defun square-list-sample-next (sqrs) ; -> list of squares.
+  ;; Check argument.
   (assert (square-list-p sqrs))
 
   (let ((ret nil) (max-results 1))
@@ -292,8 +311,20 @@
 
 ;;; Return the number of bits used by a square.
 (defun square-num-bits (sqrx) ; -> number
+  ;; Check argument.
   (assert (square-p sqrx))
 
   (state-num-bits (square-state sqrx))
+)
+
+;;; Return the rough number of samples taken for a square, for
+;;; comparisons.  Its rough in that there is a maximun number based on the pn value.
+(defun square-rate (sqrx) ; -> integer.
+  ;; Check argument.
+  (assert (square-p sqrx))
+
+  (if (square-pnc sqrx)
+    (if (pn-eq *pn-two* (square-pn sqrx)) 4 3)
+    (square-count sqrx))
 )
 
