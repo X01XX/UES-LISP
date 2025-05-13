@@ -297,3 +297,22 @@
   )
 )
 
+;;; Return true if two vertexstores are equal.
+(defun vertexstore-eq (storex storey) ; -> bool
+  ;; Check arguments.
+  (assert (vertexstore-p storex))
+  (assert (vertexstore-p storey))
+
+  ;; Check lengths.
+  (if (/= (vertexstore-length storex) (vertexstore-length storey))
+    (return-from vertexstore-eq false)) ; Return negative result.
+
+  ;; Check each vertex.
+  (loop for item in (vertexstore-vertices storey) do
+    (if (not (vertexstore-member storex item))
+      (return-from vertexstore-eq false)) ; Return negative result.
+  )
+  ;; Return positive result.
+  true
+)
+

@@ -153,6 +153,12 @@
 (load #p "vertexpathstore.lisp")
 (load #p "vertexpathstore_t.lisp")
 
+(load #p "masksvertices.lisp")
+(load #p "masksvertices_t.lisp")
+
+(load #p "masksverticesstore.lisp")
+(load #p "masksverticesstore_t.lisp")
+
 (defun main ()
   (run)
 )
@@ -642,6 +648,9 @@
 
   (vertexpath-tests)
   (vertexpathstore-tests)
+
+  (masksvertices-tests)
+  (masksverticesstore-tests)
 
   (format t "~&All tests done")
   t

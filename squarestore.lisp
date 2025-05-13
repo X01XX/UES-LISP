@@ -205,6 +205,26 @@
   )
 )
 
+;;; Return a string of square states contained in a squarestore.
+(defun squarestore-states-str (storex) ; -> string
+  ;; Check argument.
+  (assert (squarestore-p storex))
+
+  (let ((ret "(") (first true))
+    ;; Add string for each square.
+    (loop for sqrx in (squarestore-squares storex) do
+        (if first
+          (setf first false)
+          (setf ret (concatenate 'string ret  " ")))
+
+        (setf ret (concatenate 'string ret (format nil "~A" (state-str (square-state sqrx)))))
+    )
+    (setf ret (concatenate 'string ret  ")"))
+    ;; Return result.
+    ret
+  )
+)
+
 ;;; Return the number of squares in a squarestore.
 (defun squarestore-length (storex) ; -> number.
   ;(format t "~&squarestore-length: ~A" storex)

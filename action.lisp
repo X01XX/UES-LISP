@@ -11,6 +11,7 @@
   structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
   vertices          ; A vertexstore, of zero, or more, vertices.
+                    ; TODO A masksverticesstore, of zero, or more, masksvertices. There should be no items withe the same masks.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -660,37 +661,6 @@
     )
 )
 
-;;; Return number of additional samples needed to make all squares, represented as states in a statestore,
-;;; into pnc squares.
-(defun action-number-additional-samples-needed (actx states) ; -> integer ge 0.
-  ;; Check arguments.
-  (assert (action-p actx))
-  (assert (statestore-p states))
-
-  (let ((cnt 0) sqrx groups)
-    (loop for stax in (statestore-states states) do
-      (setf sqrx (action-find-square actx stax))
-      (setf groups (groupstore-groups-state-in (action-groups actx) stax))
-
-      (if sqrx
-        (if (not (square-pnc sqrx))
-           (if (or (groupstore-is-empty groups) (pn-eq (group-pn (groupstore-first groups)) *pn-two*))
-             (setf cnt (+ cnt (- 4 (square-count sqrx))))
-             (setf cnt (+ cnt (- 3 (square-count sqrx)))))
-        )
-        ;; else
-        (progn
-           (if (or (groupstore-is-empty groups) (pn-eq (group-pn (groupstore-first groups)) *pn-two*))
-             (setf cnt (+ cnt 4))
-             (setf cnt (+ cnt 3)))
-        )
-      )
-    )
-    ;; Return result.
-    cnt
-  )
-)
-
 ;;; Return a squarestore oy statest representing states in a statestore.
 (defun action-statestore-to-squarestore (actx states) ; -> squarestore.
   ;; Check arguments.
@@ -950,37 +920,69 @@
             ) ; next stax
           ) ; next regx
           ;(format t "~&vertexpaths: ~A" (vertexpathstore-str vertex-paths))
-          (let (unique-masks cur-paths tmp-vertices vstates vsquares squares-not-pnc num-match-region-states)
-            (setf unique-masks (vertexpathstore-unique-masks vertex-paths))
+          (let (unique-masks-list cur-paths cur-vertexstore vstates 
+                unique-masks-list-path-states
+                ;  vsquares
+                ; squares-not-pnc num-match-region-states path-states
+               )
+            (setf unique-masks-list (vertexpathstore-unique-masks vertex-paths))
             ;(format t "~&unique-masks: ")
             ;(mapcar #'(lambda (x) (format t " ~A" (maskstore-str x))) unique-masks)
             ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
-            (loop for msksx in unique-masks do
-              (setf cur-paths (vertexpathstore-matching-masks vertex-paths msksx))
+            (loop for unique-mask in unique-masks-list do
+              ;; Get vertexpaths matching a unique mask.
+              (setf cur-paths (vertexpathstore-matching-masks vertex-paths unique-mask))
 
-              (loop for vtxpthx in (vertexpathstore-vertexpaths cur-paths) do
-              
-                ; Get verticies from paths. 
-                (setf tmp-vertices (action-statestore-to-vertices actx (vertexpath-states vtxpthx) defining-regions))
+              ;; Process vertexpaths for minimum number states, that is, maximum shared states.
+              (let ((min-states 10000) min-square-paths)
+                (loop for vertexpathx in (vertexpathstore-vertexpaths cur-paths) do
+                
+                  ; Get verticies from paths, that is, add adjacent, external, states. 
+                  (setf cur-vertexstore (action-statestore-to-vertices actx (vertexpath-states vertexpathx) defining-regions))
+  
+                  ;; Get state list, no dups.
+                  (setf vstates (vertexstore-states cur-vertexstore))
+                  ;(format t "~&verticies: ~A states: ~D" (vertexstore-str cur-vertexstore) (statestore-str vstates))
+  
+                  ;; Restart save list if the number of states is fewer.
+                  (if (< (statestore-length vstates) min-states)
+                    (setf min-states (statestore-length vstates) min-square-paths nil))
 
-                (setf vstates (vertexstore-states tmp-vertices))
+                  ;; Save data if the number of statest is at the current minimum.
+                  (if (= (statestore-length vstates) min-states)
+                    (push (list cur-vertexstore vstates) min-square-paths))
 
-                (setf vsquares (action-statestore-to-squarestore actx vstates))
-
-                (setf squares-not-pnc (squarestore-not-pnc vsquares))
-
-                (setf num-match-region-states (statestore-num-match-regions vstates defining-regions))
-
-                ;(format t "~&verticies: ~A states: ~D" (vertexstore-str tmp-vertices) (statestore-str (vertexstore-states tmp-vertices)))
-                ;(format t " num not pnc: ~D num match regions: ~D" (squarestore-length squares-not-pnc) num-match-region-states)
-
-                ; TODO save data to list.
+                ) ; next vertexpathx
+                ;; Save minimum-state vertexpath and states data.
+                (push min-square-paths unique-masks-list-path-states)
               )
+            ) ; next unique-mask
 
-            ) ; next msksx
+            ;; For each path-states list.
+            (let (cur-states cur-squares cur-vertexstore squares-not-pnc) 
+
+              (loop for list-path-states in unique-masks-list-path-states do
+
+                (loop for path-states in list-path-states do
+
+                  (setf cur-vertexstore (car path-states) cur-states (second path-states))
+                  ;(format t "~&verticies: ~A states: ~D" (vertexstore-str cur-vertexstore) (statestore-str cur-states))
+                  (setf cur-squares (action-statestore-to-squarestore actx vstates))
+                  ;(format t " sqrs: ~A" (squarestore-states-str cur-squares))
+                  (setf squares-not-pnc (squarestore-not-pnc cur-squares))
+                  ;(format t " sqrs not pnc: ~A" (squarestore-states-str squares-not-pnc))
+                )
+              )
+            )
+                  ;(setf num-match-region-states (statestore-num-match-regions vstates defining-regions))
+  
+                  ;(format t "~&verticies: ~A states: ~D" (vertexstore-str tmp-vertices) (statestore-str (vertexstore-states tmp-vertices)))
+                  ;(format t " num not pnc: ~D num match regions: ~D" (squarestore-length squares-not-pnc) num-match-region-states)
+
+
               ; TODO choose a vertexstore.
               ; TODO set group defining regions using vertexstore.
-              ; TODO set action verticies. change action-cleanup to save action-verticies instead of action-structure-pairs.
+              ; TODO set action-verticies. change action-cleanup to save action-verticies instead of action-structure-pairs.
           )
         )
       ) ; end let

@@ -46,6 +46,8 @@
 (progn (format t "~& ") (compile-file "maskstore.lisp"))
 (progn (format t "~& ") (compile-file "vertexpath.lisp"))
 (progn (format t "~& ") (compile-file "vertexpathstore.lisp"))
+(progn (format t "~& ") (compile-file "masksvertices.lisp"))
+(progn (format t "~& ") (compile-file "masksverticesstore.lisp"))
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
 (progn (format t "~& ") (compile-file "mask_t.lisp"))
@@ -88,3 +90,5 @@
 (progn (format t "~& ") (compile-file "maskstore_t.lisp"))
 (progn (format t "~& ") (compile-file "vertexpath_t.lisp"))
 (progn (format t "~& ") (compile-file "vertexpathstore_t.lisp"))
+(progn (format t "~& ") (compile-file "masksvertices_t.lisp"))
+(progn (format t "~& ") (compile-file "masksverticesstore_t.lisp"))
