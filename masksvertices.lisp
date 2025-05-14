@@ -30,11 +30,11 @@
 )
 
 ;;; Return true if two masksvertices are equal.
-(defun masksvertices-eq (sregs1 sregs2) ; -> bool
-  (assert (masksvertices-p sregs1))
-  (assert (masksvertices-p sregs2))
+(defun masksvertices-eq (store1 store2) ; -> bool
+  (assert (masksvertices-p store1))
+  (assert (masksvertices-p store2))
 
-  (and (maskstore-eq (masksvertices-maskstore sregs1) (masksvertices-maskstore sregs1))
-       (vertexstore-eq (masksvertices-vertexstore sregs1) (masksvertices-vertexstore sregs2)))
+  (and (maskstore-eq (masksvertices-masks store1) (masksvertices-masks store1))
+       (vertexstore-eq (masksvertices-vertices store1) (masksvertices-vertices store2)))
 )
 

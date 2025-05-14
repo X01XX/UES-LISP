@@ -38,7 +38,7 @@
           :state (sample-initial smpl)
           :count 1
           :results ary
-          :pn *pn-one*
+          :pn (pn-new *pn-one*)
           :pnc nil
           :rules (rulestore-new (list (rule-new smpl)))
       )
@@ -54,12 +54,12 @@
 )
 
 ;;; Return the pn for a (probably just updated) square.
-(defun square-calc-pn (square)  ; -> pn value
+(defun square-calc-pn (square)  ; -> pn
   ;; Check argument.
   (assert (square-p square))
 
   (if (= 1 (square-results-length square))
-    (return-from square-calc-pn *pn-one*))
+    (return-from square-calc-pn (pn-new *pn-one*)))
 
   (let ((result0 (aref (square-results square) 0)) (pn-one t))
 
@@ -70,23 +70,23 @@
 
       ;; Calc pn, pnc values, rules.
       (when pn-one
-          (return-from square-calc-pn *pn-one*)
+          (return-from square-calc-pn (pn-new *pn-one*))
       )
 
       ;; Try to disprove pn-two
       (when (> (square-count square) 2)
 
         (if (state-ne result0 (aref (square-results square) 2))
-          (return-from square-calc-pn *pn-none*))
+          (return-from square-calc-pn (pn-new *pn-none*)))
 
         (when (> (square-count square) 3)
 
           (if (state-ne (aref (square-results square) 1) (aref (square-results square) 3))
-                  (return-from square-calc-pn *pn-none*))
+                  (return-from square-calc-pn (pn-new *pn-none*)))
         )
      )
 
-     *pn-two*
+     (pn-new *pn-two*)
   ) ; end-let
 ) ; end square-calc-pn
 
@@ -95,12 +95,12 @@
   ;; Check argument.
   (assert (square-p square))
 
-  (if (eq (square-pn square) *pn-one*)
+  (if (pn-eq (square-pn square) (pn-new *pn-one*))
       (if (> (square-count square) 2)
           (return-from square-calc-pnc t)
           (return-from square-calc-pnc nil)))
 
-  (if (eq (square-pn square) *pn-two*)
+  (if (pn-eq (square-pn square) (pn-new *pn-two*))
       (if (> (square-count square) 3)
           (return-from square-calc-pnc t)
           (return-from square-calc-pnc nil)))
@@ -133,15 +133,15 @@
             (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
           (setf (square-pn square) pnnew) ; set new pn, so subsequent pnc calc works correctly.
 
-          (cond ((eq pnnew *pn-one*)
+          (cond ((pn-eq pnnew *pn-one*)
                  (setf (square-rules square) (rulestore-new (list (rule-new smpl)))))
 
-                ((eq pnnew *pn-two*)
+                ((pn-eq pnnew *pn-two*)
                  (setf (square-rules square)
                  (rulestore-new (list (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 0)))
                                       (rule-new (sample-new :initial (square-state square) :result (aref (square-results square) 1)))))))
 
-                ((eq pnnew *pn-none*)
+                ((pn-eq pnnew *pn-none*)
                  (setf (square-rules square) (rulestore-new nil)))
 
                 (t (error "unrecognized pn value"))
@@ -192,10 +192,10 @@
   ;; Check argument.
   (assert (square-p sqrx))
 
-  (cond   ((eq *pn-none* (square-pn sqrx)) 0)
-          ((eq *pn-one* (square-pn sqrx))
+  (cond   ((pn-eq (square-pn sqrx) *pn-none*) 0)
+          ((pn-eq (square-pn sqrx) *pn-one*)
               (if (eq 1 (square-count sqrx)) 1 0))
-          ((eq *pn-two* (square-pn sqrx))
+          ((pn-eq (square-pn sqrx) *pn-two*)
               (if (eq 2 (square-count sqrx)) 2
                   (if (eq 3 (square-count sqrx)) 1 0))))
 )
@@ -223,7 +223,7 @@
     (if (not (pn-eq (square-pn sqrx) (square-pn sqry)))
       (return-from square-compatible *not-compatible*))
 
-    (if (pn-eq *pn-none* (square-pn sqrx))
+    (if (pn-eq (square-pn sqrx) *pn-none*)
       (return-from square-compatible *compatible*))
 
     (if (rulestore-union (square-rules sqrx) (square-rules sqry))
@@ -324,7 +324,7 @@
   (assert (square-p sqrx))
 
   (if (square-pnc sqrx)
-    (if (pn-eq *pn-two* (square-pn sqrx)) 4 3)
+    (if (pn-eq (square-pn sqrx) *pn-two*) 4 3)
     (square-count sqrx))
 )
 

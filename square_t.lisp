@@ -24,7 +24,7 @@
     (setf smpl (sample-new :initial (state-from 's0001) :result (state-from 's1001)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-none*))
+    (assert (pn-eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
 
     (format t "~&  Three different results, OK")
@@ -43,7 +43,7 @@
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-none*))
+    (assert (pn-eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
@@ -52,7 +52,7 @@
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-two*))
+    (assert (pn-eq (square-pn sqr1) *pn-two*))
     (assert (square-pnc sqr1))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
@@ -64,7 +64,7 @@
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-one*))
+    (assert (pn-eq (square-pn sqr1) *pn-one*))
     (assert (square-pnc sqr1))
 
     (format t "~&  Changing Pn with more samples, OK")
@@ -79,25 +79,25 @@
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1011)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-two*))
+    (assert (pn-eq (square-pn sqr1) *pn-two*))
     (assert (null (square-pnc sqr1)))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-two*))
+    (assert (pn-eq (square-pn sqr1) *pn-two*))
     (assert (null (square-pnc sqr1)))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1011)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-two*))
+    (assert (pn-eq (square-pn sqr1) *pn-two*))
     (assert (square-pnc sqr1))
 
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1010)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-two*))
+    (assert (pn-eq (square-pn sqr1) *pn-two*))
     (assert (square-pnc sqr1))
 
     (format t "~&  Two-result square, OK")
@@ -115,7 +115,7 @@
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-none*))
+    (assert (pn-eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
 
     (format t "~&  Three-different-result square, OK")
@@ -135,7 +135,7 @@
     (setf smpl (sample-new :initial (state-from 's0101) :result (state-from 's1001)))
     (square-add-sample sqr1 smpl)
 
-    (assert (eq (square-pn sqr1) *pn-none*))
+    (assert (pn-eq (square-pn sqr1) *pn-none*))
     (assert (square-pnc sqr1))
 
     (format t "~&  Two-out-of-order-results square, OK")

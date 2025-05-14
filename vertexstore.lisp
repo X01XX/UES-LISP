@@ -177,7 +177,7 @@
   )
 )
 
-;;; Return vertices that cantain a given state.
+;;; Return vertices that contain a given state.
 (defun vertexstore-find (storex stax) ; -> vertex, or nil.
   ;; Check arguments.
   (assert (vertexstore-p storex))

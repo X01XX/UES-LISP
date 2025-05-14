@@ -145,3 +145,13 @@
   true
 )
 
+;;; Return true if a maskstore is a superset of another.
+(defun maskstore-superset-of (&key sub sup) ; -> bool
+  ;; Check arguments.
+  (assert (maskstore-p sub))
+  (assert (maskstore-p sup))
+
+  ;; Return result.
+  (maskstore-subset-of :sup sup :sub sub)
+)
+

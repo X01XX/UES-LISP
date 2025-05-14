@@ -1,7 +1,7 @@
 ;;;; Implement a Pattern Number struct
 
 (defstruct pn
-  (value 1)
+  value
 )
 
 ; Functions automatically created by defstruct:
@@ -20,45 +20,61 @@
 
 ; Use eq and neq (macro) for simple comparisons of pn values.
 
-(defvar *pn-one*  (make-pn :value 1))
-(defvar *pn-two*  (make-pn :value 2))
-(defvar *pn-none* (make-pn :value 3))
+(defvar *pn-one*  1)
+(defvar *pn-two*  2)
+(defvar *pn-none* 3)
+
+(defun pn-new (val) ; -> pn
+  (format t "~&pn-new val ~A" (type-of val))
+  ;; Check argument.
+  (assert (integerp val))
+  (assert (and (> val 0) (< val 4)))
+
+  ;; Return result.
+  (make-pn :value val)
+)
 
 (defun pn-str (pnx)
   (assert (pn-p pnx))
 
-  (if (eq pnx *pn-one*) "One"
-      (if (eq pnx *pn-two*) "Two"
- 	 (if (eq pnx *pn-none*) "None")))
+  (if (pn-eq pnx *pn-one*) "One"
+      (if (pn-eq pnx *pn-two*) "Two"
+ 	 (if (pn-eq pnx *pn-none*) "None")))
 )
 
 (defun pn-gt (pnx pny)
   (assert (pn-p pnx))
-  (assert (pn-p pny))
+  (assert (or (pn-p pny) (integerp pny)))
 
-  (> (pn-value pnx) (pn-value pny))
+  (if (pn-p pny)
+    (> (pn-value pnx) (pn-value pny))
+    (> (pn-value pnx) pny))
 )
 
 (defun pn-lt (pnx pny)
   (assert (pn-p pnx))
-  (assert (pn-p pny))
+  (assert (or (pn-p pny) (integerp pny)))
 
-  (< (pn-value pnx) (pn-value pny))
+  (if (pn-p pny)
+    (< (pn-value pnx) (pn-value pny))
+    (< (pn-value pnx) pny))
 )
 
 (defun pn-eq (pnx pny)
-  ;(format t "~&pn-eq: pnx ~A pny ~A" (type-of pnx) (type-of pny))
   (assert (pn-p pnx))
-  (assert (pn-p pny))
+  (assert (or (pn-p pny) (integerp pny)))
 
-  (= (pn-value pnx) (pn-value pny))
+  (if (pn-p pny)
+    (= (pn-value pnx) (pn-value pny))
+    (= (pn-value pnx) pny))
 )
 
 (defun pn-ne (pnx pny)
   (assert (pn-p pnx))
-  (assert (pn-p pny))
+  (assert (or (pn-p pny) (integerp pny)))
 
-  (/= (pn-value pnx) (pn-value pny))
+  (if (pn-p pny)
+    (/= (pn-value pnx) (pn-value pny))
+    (/= (pn-value pnx) pny))
 )
-
 

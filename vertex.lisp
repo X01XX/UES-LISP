@@ -63,7 +63,8 @@
   (assert (vertex-p vy))
 
   ;; Return result.
-  (state-eq (vertex-pinnacle vx) (vertex-pinnacle vy))
+  (and (state-eq (vertex-pinnacle vx) (vertex-pinnacle vy))
+       (= (statestore-length (vertex-edges vx)) (statestore-length (vertex-edges vy))))
 )
 
 ;;; Return a string representing a vertex.
