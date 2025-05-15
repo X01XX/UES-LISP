@@ -188,7 +188,7 @@
 )
 
 ;;; Return a string representing a regionstore.
-(defun regionstore-str (storex) ; -> string, (...)
+(defun regionstore-str (storex) ; -> string.
   ;; Check argument.
   (assert (regionstore-p storex))
 

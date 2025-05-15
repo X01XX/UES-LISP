@@ -27,9 +27,9 @@
       (setf listx masksvertices))
 
     ;; Check each item type.
-    (loop for regx in listx do
-      (assert (masksvertices-p regx))
-    ) 
+    (loop for mskvtcx in listx do
+      (assert (masksvertices-p mskvtcx))
+    )
 
     ;; Construct results.
     (make-masksverticesstore :masksvertices listx)
@@ -137,5 +137,23 @@
   )
   ;; Return negative result.
   nil 
+)
+
+;;; Return a string representing a masksverticesstore.
+(defun masksverticesstore-str (storex) ; -> string.
+  ;; Check argument.
+  (assert (masksverticesstore-p storex))
+
+  (let ((ret "(") (start t)) 
+    (loop for mvx in (masksverticesstore-masksvertices storex) do
+      (if start (setf start nil) (setf ret (concatenate 'string ret " ")))
+
+      (setf ret (concatenate 'string ret (masksvertices-str mvx)))
+    )   
+    (setf ret (concatenate 'string ret ")"))
+
+    ;; Return result.
+    ret 
+  )
 )
 
