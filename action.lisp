@@ -813,8 +813,7 @@
       (return-from action-structure-needs needs))
 
     ;; Vertex optimization.
-    (when (and (= *dom-id* 0) (= *act-id* 5)
-               (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
+    (when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
 
       (let (defining-regions    ; A regionstore. Regions that have some parts, even as little as a single state, that are only in one region.
             defining-subregions ; A list of regionstores. Subregions in defining-regions that are only in one region.
@@ -983,7 +982,8 @@
               ;;; vertexstores with the minimum number of states in unique-masks-list-path-states, for the following.
 
               ;; For each vertexpath in list, for a unique set of masks.
-              (let (cur-states cur-squares cur-vertexstore squares-not-pnc vertices-states-squares) 
+              (let (cur-states cur-squares cur-vertexstore vertices-states
+                   states-of-squares-not-pnc states-not-sampled) 
   
                 (loop for list-path-states in unique-masks-list-path-states do
   
@@ -993,59 +993,68 @@
                     ;(format t "~&masks: ~A vertices: ~A states: ~D" (maskstore-str unique-masks)
                     ;   (vertexstore-str cur-vertexstore) (statestore-str cur-states))
                     (setf cur-squares (action-statestore-to-squarestore actx vstates))
-                    ;(format t " sqrs: ~A" (squarestore-states-str cur-squares))
-                    (setf squares-not-pnc (squarestore-not-pnc cur-squares))
-                    ;(format t " sqrs not pnc: ~A" (squarestore-states-str squares-not-pnc))
-                    (push (list cur-vertexstore cur-states squares-not-pnc) vertices-states-squares)      
+                    ;(format t "~&  sqrs: ~A" (squarestore-states-str cur-squares))
+                    (setf states-of-squares-not-pnc (squarestore-states (squarestore-not-pnc cur-squares)))
+                    ;(format t "~&  states of sqrs not pnc: ~A" (statestore-str states-of-squares-not-pnc))
+                    (setf states-not-sampled (statestore-difference vstates (squarestore-states cur-squares)))
+                    ;(format t "~&  states not sampled: ~A" (statestore-str states-not-sampled))
+                    (push (list cur-vertexstore cur-states states-of-squares-not-pnc states-not-sampled) vertices-states)      
                   )
                 )
-                ;; Data in vertices-states-squares, for the following.
+                ;; Data in vertices-states, for the following.
               
                 ;; Check if a possible masks/vertexstore is already in action-vertices.
-                (let (cur-masksverts match-found masksverticesx (choose-vertices false))
+                (let (cur-masksverts masksverticesx chosen)
                   ;(format t "~&action-vertices: ~A" (masksverticesstore-str (action-vertices actx)))
                   (setf cur-masksverts (masksverticesstore-find (action-vertices actx) unique-masks))
                   (if cur-masksverts
                     (progn
                       ;; Check if current masksvertices matches what was found.
-                      (setf match-found false)
-                      (loop for vsx in vertices-states-squares do
+                      (loop for vsx in vertices-states
+                            while (null chosen) do
                         (when (vertexstore-eq (masksvertices-vertices cur-masksverts) (car vsx))
-                          (setf match-found true)
+                          (setf chosen vsx)
                           ;(format t "~&match found for ~A ~A" (maskstore-str unique-masks)
                           ;   (vertexstore-str (masksvertices-vertices cur-masksverts)))
-                          ; TODO Get samples of non-pnc states associated with the vertices.
                         )
                       )
-                      (when (not match-found)
-                        (setf choose-vertices true)
-                        ;(format t "~&match found not for ~A ~A" (maskstore-str unique-masks)
-                        ;    (vertexstore-str (masksvertices-vertices cur-masksverts)))
-                      )
-                    )
-                    (progn
-                      ;(format t "~&no entry in action-vertices found for ~A" (maskstore-str unique-masks))
-                      (setf choose-vertices true)
                     )
                   )
-                  (when choose-vertices
-                    ;; TODO find vertexstores with the least non-pnc states.
-                    ;; TODO choose a vertexstore, add unique-masks / vertexstore, as masksvertices to action-vertices.
-                    (setf masksverticesx (masksvertices-new unique-masks (car (car vertices-states-squares))))
-                    ;(format t "~&Adding ~A" (masksvertices-str masksverticesx))
-                    (masksverticesstore-push (action-vertices actx) masksverticesx)
-                    ;(format t "~&action-vertices length ~D" (masksverticesstore-length (action-vertices actx)))
-                    ;(format t "~&action-vertices: ~A" (masksverticesstore-str (action-vertices actx)))
-                    ; TODO Get samples of non-pnc states associated with the vertices.
+                  (when (null chosen)
+                    (let (vertices-states2 (min-needs 10000) state-needs)
+                      ;; Gather vertices with lowest needs.
+                      (loop for vsx in vertices-states do
+                        (setf state-needs (+ (statestore-length (third vsx)) (statestore-length (fourth vsx))))
+
+                        (if (< state-needs min-needs)
+                          (setf min-needs state-needs vertices-states2 nil))
+
+                        (if (= state-needs min-needs)
+                          (push vsx vertices-states2))
+                      )
+                      ;; Choose an item to make a masksvertices to add to action-vertices.
+                      (setf chosen (nth (random (length vertices-states2)) vertices-states2))
+                      (setf masksverticesx (masksvertices-new unique-masks (car chosen)))
+
+                      ;(format t "~&Adding ~A" (masksvertices-str masksverticesx))
+                      (masksverticesstore-push (action-vertices actx) masksverticesx)
+                    )
+                  )
+                  ; Get samples of non-pnc states associated with the chosen vertices.
+                  (loop for stax in (statestore-states (third chosen)) do
+                    (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*))
+                  )
+                  (loop for stax in (statestore-states (fourth chosen)) do
+                    (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*))
                   )
                 )
               )
-
               ;(format t "~&vertices: ~A states: ~D" (vertexstore-str tmp-vertices) (statestore-str (vertexstore-states tmp-vertices)))
               ;(format t " num not pnc: ~D num match regions: ~D" (squarestore-length squares-not-pnc) num-match-region-states)
             ) ; next unique-masks
 
             ; TODO Somewhere else, set defining group regions states, if needed, using action-vertices.
+            ; TODO Somewhere else, add action-vertices to action-cleanup, remove action-structure-pairs from action-cleanup.
           )
         )
       ) ; end let
@@ -1743,6 +1752,10 @@
 
   (if (> (regionstore-length (action-structure-pairs actx)) 0)
     (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
+  )
+
+  (if (> (masksverticesstore-length (action-vertices actx)) 0)
+    (format t "~&           vertices: ~A" (masksverticesstore-str (action-vertices actx)))
   )
 
 ; (if (> (masksverticesstore-length (action-vertices actx)) 0)

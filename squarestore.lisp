@@ -243,7 +243,7 @@
   (squarestore-new (remove sqrx (squarestore-squares storex) :test #'square-eq))
 )
 
-;;; Return squares that are not pnc.
+;;; Return states of squares that are not pnc.
 (defun squarestore-not-pnc (storex) ; -> squarestore.
   ;; Check argument.
   (assert (squarestore-p storex))
@@ -266,4 +266,19 @@
   ;; Return result.
   (null (squarestore-squares storex))
 )
+
+;;; Return states for each squrae in a squarestore.
+(defun squarestore-states (storex) ; -> statestore.
+  ;; Check argument.
+  (assert (squarestore-p storex))
+
+  (let ((ret (statestore-new nil)))
+    (loop for sqrx in (squarestore-squares storex) do
+      (statestore-push ret (square-state sqrx))
+    )
+    ;; Return result.
+    ret
+  )
+)
+
 

@@ -221,7 +221,6 @@
           (setf just-read-in nil)
         )
         (progn
-          (sessiondata-inc-cycle-num sessx)
           (sessiondata-get-needs sessx)
         )
       )

@@ -18,6 +18,7 @@
 (defvar *confirm-ip* 2029)
 (defvar *confirm-adj-ip* 2031)
 (defvar *confirm-defining-region* 2033)
+(defvar *confirm-vertices* 2037)
 
 (defvar *reasons* (list *state-not-in-group*
                         *confirm-group*
@@ -27,7 +28,8 @@
                         *confirm-adj-ip*
                         *avoid-negative-selectregions*
                         *seek-positive-selectregions*
-                        *confirm-defining-region*)
+                        *confirm-defining-region*
+                        *confirm-vertices*)
 )
 
 (defstruct need
@@ -106,6 +108,8 @@
                 (setf str (concatenate 'string str (format nil " :reason Confirm adjacent Incompatible Pair"))))
               ((= (need-reason needx) *confirm-defining-region*)
                 (setf str (concatenate 'string str (format nil " :reason Confirm Defining Region"))))
+              ((= (need-reason needx) *confirm-vertices*)
+                (setf str (concatenate 'string str (format nil " :reason Confirm Vertices"))))
         )
 
         (cond ((state-p (need-target needx))

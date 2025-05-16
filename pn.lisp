@@ -25,7 +25,6 @@
 (defvar *pn-none* 3)
 
 (defun pn-new (val) ; -> pn
-  (format t "~&pn-new val ~A" (type-of val))
   ;; Check argument.
   (assert (integerp val))
   (assert (and (> val 0) (< val 4)))
