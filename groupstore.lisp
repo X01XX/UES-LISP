@@ -194,21 +194,23 @@
 
     (loop for grpx in (groupstore-groups groups) do
 
-      ;; Check if pn values match.
-      (if (pn-eq (square-pn sqrx) (group-pn grpx))
-        (progn
-          (if (pn-lt (square-pn sqrx) *pn-none*) ; if *pn-none*, it matches group, so OK.
-            ;; Compare rules for answer.
-            (if (not (rulestore-subset-of :sup (group-rules grpx) :sub (square-rules sqrx)))
-              (groupstore-push ret grpx)))
-        )
-        ;; else pn values do not match.
-        (progn
-          (if (square-pnc sqrx)
-              (groupstore-push ret grpx)
-              ; else, square is not *pn-none*, since that is automatically pnc.
+      (when (region-superset-of-state (group-region grpx) (square-state sqrx))
+        ;; Check if pn values match.
+        (if (pn-eq (square-pn sqrx) (group-pn grpx))
+          (progn
+            (if (pn-lt (square-pn sqrx) *pn-none*) ; if *pn-none*, it matches group, so OK.
+              ;; Compare rules for answer.
               (if (not (rulestore-subset-of :sup (group-rules grpx) :sub (square-rules sqrx)))
                 (groupstore-push ret grpx)))
+          )
+          ;; else pn values do not match.
+          (progn
+            (if (square-pnc sqrx)
+                (groupstore-push ret grpx)
+                ; else, square is not *pn-none*, since that is automatically pnc.
+                (if (not (rulestore-subset-of :sup (group-rules grpx) :sub (square-rules sqrx)))
+                  (groupstore-push ret grpx)))
+          )
         )
       )
     ) ; next grpx

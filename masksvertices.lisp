@@ -45,9 +45,19 @@
 
 ;;; Return a string representing a masksvertices.
 (defun masksvertices-str (mskvtc1) ; -> string.
-  ;; Check arguments.
+  ;; Check argument.
   (assert (masksvertices-p mskvtc1))
 
   ;; Return result.
   (format nil "(~A ~A)" (maskstore-str (masksvertices-masks mskvtc1)) (vertexstore-str (masksvertices-vertices mskvtc1)))
+)
+
+;;; Return true if a state is used in a masksvertices.
+(defun masksvertices-state-needed (storex stax) ; -> bool
+  ;; Check arguments.
+  (assert (masksvertices-p storex))
+  (assert (state-p stax))
+
+  ;; Return result.
+  (vertexstore-state-needed (masksvertices-vertices storex) stax)
 )

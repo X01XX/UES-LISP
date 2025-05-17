@@ -182,39 +182,42 @@
   )
 )
 
-;;; Return group needs, based on logical-structure regions and structure-pairs.
-;;; It is assumed that the first state defining the group region is from the action-structure-pairs,
-;;; is pnc, and is only in one region of the action-logical-structure.
-(defun action-structure-group-needs (actx regx) ; -> needstore.
+;;; Return a defining groups needs, based on a given vertex-pinnacle state.
+(defun action-structure-group-needs (actx grpx stax) ; -> needstore.
+  ;; Check arguments.
   (assert (action-p actx))
-  (assert (region-p regx))
+  (assert (group-p grpx))
+  (assert (state-p stax))
 
-  (let ((needs (needstore-new nil)) grpx stax sta-far sqr-far (*act-id* (action-id actx)))
+  ;; Check if group region is already based on the given state.
+  (if (or (state-eq (region-first-state (group-region grpx)) stax)
+          (state-eq (region-second-state (group-region grpx)) stax))
+    (return-from action-structure-group-needs (needstore-new nil)))
 
-    (setf stax (region-first-state regx))
+  ;; Check for the expected far square.
+  (let ((needs (needstore-new nil)) sta-far sqr-far (*act-id* (action-id actx)) regx)
 
-    ;; Find the group, if any exists.
-    (setf grpx (groupstore-find (action-groups actx) regx))
-    (if grpx 
-      (if (or (state-eq (region-first-state (group-region grpx)) stax)
-              (state-eq (region-second-state (group-region grpx)) stax))
-          (return-from action-structure-group-needs needs)))
+    ;; Calc far state from stax in group region, find square.
+    (setf sta-far (region-far-state (group-region grpx) stax))
+    (setf regx (region-new (list stax sta-far)))
 
-    (setf sta-far (region-second-state regx))
     (setf sqr-far (action-find-square actx sta-far))
+
     (if sqr-far
       (progn
         (when (square-pnc sqr-far)
-;         (when grpx
-;           (group-set-region grpx regx)
-;         )
+          ;; Alter the group region.
+          (group-set-region grpx regx)
+          (if (not (group-pnc grpx))
+            (group-set-pnc grpx true))
           (return-from action-structure-group-needs needs)
         )
         (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
       )
       (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
     )
-    (return-from action-structure-group-needs needs)
+    ;; Return result.
+    needs
   )
 )
 
@@ -340,32 +343,27 @@
       ) ; end let
   
       ;; Get structure needs.
-      (let ((structure-needs (action-structure-needs actx reachable)) (defining-regions (regionstore-new nil)) regs-in sta-far regy
-             structure-reachable)
+      (let ((structure-needs (action-structure-needs actx reachable)) groups-pinnacle-in)
   
         (if (needstore-is-not-empty structure-needs)
           (setf needs (needstore-append needs structure-needs))
           ;; else
-          ;; Find defining regions in action-logical-structure, using action-structure-pairs.
-          (progn
-            (setf structure-reachable (regionstore-intersection reachable (action-logical-structure actx)))
-            (loop for regx in (regionstore-regions (action-structure-pairs actx)) do
+          ;; Find defining regions in action-logical-structure, using action-vertices.
+          (when (masksverticesstore-is-not-empty (action-vertices actx))
+           ;(format t "~&action-get-needs: Dom: ~D Act: ~D action-vertices len ~A" *dom-id* *act-id* (masksverticesstore-length (action-vertices actx)))
+           (loop for vtxsto in (masksverticesstore-masksvertices (action-vertices actx)) do
+
+             (loop for vtx in (vertexstore-vertices (masksvertices-vertices vtxsto)) do
+
+                (setf groups-pinnacle-in (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle vtx)))
+                (when (= (groupstore-length groups-pinnacle-in) 1) 
     
-              ;; Check regions states.
-              (loop for stax in (statestore-states (region-states regx)) do
-                (setf regs-in (regionstore-regions-state-in structure-reachable stax))
-                (when (= 1 (regionstore-length regs-in))
-                  (setf sta-far (region-far-state (regionstore-first-region regs-in) stax))
-                  (setf regy (region-new (list stax sta-far)))
-                  (regionstore-push-nosubs defining-regions regy)
+                  ;; Generate needs for each region.
+                  (setf needs (needstore-append needs (action-structure-group-needs actx (groupstore-first groups-pinnacle-in) 
+                           (vertex-pinnacle vtx))))
                 )
               )
-    
-              ;; Generate needs for each region.
-              (loop for regy in (regionstore-regions defining-regions) do
-                (setf needs (needstore-append needs (action-structure-group-needs actx regy)))
-              )
-            ) ; next regx
+            )
   
             ;; Check for groups not supported by the logical structure.
             (when (> (regionstore-length (action-logical-structure actx)) 1)
@@ -374,7 +372,7 @@
                   (action-process-invalidated-groups actx invalidated-groups))
               )
             )
-          ) ; end progn
+          )
         ) ; end if
       )
   
@@ -925,11 +923,11 @@
                 ;  vsquares
                 ; squares-not-pnc num-match-region-states path-states
                )
-            ;;(format t "~&vertex-paths: ~A" (vertexpathstore-str vertex-paths))
+            ;(format t "~&Dom: ~D Act: ~D vertex-paths: ~A" *dom-id* *act-id* (vertexpathstore-str vertex-paths))
 
             ;; Get the set of unique masks (maskstores) in vertex-paths.
             (setf unique-masks-list (vertexpathstore-unique-masks vertex-paths))
-            ;(format t "~&unique-masks: ")
+            ;(format t "~&Dom: ~D Act: ~D unique-masks: " *dom-id* *act-id*)
             ;(mapcar #'(lambda (x) (format t " ~A" (maskstore-str x))) unique-masks-list)
             ;(format t "~&action-vertices: ~A" (masksverticesstore-str (action-vertices actx)))
 
@@ -942,13 +940,13 @@
               )
               ;; Delete items.
               (loop for masksx in del-masks do
-                (format t "~&Dom: ~D Act: ~D action-vertices: removing ~A" *dom-id* *act-id* (maskstore-str masksx))
+                ;(format t "~&Dom: ~D Act: ~D action-vertices: removing ~A" *dom-id* *act-id* (maskstore-str masksx))
                 (setf (action-vertices actx) (masksverticesstore-remove (action-vertices actx) masksx))
               )
             )
             ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
 
-            ;; Process possible wertexpaths for each unique set of masks.
+            ;; Process possible vertexpaths for each unique set of masks.
             (loop for unique-masks in unique-masks-list do
               ;(format t "~&unique-masks: ~A" (type-of unique-masks))
               (setf unique-masks-list-path-states nil)
@@ -1014,7 +1012,7 @@
                             while (null chosen) do
                         (when (vertexstore-eq (masksvertices-vertices cur-masksverts) (car vsx))
                           (setf chosen vsx)
-                          ;(format t "~&match found for ~A ~A" (maskstore-str unique-masks)
+                          ;(format t "~&Dom: ~D Act: ~D match found for ~A ~A" *dom-id* *act-id* (maskstore-str unique-masks)
                           ;   (vertexstore-str (masksvertices-vertices cur-masksverts)))
                         )
                       )
@@ -1037,7 +1035,7 @@
                       (setf masksverticesx (masksvertices-new unique-masks (car chosen)))
 
                       ;(format t "~&Adding ~A" (masksvertices-str masksverticesx))
-                      (masksverticesstore-push (action-vertices actx) masksverticesx)
+                      (masksverticesstore-push-nosubs (action-vertices actx) masksverticesx)
                     )
                   )
                   ; Get samples of non-pnc states associated with the chosen vertices.

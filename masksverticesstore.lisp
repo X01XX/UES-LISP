@@ -157,3 +157,18 @@
   )
 )
 
+;;; Return true if a state is used in a masksverticesstore.
+(defun masksverticesstore-state-needed (storex stax) ; -> bool
+  ;; Check arguments.
+  (assert (masksverticesstore-p storex))
+  (assert (state-p stax))
+
+  (loop for mvx in (masksverticesstore-masksvertices storex) do
+    (if (masksvertices-state-needed mvx)
+      (return-from masksverticesstore-state-needed true)) ; Return positive result.
+  )
+  ;; Return negative result.
+  false
+)
+
+

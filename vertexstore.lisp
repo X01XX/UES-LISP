@@ -169,7 +169,7 @@
     ;; Check each vertex.
     (loop for vx in (vertexstore-vertices storex) do
   
-      (if (vertex-contains-state vx stax)
+      (if (vertex-member vx stax)
         (vertexstore-push ret vx))
     )
     ;; Return result.
@@ -314,5 +314,20 @@
   )
   ;; Return positive result.
   true
+)
+
+;;; Return true if a state is used in vertexstore.
+(defun vertexstore-state-needed (storex stax) ; -> bool
+  ;; Check arguments.
+  (assert (vertexstore-p storex))
+  (assert (state-p stax))
+
+  ;; Check each vertex.
+  (loop for vtx in (vertexstore-vertices storex) do
+    (if (vertex-member vtx stax)
+      (return-from vertexstore-state-needed true)) ; Return positive result.
+  )
+  ;; Return negative result.
+  false
 )
 

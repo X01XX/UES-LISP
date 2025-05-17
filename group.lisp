@@ -248,9 +248,10 @@
   (assert (region-eq regx (group-region grpx)))
 
   (when (or (/= (region-number-states regx) (region-number-states (group-region grpx)))
-            (state-ne (region-first-state regx) (region-first-state (group-region grpx))))
+            (and (state-ne (region-first-state regx) (region-first-state (group-region grpx)))
+                 (state-ne (region-first-state regx) (region-second-state (group-region grpx)))))
 
-    (format t "~&Dom: ~D Act: ~D group ~A region changed from ~A to ~A" *dom-id* *act-id* (region-str regx)
+    (format t "~&Dom: ~D Act: ~D group ~A region changed from ~A to ~A" *dom-id* *act-id* (region-str (group-region grpx))
                                                         (statestore-str (region-states (group-region grpx)))
                                                         (statestore-str (region-states regx)))
     (setf (group-region grpx) regx)

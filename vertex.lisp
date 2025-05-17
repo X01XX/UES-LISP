@@ -103,14 +103,14 @@
 )
 
 ;;; Return true if a vertex cotians a given state.
-(defun vertex-contains-state (vx stax) ; -> bool
+(defun vertex-member (vx stax) ; -> bool
   ;; Check arguments.
   (assert (vertex-p vx))
   (assert (state-p stax))
 
   ;; Check pinnacle state.
   (if (state-eq (vertex-pinnacle vx) stax)
-    (return-from vertex-contains-state true)) ; Return positive result.
+    (return-from vertex-member true)) ; Return positive result.
 
   ;; Check edges.
   (statestore-member (vertex-edges vx) stax)
