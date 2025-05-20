@@ -7,6 +7,7 @@
             (ACT ("[XX/Xx/XX/XX]"))
             (ACT ("[01/XX/00/XX]") ("[10/XX/00/XX]") ("[01/XX/11/XX]") ("[10/XX/11/XX]")) ;; Show that the program is not just copying this definition, the result will be [Xx/XX/XX/XX].
             (ACT ("[00/XX/01/XX]") ("[11/XX/00/XX]") ("[XX/XX/11/Xx]"))) ;; Three different rulestores, for different regions, in one action.
+            ;(ACT ("[01/01/01/Xx]") ("[01/Xx/01/01]") ("[10/10/10/Xx]") ("[10/Xx/10/10]"))) ;; four different rulestores, for different regions, in one action.
        (DOM
             (ACT ("[XX/XX/Xx]"))
             (ACT ("[XX/Xx/XX]"))

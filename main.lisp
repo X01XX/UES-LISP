@@ -147,17 +147,8 @@
 (load #p "regionpairstore.lisp")
 (load #p "regionpairstore_t.lisp")
 
-(load #p "vertexpath.lisp")
-(load #p "vertexpath_t.lisp")
-
-(load #p "vertexpathstore.lisp")
-(load #p "vertexpathstore_t.lisp")
-
-(load #p "masksvertices.lisp")
-(load #p "masksvertices_t.lisp")
-
-(load #p "masksverticesstore.lisp")
-(load #p "masksverticesstore_t.lisp")
+(load #p "any1ofeach.lisp")
+(load #p "any1ofeach_t.lisp")
 
 (defun main ()
   (run)
@@ -645,11 +636,7 @@
   (regionpair-tests)
   (regionpairstore-tests)
 
-  (vertexpath-tests)
-  (vertexpathstore-tests)
-
-  (masksvertices-tests)
-  (masksverticesstore-tests)
+  (any1ofeach-tests)
 
   (format t "~&All tests done")
   t

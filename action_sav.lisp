@@ -10,7 +10,7 @@
   logical-structure ; A regionstore.
   structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
-  vertices          ; A vertexstore, of zero, or more, vertices, using the minimum number of states to generate the defining regions.
+  vertices          ; A masksverticesstore, of zero, or more, masksvertices. There should be no items withe the same masks.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -62,7 +62,7 @@
                             :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
                             :structure-pairs (regionstore-new nil)
                             :cleanup-flag true
-                            :vertices (vertexstore-new nil)))
+                            :vertices (masksverticesstore-new nil)))
     ;; Return result.
     actx
   )
@@ -223,8 +223,7 @@
 
 ;;; Return action needs to improve the understanding of the logic behind the samples, so far.
 (defun action-get-needs (actx cur-state reachable) ; -> NeedStore.
- ;(format t "~&action-get-needs: Dom: ~D Act: ~D state ~A cleanup flag: ~A"
- ;        *dom-id* (action-id actx) (state-str cur-state) (action-cleanup-flag actx))
+  ;(format t "~&action-get-needs: ~A ~A" (type-of actx) (type-of cur-state))
   (assert (action-p actx))
   (assert (state-p cur-state))
   (assert (regionstore-p reachable))
@@ -350,17 +349,19 @@
           (setf needs (needstore-append needs structure-needs))
           ;; else
           ;; Find defining regions in action-logical-structure, using action-vertices.
-          (when (vertexstore-is-not-empty (action-vertices actx))
-           ;(format t "~&action-get-needs: Dom: ~D Act: ~D action-vertices len ~A" *dom-id* *act-id* (vertexstore-length (action-vertices actx)))
+          (when (masksverticesstore-is-not-empty (action-vertices actx))
+           ;(format t "~&action-get-needs: Dom: ~D Act: ~D action-vertices len ~A" *dom-id* *act-id* (masksverticesstore-length (action-vertices actx)))
+           (loop for vtxsto in (masksverticesstore-masksvertices (action-vertices actx)) do
 
-           (loop for vtx in (vertexstore-vertices (action-vertices actx)) do
+             (loop for vtx in (vertexstore-vertices (masksvertices-vertices vtxsto)) do
 
-              (setf groups-pinnacle-in (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle vtx)))
-              (when (= (groupstore-length groups-pinnacle-in) 1) 
+                (setf groups-pinnacle-in (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle vtx)))
+                (when (= (groupstore-length groups-pinnacle-in) 1) 
     
-                ;; Generate needs for each region.
-                (setf needs (needstore-append needs (action-structure-group-needs actx (groupstore-first groups-pinnacle-in) 
-                         (vertex-pinnacle vtx))))
+                  ;; Generate needs for each region.
+                  (setf needs (needstore-append needs (action-structure-group-needs actx (groupstore-first groups-pinnacle-in) 
+                           (vertex-pinnacle vtx))))
+                )
               )
             )
   
@@ -376,8 +377,7 @@
       )
   
       ;; Return needs, if any.
-      (when (needstore-is-not-empty needs)
-        (setf (action-cleanup-flag actx) true)
+      (if (needstore-is-not-empty needs)
         (return-from action-get-needs needs))
   
       ;; Check for remainder needs.
@@ -813,93 +813,345 @@
     ;; Vertex optimization.
     (when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
 
-      (let ((defining-regions (regionstore-defining-regions (action-logical-structure actx)))
-            reg-stas         ; States in a defining region.
-            implied-regions  ; Regions implied by a given combination of vertices.
-            region-vertices  ; A list of vertices for a defining region.
-            vertices         ; A list of region-vertces, one for each defining region.
+      (let (defining-regions    ; A regionstore. Regions that have some parts, even as little as a single state, that are only in one region.
+            defining-subregions ; A list of regionstores. Subregions in defining-regions that are only in one region.
+            symadj-reg          ; Symmetric overlapping region of two adjacent subregions, from different defining regions.
+            symadj-pair         ; A regionpair. symadj-reg split by intersection with the twe adjacent regions that it was formed from.
+            symadj-pair-list    ; A regionpairstore of pairs of adjacent subregions, from different defining regions.
+            tmp-regions         ; Temporary regionstore.
            )
-
-        (when (vertexstore-is-not-empty (action-vertices actx))
-
-          ;; Check if the currently stored vertices are still accurate.
-          ;; If not, delete them.
-          (setf implied-regions (regionstore-intersection (vertexstore-structure-implied (action-vertices actx)) reachable))
-
-          (if (not (regionstore-subset-of :sub defining-regions :sup implied-regions))
-            (setf (action-vertices actx) (vertexstore-new nil))
+        ;; Get abstract Defining Regions.
+        (setf tmp-regions (regionstore-defining-regions (action-logical-structure actx)))
+        ;; Get actual Defining Regions.
+        (setf defining-regions (regionstore-new nil))
+        (let (grpx)
+          (loop for regx in (regionstore-regions tmp-regions) do
+            (setf grpx (action-find-group actx regx))
+            (if grpx
+              (regionstore-push defining-regions (group-region grpx))
+              (return-from action-structure-needs needs))
           )
         )
 
-        ;; Look for a vertexstore that will produce the defining regions.
-        (when (and (regionstore-is-not-empty defining-regions) (vertexstore-is-empty (action-vertices actx)))
+        ;(format t "~&defining-regions ~A" (regionstore-str defining-regions))
 
-          ;; Gather vertices for each defining region.
-          (loop for regx in (regionstore-regions defining-regions) do
-  
-            (setf region-vertices nil)
- 
-            ;; Get states in the defining region.
-            (setf reg-stas (squarestore-states-in-region (action-squares actx) regx))
-  
-            ;; If a square in a defining region is only in one region, use it to make a vertex, store the vertex.
-            (loop for stax in (statestore-states reg-stas) do
-              (when (regionstore-state-in-exactly-one (action-logical-structure actx) stax)
-                (push (vertex-new stax (region-adjacent-external-states regx stax)) region-vertices)
-              )
-            )
-            ;(format t "~&defining region: ~A" (region-str regx))
-            ;(format t " vertices: ~A" (vertexstore-str (vertexstore-new region-vertices)))
-            ;; Save defining region vertices, maintaing order correspondence with the defining region regionstore.
-            (setf vertices (append vertices (list region-vertices)))
-          )
-  
-          ;; Search for the first combination of vertices that creates the expected defining regions.
-          (let (
-                options     ; A list of vertex combinations, one from each defining region.
-                            ; A combination will be evaluated to see if it generates the expected defining regions.
-                            ; Options that work, and use a minimum of states, that is, states are shared between vertices,
-                            ; will be favored.
-                vtxstr      ; Vertexstore of ane option.
-                states      ; The states that make up a vtxstr, no dups.
-                (min-states 10000)  ; in number of states for an option to generate the defining regions.
-                vertices-found      ; List of vertexstores that generate the defining regions and use the minimum states.
-               )
-            (setf options (any-1-of-each vertices))
-            ;(format t "~&number options: ~D" (length options))
-          
-            (loop for optx in options do
-              (setf vtxstr (vertexstore-new optx))
-              (setf states (vertexstore-states vtxstr))
-              ;(format t "~&Dom: ~D Act: ~D option: ~A states: ~A" *dom-id* *act-id* (vertexstore-str vtxstr) (statestore-str states))
-              (if (<= (statestore-length states) min-states)
-                (progn
-                  (setf implied-regions (regionstore-intersection (vertexstore-structure-implied vtxstr) reachable))
-                  (if (regionstore-subset-of :sub defining-regions :sup implied-regions)
-                    (progn
-                      (when (< (statestore-length states) min-states)
-                        (setf vertices-found nil)
-                        (setf min-states (statestore-length states)))
-    
-                      (when (= (statestore-length states) min-states)
-                         (push vtxstr vertices-found)
-                      )
-                    )
+        ;; For each defining region, get unique subregions.
+        (loop for defx in (regionstore-regions defining-regions) do
+          (push (regionstore-unique-subregions (action-logical-structure actx) defx) defining-subregions)
+        )
+
+        ;; Compare each possible pair of subregions for adjacency.
+        ;; If so, get symmetrical overlaping region.
+        (setf symadj-pair-list (regionpairstore-new nil))
+        (loop for unqx in defining-subregions
+              for count1 from 0 do
+
+          (loop for unqy in defining-subregions
+                for count2 from 0 do
+            (when (> count2 count1)
+              ;(format t "~&count1 ~D count2 ~D" count1 count2)
+              ;(format t "~&unqx: ~A unqy: ~A" (regionstore-str unqx) (regionstore-str unqy))
+
+              ;; Check every combination between unqx and unqy.
+              (loop for regx in (regionstore-regions unqx) do
+                (loop for regy in (regionstore-regions unqy) do
+                  ;(format t "~&  check ~A vs ~A adj ~A" (region-str regx) (region-str regy) (region-is-adjacent regx regy))
+                  (when (region-is-adjacent regx regy)
+                    (setf symadj-reg (region-symmetric-overlapping-region regx regy))
+                    (setf symadj-pair (regionpair-new (list (region-intersection symadj-reg regx) (region-intersection symadj-reg regy))))
+                    ;(format t " symadj-reg ~A ~A" (region-str symadj-reg) (regionpair-str symadj-pair))
+                    (regionpairstore-push-nosubs symadj-pair-list symadj-pair)
                   )
                 )
               )
-            ) ; next optx
-            ;(format t "~&number vertices-found: ~D number states: ~D" (length vertices-found) min-states)
-            (when (> (length vertices-found) 0)
-              (setf (action-vertices actx) (nth (random (length vertices-found)) vertices-found)))
+            )
           )
-       )
-               
-       (when (vertexstore-is-not-empty (action-vertices actx))
+        ) ; next unqx
+        ;(format t "~&pairs: ~A" (regionpairstore-str symadj-pair-list))
 
-         ;; TODO Check vertices for needs.
+        ;; Starting with an existing sampled-state (square) in a defining region (there must be at least one),
+        ;; step through a path, in any direction, through adjacent-symmetric-pair regions
+        ;; connecting adjacent defining regions.
+        (let (pairs-in
+             (vertex-paths (vertexpathstore-new nil)))
 
-         ;; TODO Check group regions. may use vertexstore-find, vertexstore-vertices-in-region.
+          (loop for regx in (regionstore-regions adj-pairs) do
+            (loop for stax in (statestore-states (region-states regx)) do 
+              (when (regionstore-state-in-exactly-one (action-logical-structure actx) stax) ; an existing sampled-state (square) in a defining region.
+
+                (let ((masks (maskstore-new nil))               ; Aggregation of unique difference masks of symetric pairs traversed.
+                      (states (statestore-new (list stax))))    ; Aggregation of connecting states found, stax first.
+
+                  ;; Find adjacent-symmetric-pair regions the sampled-state may be in.
+                  (setf pairs-in (regionpairstore-regionpairs-state-in symadj-pair-list stax))
+                  ;(format t "~&state: ~A in pairs:" (state-str stax))
+  
+                  ;; For each pair found.  This is where different directions can be taken.
+                  (loop for prx in (regionpairstore-regionpairs pairs-in) do
+
+                    (when (not (maskstore-member masks (regionpair-dif-mask prx))) ; May have already been traversed by previous connecting pairs.
+
+                      ;; Save dif mask of symmetric pair, so a pair fo the same dif mask is not traversed again.
+                      (maskstore-push masks (regionpair-dif-mask prx))
+  
+                      (let (try-again pairs cur-sta pair-options pair-opt dif-mask)
+                        ;(format t "~&       ~A alt: ~A dif: ~A" (regionpair-str prx)
+                        ;    (state-str (regionpair-symmetric-state prx stax)) (mask-str (regionpair-dif-mask prx)))
+    
+                        ;; Follow a path out from the current pair (prx), through connecting pairs, as far as possible.
+                        ;; Init vars for loop.
+                        (setf try-again true)
+                        (setf cur-sta (regionpair-symmetric-state prx stax)) ; get state on other side of symmetric pair.
+                        (loop while try-again do
+                          (setf try-again false)
+    
+                          ;; Save path of states encountered.
+                          (statestore-push states cur-sta)
+    ;; If more than one pair is avialable, choose one randomly.
+                          ;; Get connecting pairs, filter out difference masks already seen.
+                          (setf pairs (regionpairstore-regionpairs-state-in symadj-pair-list cur-sta))
+                          (setf pair-options nil)
+    
+                          (loop for next-pair in (regionpairstore-regionpairs pairs) do
+                            (setf dif-mask (regionpair-dif-mask next-pair))
+                            (when (not (maskstore-member masks dif-mask))
+                              (push next-pair pair-options)
+                            )
+                          )
+    
+                          (when (not (null pair-options))
+                            ;; If a new symmetric pair, with new difference mask, has been found, try another cycle.
+                            (setf try-again true)
+    
+                            ;; If more than one pair is avialable, choose one randomly.
+                            (setf pair-opt (nth (random (length pair-options)) pair-options))
+    
+                            ;(format t " ~A alt: ~A dif: ~A" (state-str cur-sta) (state-str (regionpair-symmetric-state pair-opt cur-sta)) 
+                            ;  (state-str (regionpair-symmetric-state pair-opt cur-sta)) (mask-str (regionpair-dif-mask pair-opt)))
+    
+                            ;; Save dif mask of symmetric pair, so a pair fo the same dif mask is not traversed again.
+                            (maskstore-push masks (regionpair-dif-mask pair-opt))
+    
+                            ;; Get the state on the other side of the symmetric pair.
+                            (setf cur-sta (regionpair-symmetric-state pair-opt cur-sta))
+                          )
+                        ) ; next try-again 
+                      )
+                    )
+                  ) ; next prx
+                  (let (vtxpth)
+                    (setf states (statestore-reverse states))
+                    ;(format t "~&Dom: ~D Act: ~D states: ~A" *dom-id* *act-id* (statestore-str states))
+                    ;(format t "~&Dom: ~D Act: ~D  masks: ~A" *dom-id* *act-id* (maskstore-str masks))
+                    (setf vtxpth (vertexpath-new states masks))
+                    ;(format t "~&Dom: ~D Act: ~D  vertexpath: ~A" *dom-id* *act-id* (vertexpath-str vtxpth))
+                    ;; Save the accumulated states, masks.
+                    (vertexpathstore-push vertex-paths vtxpth)
+                    ;(format t "~&Dom: ~D Act: ~D  vertexpathstore: ~A" *dom-id* *act-id* (vertexpathstore-str vertex-paths))
+                  )
+                )
+              )
+            ) ; next stax
+          ) ; next regx
+          ;; vertex-paths holds data, for the following.
+
+          (format t "~&vertexpaths: ~A" (vertexpathstore-str vertex-paths))
+          (let (unique-masks-list 
+               )
+            ;(format t "~&Dom: ~D Act: ~D vertex-paths: ~A" *dom-id* *act-id* (vertexpathstore-str vertex-paths))
+
+            ;; Get the set of unique masks (maskstores) in vertex-paths.
+            (setf unique-masks-list (vertexpathstore-unique-masks vertex-paths))
+            (format t "~&Dom: ~D Act: ~D unique-masks: " *dom-id* *act-id*)
+            (mapcar #'(lambda (x) (format t " ~A" (maskstore-str x))) unique-masks-list)
+            ;(format t "~&action-vertices: ~A" (masksverticesstore-str (action-vertices actx)))
+
+            ;; Remove items from action-vertices that have masks not found in unique-mask-list.
+            (let (del-masks)
+              ;; Gather items to delete.
+              (loop for mskvtcx in (masksverticesstore-masksvertices (action-vertices actx)) do
+                (if (not (member (masksvertices-masks mskvtcx) unique-masks-list :test #'maskstore-eq))
+                  (push (masksvertices-masks mskvtcx) del-masks))
+              )
+              ;; Delete items.
+              (loop for masksx in del-masks do
+                (format t "~&Dom: ~D Act: ~D action-vertices: removing ~A" *dom-id* *act-id* (maskstore-str masksx))
+                (setf (action-vertices actx) (masksverticesstore-remove (action-vertices actx) masksx))
+              )
+            )
+            ;(format t "~&defining-regions: ~A" (regionstore-str defining-regions))
+            (let (
+                  vpaths            ; A vertexpathstore of vertexpaths where the first state within dfgx.
+                  region-edge-masks ; Minimum expected difference masks needed for a defining region.
+                  vstores           ; A list of lists, that is a list of (vertexstore states), per defining region.
+                 )
+              ;; Gather vertexpaths for each defining region.
+              (loop for dfgx in (regionstore-regions defining-regions) do
+                (format t "~& ~&Dom: ~D Act: ~D defining region ~A" *dom-id* *act-id* (region-str dfgx))
+                (setf vpaths (vertexpathstore-new nil))
+                (setf region-edge-masks (maskstore-new (mask-split (region-edge-mask dfgx))))
+
+                ;; Gather vertexpaths that start in this defining region, dfgx.
+                (loop for vtxpthx in (vertexpathstore-vertexpaths vertex-paths) do
+                  (when (region-superset-of-state dfgx (statestore-first-state (vertexpath-states vtxpthx)))
+                    (when (maskstore-subset-of :sup (vertexpath-masks vtxpthx) :sub region-edge-masks)
+                      (format t "~&Dom: ~D Act: ~D ~A vtxpthx: ~A" *dom-id* *act-id* (region-str dfgx) (vertexpath-str vtxpthx))
+                      (vertexpathstore-push-nosubs vpaths vtxpthx)
+                    )
+                  )
+                )
+                (format t "~&vertexpaths ~A" (vertexpathstore-str vpaths))
+
+                ;; Covert vertexpaths to vertex stores.
+                ;; Gather vertexstores with the minimum number of states, that is, the maximum number of shared states.
+                (let ((min-states 10000)        ; Var for keeping track of the minimum number of states for a series of vertexstores.
+                      (min-state-vstores nil)   ; A List of (vertexstore statestore).
+                      tmp-vstore                ; Temp vertexstore var.
+                      vstates                   ; A statestore, all states in a vertex.
+                      region-stores             ; A list of vstores for a defining region.
+                     )
+
+                  (loop for vertexpathx in (vertexpathstore-vertexpaths vpaths) do
+                  
+                    ;; Convert vertexpath to vertexstore.
+                    ;; Get vertices from paths, that is, add adjacent, external, states. 
+                    (setf tmp-vstore (action-statestore-to-vertices actx (vertexpath-states vertexpathx) defining-regions))
+    
+                    ;; Get vertexstore state list, no dups.
+                    (setf vstates (vertexstore-states tmp-vstore))
+                    ;(format t "~&vertices: ~A states: ~D" (vertexstore-str tmp-vstore) (statestore-str vstates))
+    
+                    ;; Restart save list if the number of states is fewer.
+                    (if (< (statestore-length vstates) min-states)
+                      (setf min-states (statestore-length vstates) min-state-vstores nil))
+  
+                    ;; Save vertexstore if the number of states is at the current minimum.
+                    (if (= (statestore-length vstates) min-states)
+                      (push (list tmp-vstore vstates) min-state-vstores))
+  
+                  ) ; next vertexpathx
+                  ;; Save defining regions possible vstores.
+                  (push min-state-vstores vstores)
+                  (format t "~&vertexstores: (")
+                  (loop for vtst-stas in min-state-vstores do
+                    (format t " (~A" (vertexstore-str (car vtst-stas)))
+                    (format t " ~A)" (statestore-str (second vtst-stas)))
+                  )
+                  (format t ")")
+                )
+              ) ; next dfgx
+              ;;; vstores data, for the following:
+            ) ; end let
+
+            ;; Process possible vertexpaths for each unique set of masks.
+;            (loop for unique-masks in unique-masks-list do
+;              ;(format t "~&unique-masks: ~A" (type-of unique-masks))
+;              (format t "~& ")
+;              (setf unique-masks-list-path-states nil)
+;
+;              ;; Get vertexpaths matching a unique mask.
+;              (setf cur-paths (vertexpathstore-matching-masks vertex-paths unique-masks))
+;
+              ;; Gather vertexpaths with the minimum number of states, that is, the maximum number of shared states.
+;              (let ((min-states 10000) min-square-paths)
+;                (loop for vertexpathx in (vertexpathstore-vertexpaths cur-paths) do
+;                
+;                  ; Get vertices from paths, that is, add adjacent, external, states. 
+;                  (setf cur-vertexstore (action-statestore-to-vertices actx (vertexpath-states vertexpathx) defining-regions))
+;  
+;                  ;; Get state list, no dups.
+;                  (setf vstates (vertexstore-states cur-vertexstore))
+;                  ;(format t "~&vertices: ~A states: ~D" (vertexstore-str cur-vertexstore) (statestore-str vstates))
+;  
+;                  ;; Restart save list if the number of states is fewer.
+;                  (if (< (statestore-length vstates) min-states)
+;                    (setf min-states (statestore-length vstates) min-square-paths nil))
+;
+;                  ;; Save data if the number of statest is at the current minimum.
+;                  (if (= (statestore-length vstates) min-states)
+;                    (push (list cur-vertexstore vstates) min-square-paths))
+;
+;                ) ; next vertexpathx
+;                ;; Save minimum-state vertexpath and states data.
+;                (push min-square-paths unique-masks-list-path-states)
+;              )
+              ;;; vertexstores with the minimum number of states in unique-masks-list-path-states, for the following.
+
+              ;; For each vertexpath in list, for a unique set of masks.
+;              (let (cur-states cur-squares cur-vertexstore vertices-states
+;                   states-of-squares-not-pnc states-not-sampled) 
+;  
+;                (loop for list-path-states in unique-masks-list-path-states do
+;  
+;                  (loop for path-states in list-path-states do
+;  
+;                    (setf cur-vertexstore (car path-states) cur-states (second path-states))
+;                    ;(format t "~&masks: ~A vertices: ~A states: ~D" (maskstore-str unique-masks)
+;                    ;   (vertexstore-str cur-vertexstore) (statestore-str cur-states))
+;                    (setf cur-squares (action-statestore-to-squarestore actx vstates))
+;                    ;(format t "~&  sqrs: ~A" (squarestore-states-str cur-squares))
+;                    (setf states-of-squares-not-pnc (squarestore-states (squarestore-not-pnc cur-squares)))
+;                    ;(format t "~&  states of sqrs not pnc: ~A" (statestore-str states-of-squares-not-pnc))
+;                    (setf states-not-sampled (statestore-difference vstates (squarestore-states cur-squares)))
+;                    ;(format t "~&  states not sampled: ~A" (statestore-str states-not-sampled))
+;                    (push (list cur-vertexstore cur-states states-of-squares-not-pnc states-not-sampled) vertices-states)      
+;                  )
+;                )
+;                ;; Data in vertices-states, for the following.
+;              
+;                ;; Check if a possible masks/vertexstore is already in action-vertices.
+;                (let (cur-masksverts masksverticesx chosen)
+;                  ;(format t "~&action-vertices: ~A" (masksverticesstore-str (action-vertices actx)))
+;                  (setf cur-masksverts (masksverticesstore-find (action-vertices actx) unique-masks))
+;                  (if cur-masksverts
+;                    (progn
+;                      ;; Check if current masksvertices matches what was found.
+;                      (loop for vsx in vertices-states
+;                            while (null chosen) do
+;                        (when (vertexstore-eq (masksvertices-vertices cur-masksverts) (car vsx))
+;                          (setf chosen vsx)
+;                          ;(format t "~&Dom: ~D Act: ~D match found for ~A ~A" *dom-id* *act-id* (maskstore-str unique-masks)
+;                          ;   (vertexstore-str (masksvertices-vertices cur-masksverts)))
+;                        )
+;                      )
+;                    )
+;                  )
+;                  (when (null chosen)
+;                    (let (vertices-states2 (min-needs 10000) state-needs)
+;                      ;; Gather vertices with lowest needs.
+;                      (loop for vsx in vertices-states do
+;                        (setf state-needs (+ (statestore-length (third vsx)) (statestore-length (fourth vsx))))
+;
+;                        (if (< state-needs min-needs)
+;                          (setf min-needs state-needs vertices-states2 nil))
+;
+;                        (if (= state-needs min-needs)
+;                          (push vsx vertices-states2))
+;                      )
+;                      ;; Choose an item to make a masksvertices to add to action-vertices.
+;                      (setf chosen (nth (random (length vertices-states2)) vertices-states2))
+;                      (setf masksverticesx (masksvertices-new unique-masks (car chosen)))
+;
+;                      ;(format t "~&Adding ~A" (masksvertices-str masksverticesx))
+;                      (masksverticesstore-push-nosubs (action-vertices actx) masksverticesx)
+;                    )
+;                  )
+;                  ; Get samples of non-pnc states associated with the chosen vertices.
+;                  (loop for stax in (statestore-states (third chosen)) do
+;                    (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*))
+;                  )
+;                  (loop for stax in (statestore-states (fourth chosen)) do
+;                    (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*))
+;                  )
+;                )
+;              )
+;              ;(format t "~&vertices: ~A states: ~D" (vertexstore-str tmp-vertices) (statestore-str (vertexstore-states tmp-vertices)))
+;             ;(format t " num not pnc: ~D num match regions: ~D" (squarestore-length squares-not-pnc) num-match-region-states)
+;           ) ; next unique-masks
+
+            ; TODO Somewhere else, set defining group regions states, if needed, using action-vertices.
+            ; TODO Somewhere else, add action-vertices to action-cleanup, remove action-structure-pairs from action-cleanup.
+          )
         )
       ) ; end let
     ) ; end when
@@ -1598,11 +1850,11 @@
     (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
   )
 
-  (if (> (vertexstore-length (action-vertices actx)) 0)
-    (format t "~&           vertices: ~A" (vertexstore-str (action-vertices actx)))
+  (if (> (masksverticesstore-length (action-vertices actx)) 0)
+    (format t "~&           vertices: ~A" (masksverticesstore-str (action-vertices actx)))
   )
 
-; (if (> (vertexstore-length (action-vertices actx)) 0)
+; (if (> (masksverticesstore-length (action-vertices actx)) 0)
 ;   (format t "~&           structure vertices: ~A" (vertexstore-str (action-vertices actx)))
 ; )
 ; (format t "~&   base rules: " (action-base-rules actx))
@@ -1639,19 +1891,19 @@
   (let (del-sqrs)
     ;; Find squares that are not needed.
     (loop for sqrx in (squarestore-squares (action-squares actx)) do
-      (if (not (vertexstore-state-needed (action-vertices actx) (square-state sqrx)))
+      (if (not (regionstore-state-needed (action-structure-pairs actx) (square-state sqrx)))
         (if (not (groupstore-state-needed (action-groups actx) (square-state sqrx)))
           (push sqrx del-sqrs)))
     )
     (when del-sqrs
-      ;(format t "~&Dom: ~D Act: ~D Cleanup" *dom-id* (action-id actx))
+      (format t "~&Dom: ~D Act: ~D Cleanup" *dom-id* (action-id actx))
       ;; Remove squares that are not needed.
       (if (= 1 (length del-sqrs))
         (format t ", 1 square found.")
         (format t ", ~D squares found." (length del-sqrs))
       )
       (loop for sqrx in del-sqrs do
-        (format t "~&Dom: ~D Act: ~D Deleting square ~A" *dom-id* (action-id actx) (state-str (square-state sqrx)))
+        (format t "~&Dom: ~D Act: ~D Delete square ~A" *dom-id* (action-id actx) (state-str (square-state sqrx)))
         (setf (action-squares actx) (squarestore-remove (action-squares actx) sqrx))
       )
     )

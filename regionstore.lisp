@@ -618,6 +618,7 @@
 
 ;;; Return the number af superset regions in a regionstore of a given region.
 (defun regionstore-num-superset (storex regx) ; -> integer GE 0.
+  ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (region-p regx))
   (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (region-num-bits regx))))
@@ -629,4 +630,19 @@
     )
     cnt
   )
+)
+
+;;; Return true if a regionstore is a subset of another, based on region membership.
+(defun regionstore-subset-of (&key sub sup) ; -> bool
+  ;; Check arguments.
+  (assert (regionstore-p sub))
+  (assert (regionstore-p sup))
+
+  ;; Check each sub region.
+  (loop for regx in (regionstore-regions sub) do
+    (if (not (regionstore-member sup regx))
+      (return-from regionstore-subset-of false)) ; Return negative result.
+  )
+  ;; Return positive result.
+  true
 )

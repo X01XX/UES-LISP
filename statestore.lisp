@@ -389,14 +389,8 @@
   ;; Check argument.
   (assert (statestore-p storex))
 
-  (let ((ret (statestore-new nil)))
-    ;; Construct result.
-    (loop for stax in (statestore-states storex) do
-      (statestore-push ret stax)
-    )
-    ;; Return result.
-    ret
-  )
+  ;; Return result.
+  (statestore-new (reverse (statestore-states storex)))
 )
 
 ;;; Return a count of states in a statestore that match states in a regionstore.

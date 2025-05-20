@@ -77,9 +77,9 @@
   (assert (region-p regx))
 
   (let ((ret (statestore-new nil)))
-    (loop for stax in (squarestore-squares storex) do
-      (if (region-superset-of-state regx stax)
-        (statestore-push ret stax))
+    (loop for sqrx in (squarestore-squares storex) do
+      (if (region-superset-of-state regx (square-state sqrx))
+        (statestore-push ret (square-state sqrx)))
     )
     ret
   )

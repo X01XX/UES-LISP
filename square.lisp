@@ -128,7 +128,7 @@
 
       (setf pnnew (square-calc-pn square))
 
-      (when (neq pnnew (square-pn square))
+      (when (pn-ne pnnew (square-pn square))
           (format t "~&Dom: ~D Act: ~D square ~A pn changed from ~A to ~A" *dom-id* *act-id*
             (state-str (square-state square)) (pn-str (square-pn square)) (pn-str pnnew))
           (setf (square-pn square) pnnew) ; set new pn, so subsequent pnc calc works correctly.
@@ -157,7 +157,7 @@
           (format t "~&Dom: ~D Act: ~D Square ~A pn ~A pnc changed from ~A to ~A" *dom-id* *act-id*
           (state-str (square-state square)) (pn-str (square-pn square)) (square-pnc square) pncnew)
           (setf (square-pnc square) pncnew)
-          (return-from square-add-sample t)
+          (setf ret t)
       )
       ; (if (null ret)
       ;    (format t "~&square ~A nothing changed pn ~A pnc ~A" (state-str(square-state square)) (pn-str (square-pn square)) (square-pnc square)))
