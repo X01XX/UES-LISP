@@ -893,14 +893,27 @@
             (when (> (length vertices-found) 0)
               (setf (action-vertices actx) (nth (random (length vertices-found)) vertices-found)))
           )
-       )
-               
-       (when (vertexstore-is-not-empty (action-vertices actx))
-
-         ;; TODO Check vertices for needs.
-
-         ;; TODO Check group regions. may use vertexstore-find, vertexstore-vertices-in-region.
         )
+               
+        ;; Check vertices for needs.
+        (let (sqrx) 
+          (when (vertexstore-is-not-empty (action-vertices actx))
+            (loop for vtx in (vertexstore-vertices (action-vertices actx)) do
+              (loop for stax in (statestore-states (vertex-states vtx)) do
+                (setf sqrx (action-find-square actx stax))
+                (if sqrx
+                  (if (not (square-pnc sqrx))
+                    (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*
+                                            (format nil "for ~A" (vertex-str vtx))))
+                  )
+                  ; else
+                  (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*
+                                          (format nil "for ~A" (vertex-str vtx))))
+                )
+              ) ; next stax
+            ) ; next vtx
+          ) ; end when
+        ) ; end let
       ) ; end let
     ) ; end when
 
@@ -1570,7 +1583,7 @@
         (if first
           (progn
             (setf first false)
-            (format t "~A" (group-str grpx))
+            (format t "~A  number squares ~D" (group-str grpx) (squarestore-length (action-squares actx)))
           )
           (format t "~&~A~A" prefix (group-str grpx))
         )
@@ -1584,23 +1597,25 @@
   (when (not (null (action-logical-structure actx)))
     (format t "~&           calced structure: ~A" (regionstore-str (action-logical-structure actx)))
     (when (> (regionstore-length (action-logical-structure actx)) 2)
-      (let ((defining (regionstore-defining-regions (action-logical-structure actx))))
-        (if (/= (regionstore-length (action-logical-structure actx)) (regionstore-length defining))
-          (format t "~&           defining regions: ~A" (regionstore-str defining))
+      (let ((defining (regionstore-defining-regions (action-logical-structure actx))) verts grpx)
+        (when (/= (regionstore-length (action-logical-structure actx)) (regionstore-length defining))
+          (format t "~&           defining regions:")
+          (loop for regx in (regionstore-regions defining) do
+            (setf grpx (action-find-group actx regx))
+            (when grpx
+              (setf verts (vertexstore-vertices-in-region (action-vertices actx) regx))
+              (if (vertexstore-is-not-empty verts)
+                (format t " ~A: ~A" (region-str (group-region grpx)) (vertexstore-str verts)))
+            )
+          )
         )
       )
     )
   )
 
-  (format t " number squares: ~D" (squarestore-length (action-squares actx)))
-
-  (if (> (regionstore-length (action-structure-pairs actx)) 0)
-    (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
-  )
-
-  (if (> (vertexstore-length (action-vertices actx)) 0)
-    (format t "~&           vertices: ~A" (vertexstore-str (action-vertices actx)))
-  )
+;  (if (> (regionstore-length (action-structure-pairs actx)) 0)
+;    (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
+;  )
 
 ; (if (> (vertexstore-length (action-vertices actx)) 0)
 ;   (format t "~&           structure vertices: ~A" (vertexstore-str (action-vertices actx)))

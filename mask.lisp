@@ -76,7 +76,7 @@
 )
 
 ;;; Return a mask instance from a string.
-(defun mask-from-str (strx) ; -> mask.
+(defun mask-from-str (strx) ; -> mask, or nil.
   ;; Check argument.
   (assert (stringp strx))
 
@@ -90,7 +90,13 @@
       (return-from mask-from-str (err-new (format nil "mask ~A should begin with an m character" strx2))))
 
     ;; Construct result.
-    (mask-new (value-from-str (concatenate 'string "v" (subseq strx2 1))))
+    (let (val1)
+      (setf val1 (value-from-str (concatenate 'string "v" (subseq strx2 1))))
+      (if (value-p val1)
+        (mask-new val1)
+        nil
+      )
+    )
   )
 )
 

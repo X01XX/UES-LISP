@@ -72,7 +72,7 @@
   ;; Check argument.
   (assert (stringp strx))
 
-  (let (strx2) ; working string.
+  (let (strx2 val1) ; working string.
 
     ;; Trim spaces.
     (setf strx2 (string-left-trim '(#\Space #\Tab #\Newline) (string-right-trim '(#\Space #\Tab #\Newline) strx)))
@@ -82,7 +82,11 @@
       (return-from state-from-str (err-new (format nil "State ~A should begin with an s character" strx2))))
 
     ;; Construct result.
-    (state-new (value-from-str (concatenate 'string "v" (subseq strx2 1))))
+    (setf val1 (value-from-str (concatenate 'string "v" (subseq strx2 1))))
+    (if (value-p val1)
+      (state-new val1)
+      nil
+    )
   )
 )
 

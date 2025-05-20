@@ -535,6 +535,13 @@
             (setf nedx nedy))
         )
 
+        ;; Check for *confirm-vertices*
+        (loop for nedy in (needstore-needs can-do)
+              while (null nedx) do
+          (if (= (need-reason nedy) *confirm-vertices*)
+            (setf nedx nedy))
+        )
+
         ;; Make a random choice.
         (when (null nedx)
           (setf inx (random (needstore-length can-do)))
