@@ -31,11 +31,14 @@ To run: gcl
 
 Then: (load #p "main.lisp")
 
-Then: (main) or (all-tests)
+Then: (main file-name number-runs) or (all-tests)
 
-For basic code checks: (load #p "compile.lisp"), but delete *.o files later.
+      file-name:   A string, like "alternate.kmp", using the quotes in the command. Optional. The default is "default.kmp".
+      number-runs: A number, like 0, or greater. Optional. The default is 0, run in interactive mode.
+                   If greater than zero, run that number of times in non-interactive mode. To exercise the code, since it uses the random command in a number of places.
 
-This is still in the early development stage.
+For basic code checks: From the command line: ./compile.sh (This will display some errors, but often hangs and you have to ctrl-d out of it to see the error).
+                       From gcl: (load #p "compile.lisp"), but delete *.o files later.
 
 I'm using gcl v2.6.14. It has some improvements, though I'm not sure what version they were first implemented in.
 A hash table can have equalp as a test, so a struct can be a key.
