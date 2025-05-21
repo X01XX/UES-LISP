@@ -422,6 +422,7 @@
   (assert (regionscorr-p from-regs))
   (assert (regionscorr-p to-regs))
   (assert (not (regionscorr-intersects from-regs to-regs)))
+  ;(format t "~&sessiondata-get-plans2: from: ~A to: ~A" (regionscorr-str from-regs) (regionscorr-str to-regs))
 
   (let (from-rate to-rate min-rate le0-position plans path)
 

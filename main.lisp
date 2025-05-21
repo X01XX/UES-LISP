@@ -150,14 +150,38 @@
 (load #p "any1ofeach.lisp")
 (load #p "any1ofeach_t.lisp")
 
-(defun main ()
-  (run)
+(defun main (&rest args)
+  (apply #'run args) ; run uses &rest also.
 )
 
 ;;; Do commands against a given sessiondata instance.
 (defun do-interactive-session (sessx)
   (assert (sessiondata-p sessx))
   (command-loop sessx)
+)
+
+;;; Run until no more needs.
+(defun do-non-interactive-session (sessx)
+  (assert (sessiondata-p sessx))
+
+  (loop
+    ;; Update cycle and needs, unless session just read in.
+    (format t "~& ~&Cycle: ~D --------------------------------------------" (sessiondata-cycle-num sessx))
+
+    (sessiondata-inc-cycle-num sessx)
+
+    (sessiondata-print sessx)
+
+    (sessiondata-get-needs sessx)
+
+    (display-needs sessx)
+
+	(if (needstore-is-empty (sessiondata-can-do sessx))
+      (return-from do-non-interactive-session))
+
+    ;; Process needs.
+	(do-any-need sessx)
+  ) ; end loop
 )
 
 (defun display-needs (sessx)
@@ -557,31 +581,61 @@
 )
 
 ;;; Run a new session.
-(defun run (&optional fname)
-    (if (null fname) (setf fname "default.kmp"))
+(defun run (&rest args)
+  (let ((fname "default.kmp") (cnt 0))
 
-    (let ((in (open fname :if-does-not-exist nil)) (str "") sdx sdx-in)
-        (when in
-            (loop for line = (read-line in nil)
-                while line do
-                   (setf str (concatenate 'string str line))
-                   (setf str (concatenate 'string str (coerce (list #\NewLine) 'string)))
-            )
-            (close in)
-            ;(setf str (remove-comments str))
-            ;(format t "~&final: ~A" str)
-            (setf sdx-in (read-from-string str)) ; read in data, check that parentheses are balanced.
-            (when sdx-in
-              ;(pprint sdx-in)
-              (setf sdx (eval sdx-in))
-              ;(format t "~&sdx ~A" sdx)
-              (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))))
-              ;(let ((*domain-num-bits-list* (domainstore-num-bits (sessiondata-domains sdx))))
-                (do-interactive-session sdx)
-              )
-            )
-        )
+    (when args
+      (assert (< (length args) 3))
+      (loop for argx in args do
+        (format t "~&arg ~A type ~A" argx (type-of argx))
+        (if (stringp argx)
+          (setf fname argx)
+          ;; else
+          (when (integerp argx)
+            (assert (>= argx 0))
+            (setf cnt argx)
+          )
+        ) ; end if
+      ) ; next argx
     )
+    (format t "~&fname: ~A cnt: ~D" fname cnt)
+
+    (let ((in (open fname :if-does-not-exist nil)) (str ""))
+      (if in
+        (let (sdx sdx-in)   
+          (loop for line = (read-line in nil)
+              while line do
+                 (setf str (concatenate 'string str line))
+                 (setf str (concatenate 'string str (coerce (list #\NewLine) 'string)))
+          )
+          (close in)
+          ;(setf str (remove-comments str))
+          ;(format t "~&final: ~A" str)
+          (setf sdx-in (read-from-string str)) ; read in data, check that parentheses are balanced.
+          (when sdx-in
+            ;(pprint sdx-in)
+            (setf sdx (eval sdx-in))
+            ;(format t "~&sdx ~A" sdx)
+            (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))))
+              (if (zerop cnt)
+                (do-interactive-session sdx)
+                ;; else
+                (let (sdy)
+                  (setf sdy (copy-sessiondata sdx))
+                  (loop for numx from 1 to cnt do
+                    (do-non-interactive-session sdy)
+                    (format t "~&Run: ~D" numx)
+                  )
+                ) ; end let
+              ) ; end if
+            ) ; end let
+          ) ; end when
+        ) ; end let
+        ;; else
+        (format t "~&File ~A not found" fname)
+      ) ; end if
+    ) ; end let
+  ) ; end let
 )
 
 (defun all-tests ()
