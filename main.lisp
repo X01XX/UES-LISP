@@ -615,18 +615,17 @@
           (when sdx-in
             ;(pprint sdx-in)
             (setf sdx (eval sdx-in))
-            ;(format t "~&sdx ~A" sdx)
+            (format t "~&sdx ~A" sdx)
             (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))))
               (if (zerop cnt)
                 (do-interactive-session sdx)
                 ;; else
-                (let (sdy)
-                  (setf sdy (copy-sessiondata sdx))
-                  (loop for numx from 1 to cnt do
-                    (do-non-interactive-session sdy)
-                    (format t "~&Run: ~D" numx)
-                  )
-                ) ; end let
+                (loop for numx from 1 to cnt do
+                  (if (> numx  1)
+                    (setf sdx (eval sdx-in)))
+                  (do-non-interactive-session sdx)
+                  (format t "~&Run: ~D" numx)
+                )
               ) ; end if
             ) ; end let
           ) ; end when
