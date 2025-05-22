@@ -190,11 +190,11 @@
 
     (let ((can-do (sessiondata-can-do sessx)) (cant-do (sessiondata-cant-do sessx)))
       (format t "~& ~&Needs that cannot be done:")
-      (loop for needx in (needstore-need-list cant-do) do
+      (loop for needx in (needstore-needs cant-do) do
         (format t "~&   ~A" (need-str needx))
       )
       (format t "~& ~&Needs that can be done:")
-      (loop for needx in (needstore-need-list can-do)
+      (loop for needx in (needstore-needs can-do)
             for inx from 0 to (needstore-length can-do) do
         (format t "~&~2,' d ~A" inx (need-str needx))
       )

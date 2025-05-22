@@ -282,10 +282,16 @@
 
       ;; Get need plans while avoiding negative selectregions.
       (format t "~&Getting plans avoiding negative selectregions.")
-      (let ((dmxs (sessiondata-domains sessx)))
+      (let ((dmxs (sessiondata-domains sessx)) needs-sorted)
     
-        (loop for needx in (needstore-needs needs) do
-    
+        ;; Sort needs by ascending distance from the domain current state.
+        (setf needs-sorted (sort (needstore-needs needs)
+          #'(lambda (x y) (< (domainstore-domain-distance dmxs (need-dom-id x) (need-target x))
+                             (domainstore-domain-distance dmxs (need-dom-id y) (need-target y))))))
+
+        (loop for needx in needs-sorted
+              while (< (needstore-length can-do) 5) do
+
           (let (targetx new-target plans targets)
   
             (if (state-p (need-target needx))

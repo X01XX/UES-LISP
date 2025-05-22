@@ -770,9 +770,15 @@
     )
 
     ;; Look for non-adjacent pairs that affect the structure.
-    (loop for prx in (regionstore-regions non-adj-pairs) do
-      (if (regionstore-any-superset-of logical-structure prx)
-        (regionstore-push critical-non-adj-pairs prx))
+    (let (regs1 regs2)
+      (loop for prx in (regionstore-regions non-adj-pairs) do
+        (setf regs1 (regionstore-regions-state-in logical-structure (region-first-state prx)))
+        (setf regs2 (regionstore-regions-state-in logical-structure (region-second-state prx)))
+  
+        (if (and (= (regionstore-length regs1) 1) (= (regionstore-length regs2) 1))
+          (if (region-eq (regionstore-first-region regs1) (regionstore-first-region regs2))
+            (regionstore-push critical-non-adj-pairs prx)))
+      )
     )
     ;(format t "~&critical-non-adj-pairs: ~A" (regionstore-str critical-non-adj-pairs))
 
@@ -1659,14 +1665,9 @@
           (push sqrx del-sqrs)))
     )
     (when del-sqrs
-      ;(format t "~&Dom: ~D Act: ~D Cleanup" *dom-id* (action-id actx))
       ;; Remove squares that are not needed.
-      (if (= 1 (length del-sqrs))
-        (format t ", 1 square found.")
-        (format t ", ~D squares found." (length del-sqrs))
-      )
       (loop for sqrx in del-sqrs do
-        (format t "~&Dom: ~D Act: ~D Deleting square ~A" *dom-id* (action-id actx) (state-str (square-state sqrx)))
+        (format t "~&Dom: ~D Act: ~D Cleanup, deleting square ~A" *dom-id* (action-id actx) (state-str (square-state sqrx)))
         (setf (action-squares actx) (squarestore-remove (action-squares actx) sqrx))
       )
     )

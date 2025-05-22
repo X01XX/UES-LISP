@@ -337,3 +337,19 @@
   (< id (domainstore-length storex))
 )
 
+;;; Return the distance between a domain current-state and a target, state or region.
+(defun domainstore-domain-distance (storex id target) ; -> integer GE zero.
+  ;; Check arguments.
+  (assert (domainstore-p storex))
+  (assert (integerp id))
+  (assert (>= id 0))
+
+  ;; Calc result.
+  (cond ((state-p target)
+         (state-distance target (domain-current-state (nth id (domainstore-domains storex)))))
+        ((region-p target)
+         (region-distance-state target (domain-current-state (nth id (domainstore-domains storex)))))
+        (t (error "Target invalid type"))
+  )
+)
+
