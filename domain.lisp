@@ -310,31 +310,53 @@
   ;(format t "~&domain-get-needs: ~A" (type-of domx))
   (assert (domain-p domx))
 
-  (let (needs (*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)))
+  (let (needs (*dom-id* (domain-id domx)) (*max-region* (domain-max-region domx)) (needs2 (needstore-new nil)))
 
     (setf needs (actionstore-get-needs (domain-actions domx) (domain-current-state domx) (domain-reachable domx)))
 
     ;(needstore-set-dom-id needs (domain-id domx)) ; set needs domain-id
 
-    ;; Find plan for each need.
+    ;; Find needs satisfied by the current state.
+    ;; Its easier than making plans.
     (loop for needx in (needstore-needs needs) do
         (cond ((state-p (need-target needx))
-                (if (state-eq (need-target needx) (domain-current-state domx))
+                (when (state-eq (need-target needx) (domain-current-state domx))
                   (setf (need-plan needx) (plan-new nil))
-                  (setf (need-plan needx) (domain-get-plan domx
-                                                   (rule-region-to-region (region-new (domain-current-state domx)) (region-new (need-target needx)))
-                                                   (domain-max-region domx))))
+                  (needstore-push needs2 needx)
+                )
               )
               ((region-p (need-target needx))
-                (if (region-superset-of-state (need-target needx) (domain-current-state domx))
+                (when (region-superset-of-state (need-target needx) (domain-current-state domx))
                   (setf (need-plan needx) (plan-new nil))
-                  (setf (need-plan needx) (domain-get-plan domx
-                                                  (rule-region-to-region  (region-new (domain-current-state domx)) (need-target needx))
-                                                  (domain-max-region domx))))
+                  (needstore-push needs2 needx)
+                )
               )
               (t (error "Unrecognized target type"))
         )
     )
+
+    (if (needstore-is-not-empty needs2)
+      (return-from domain-get-needs needs2))
+;-------------------------------------------------------------------------------
+;    ;; Find plan for each need.
+;    (loop for needx in (needstore-needs needs) do
+;        (cond ((state-p (need-target needx))
+;                (if (state-eq (need-target needx) (domain-current-state domx))
+;                  (setf (need-plan needx) (plan-new nil))
+;                  (setf (need-plan needx) (domain-get-plan domx
+;                                                   (rule-region-to-region (region-new (domain-current-state domx)) (region-new (need-target needx)))
+;                                                   (domain-max-region domx))))
+;              )
+;              ((region-p (need-target needx))
+;                (if (region-superset-of-state (need-target needx) (domain-current-state domx))
+;                  (setf (need-plan needx) (plan-new nil))
+;                  (setf (need-plan needx) (domain-get-plan domx
+;                                                  (rule-region-to-region  (region-new (domain-current-state domx)) (need-target needx))
+;                                                  (domain-max-region domx))))
+;              )
+;              (t (error "Unrecognized target type"))
+;        )
+;    )
     needs
   )
 )

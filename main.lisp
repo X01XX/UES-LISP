@@ -616,15 +616,24 @@
             ;(pprint sdx-in)
             (setf sdx (eval sdx-in))
             (format t "~&sdx ~A" sdx)
-            (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))))
+            (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))) steps)
               (if (zerop cnt)
                 (do-interactive-session sdx)
                 ;; else
-                (loop for numx from 1 to cnt do
-                  (if (> numx  1)
-                    (setf sdx (eval sdx-in)))
-                  (do-non-interactive-session sdx)
-                  (format t "~&Run: ~D" numx)
+                (time (progn
+                        (loop for numx from 1 to cnt do
+                          (if (> numx  1)
+                            (setf sdx (eval sdx-in)))
+                            (time (do-non-interactive-session sdx))
+                            (format t "~&Run: ~D" numx)
+                            (push (sessiondata-cycle-num sdx) steps)
+                        )
+                        (format t "~&Time for all runs:")
+                        (format t "~&Min steps: ~D Max steps: ~D Avg: ~,2f"
+                              (eval (append (list 'min) steps))
+                              (eval (append (list 'max) steps))
+                              (float (/ (eval (append (list '+) steps)) (length steps))))
+                      )
                 )
               ) ; end if
             ) ; end let

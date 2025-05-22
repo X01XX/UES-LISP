@@ -259,38 +259,42 @@
 )
 
 ;;; Return current needs.
-(defun sessiondata-get-needs (sessx) ; -> (values can-do cant-do)
+(defun sessiondata-get-needs (sessx) ; -> sessiondata-can-do, sessiondata-cant-do are set to needstores.
   (assert (sessiondata-p sessx))
 
   ;(format t "~& ~&Getting needs.")
-  (multiple-value-bind (needs can-do cant-do)
-      (domainstore-get-needs (sessiondata-domains sessx))
-      (setf (sessiondata-needs sessx) needs)
-      (setf (sessiondata-can-do sessx) can-do)
-      (setf (sessiondata-cant-do sessx) cant-do)
-  )
-  ;; Can do list has needs that have a target satisfied by the domain current state,
-  ;; or a preliminary attemp to get a plan within the domain worked.
+  (let (needs (can-do (needstore-new nil)) (cant-do (needstore-new nil)))
 
-  ;; Get domain needs while avoiding negative selectregions.
-  ;; If a plan is found, replace the domain-centric plan.
-  (when (selectregionsstore-negative-selectregions-exist (sessiondata-selectregions-store sessx))
-    (format t "~&Getting plans avoiding negative selectregions.")
-    (let ((dmxs (sessiondata-domains sessx)))
-  
-      (loop for nedx in (needstore-need-list (sessiondata-can-do sessx)) do
-  
-        (when (plan-is-not-empty (need-plan nedx))
-  
+    (setf needs (domainstore-get-needs (sessiondata-domains sessx)))
+
+    ;; needs contains needs with an empty plan if the target satisfied by the domain current state,
+    ;; or otherwise, a null plan.
+    ;; It takes a lot of effort to make plans.
+
+    ;; Find needs easily satisfied.
+    (loop for needx in (needstore-needs needs) do
+      (if (plan-p (need-plan needx))
+        (needstore-push can-do needx))
+    )
+
+    ;; If no easy needs found:
+    (when (needstore-is-empty can-do)
+
+      ;; Get need plans while avoiding negative selectregions.
+      (format t "~&Getting plans avoiding negative selectregions.")
+      (let ((dmxs (sessiondata-domains sessx)))
+    
+        (loop for needx in (needstore-needs needs) do
+    
           (let (targetx new-target plans targets)
   
-            (if (state-p (need-target nedx))
-              (setf targetx (region-new (need-target nedx)))
-              (setf targetx (need-target nedx)))
+            (if (state-p (need-target needx))
+              (setf targetx (region-new (need-target needx)))
+              (setf targetx (need-target needx)))
   
             ;; Calc all-domains target.
             (loop for domx in (domainstore-domains dmxs) do
-              (if (= (domain-id domx) (need-dom-id nedx))
+              (if (= (domain-id domx) (need-dom-id needx))
                 (push targetx targets)
                 (push (domain-max-region domx) targets)
               )
@@ -300,56 +304,56 @@
             ;; Get plans
             (setf plans (sessiondata-get-plans sessx new-target))
   
-            (when (not (null plans))
-              ;(format t "~&planxx: ~A vs ~A" (plan-str (need-plan nedx)) (planscorrstore-str plans))
-              (setf (need-plan nedx) plans)
+            (if plans
+              (progn
+                (setf (need-plan needx) plans)
+                (needstore-push can-do needx)
+              )
+              (needstore-push cant-do needx)
             )
           ) ; end let
-        ) ; end when
-      ) ; next nedx
-    )
-  )
+        ) ; next needx
+      ) ; end let
 
-  ;; If no domain needs can be done, check status of current states.
-  (when (needstore-is-empty (sessiondata-can-do sessx))
-
-    (let (needs (neg-needs-can-do 0))
-
-      ;; Get needs for moving out of a negative selectregions, if any.
-      (setf needs (sessiondata-move-from-negative-selectregions sessx))
-
-      (when (needstore-is-not-empty needs)
-
-        (loop for nedx in (needstore-needs needs) do
-
-          (if (need-plan nedx)
-            (progn
-              (incf neg-needs-can-do)
-              (needstore-push (sessiondata-can-do sessx) nedx)
+      ;; If no domain needs can be done, check status of current states.
+      (let (needs)
+  
+        ;; Get needs for moving out of a negative selectregions, if any.
+        (setf needs (sessiondata-move-from-negative-selectregions sessx))
+  
+        (when (needstore-is-not-empty needs)
+  
+          ;; TODO? find plans in need priority order.
+          (loop for needx in (needstore-needs needs)
+                while (< (needstore-length can-do) 4) do 
+  
+            (if (need-plan needx)
+              (needstore-push can-do needx)
+              (needstore-push cant-do needx)
             )
-            (needstore-push (sessiondata-cant-do sessx) nedx)
-          )
-          (needstore-push (sessiondata-needs sessx) nedx)
-        ) ; next nedx
-        (if (> neg-needs-can-do 0)
-          (return-from sessiondata-get-needs)
+          ) ; next needx
+        ) ; end when
+  
+        ;; Get need for moving to a positive selectregions, if any.
+        (setf needs (sessiondata-move-to-positive-selectregions sessx))
+        (when (needstore-is-not-empty needs)
+          (loop for needx in (needstore-needs needs) do
+  
+            (if (need-plan needx)
+              (needstore-push can-do needx)
+              (needstore-push cant-do needx)
+            )
+            (needstore-push needs needx)
+          ) ; next needx
         )
-      ) ; end when
+      ) ; end let
+    ) ; end when
 
-      ;; Get need for moving to a positive selectregions, if any.
-      (setf needs (sessiondata-move-to-positive-selectregions sessx))
-      (when (needstore-is-not-empty needs)
-        (loop for nedx in (needstore-needs needs) do
-
-          (if (need-plan nedx)
-            (needstore-push (sessiondata-can-do sessx) nedx)
-            (needstore-push (sessiondata-cant-do sessx) nedx)
-          )
-          (needstore-push (sessiondata-needs sessx) nedx)
-        ) ; next nedx
-      )
-    ) ; end let
-  ) ; end when
+    ;; Set sessiondata fields.
+    (setf (sessiondata-can-do sessx) can-do)
+    (setf (sessiondata-cant-do sessx) cant-do)
+    (setf (sessiondata-needs sessx) needs)
+  ) ; end let
 
 ) ; end sessiondata-get-needs
 

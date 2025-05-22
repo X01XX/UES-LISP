@@ -7,8 +7,8 @@
   base-rules        ; A list of rulestores to use in generating samples.
   base-memory       ; A list of items corresponding to items in base-rules.
                     ; An item will be an association list for a rulestore with GT 1 rules, otherwise the item will be nil.
-  logical-structure ; A regionstore.
-  structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
+  logical-structure ; A regionstore of all possibl eregions based on close, dissimilar samples.
+;  structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
   vertices          ; A vertexstore, of zero, or more, vertices, using the minimum number of states to generate the defining regions.
 )
@@ -60,7 +60,7 @@
                             :base-rules rules
                             :base-memory memory
                             :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
-                            :structure-pairs (regionstore-new nil)
+;                           :structure-pairs (regionstore-new nil)
                             :cleanup-flag true
                             :vertices (vertexstore-new nil)))
     ;; Return result.
@@ -95,9 +95,9 @@
           (setf str (concatenate 'string str (format nil " calced structure: ~A"
              (regionstore-str (action-logical-structure actx))))))
 
-        (if (> (regionstore-length (action-structure-pairs actx)) 0)
-          (format t "~&     sturucture pairs: ~A" (regionstore-str (action-logical-structure actx)))
-        )
+;       (if (> (regionstore-length (action-structure-pairs actx)) 0)
+;         (format t "~&     sturucture pairs: ~A" (regionstore-str (action-logical-structure actx)))
+;       )
         str
     )
 )
@@ -783,7 +783,7 @@
     )
 
     ;; Store important pairs.
-    (setf (action-structure-pairs actx) (regionstore-append adj-pairs critical-non-adj-pairs))
+    ;(setf (action-structure-pairs actx) (regionstore-append adj-pairs critical-non-adj-pairs))
     ;(format t "~&action-structure-pairs ~A" (regionstore-str (action-structure-pairs actx)))
 
     ;; Store structure.
@@ -817,7 +817,7 @@
             reg-stas         ; States in a defining region.
             implied-regions  ; Regions implied by a given combination of vertices.
             region-vertices  ; A list of vertices for a defining region.
-            vertices         ; A list of region-vertces, one for each defining region.
+            vertices         ; A list of region-vertices, one for each defining region.
            )
 
         (when (vertexstore-is-not-empty (action-vertices actx))
