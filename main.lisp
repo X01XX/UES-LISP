@@ -620,20 +620,64 @@
               (if (zerop cnt)
                 (do-interactive-session sdx)
                 ;; else
-                (time (progn
-                        (loop for numx from 1 to cnt do
-                          (if (> numx  1)
-                            (setf sdx (eval sdx-in)))
-                            (time (do-non-interactive-session sdx))
-                            (format t "~&Run: ~D" numx)
-                            (push (sessiondata-cycle-num sdx) steps)
-                        )
-                        (format t "~&Time for all runs:")
-                        (format t "~&Min steps: ~D Max steps: ~D Avg: ~,2f"
-                              (eval (append (list 'min) steps))
-                              (eval (append (list 'max) steps))
-                              (float (/ (eval (append (list '+) steps)) (length steps))))
-                      )
+                (let (start-time end-time elapsed-time times minutes seconds emins esecs minmins minsecs maxmins maxsecs avgmins avgsecs)
+                  (loop for numx from 1 to cnt do
+                    (if (> numx  1)
+                      (setf sdx (eval sdx-in)))
+                      (setf start-time (get-universal-time)) ; Get starting time.
+                      (do-non-interactive-session sdx)
+                      (setf end-time (get-universal-time))   ; Get ending time.
+
+                      ;; Calc elapsed minutes, seconds.
+                      (setf elapsed-time (- end-time start-time))
+                      (setf minutes (floor (/ elapsed-time 60)))
+                      (setf seconds (- elapsed-time (* minutes 60)))
+
+                      ;; Save elapsed time for all-runs statistics.
+                      (push elapsed-time times)
+
+                      ;; Print run statistics.
+                      (format t "~&Run: ~D elapsed time: ~D:~2,'0d" numx minutes seconds)
+
+                      ;; Save steps for all-runs statistics.
+                      (push (sessiondata-cycle-num sdx) steps)
+                  )
+                  ;; Calc all-runs statistics.
+
+                  ;; Print all-runs step statistics.
+                  (format t "~&Min steps: ~D Max steps: ~D Avg steps: ~D"
+                        (eval (append (list 'min) steps))
+                        (eval (append (list 'max) steps))
+                        (floor (/ (eval (append (list '+) steps)) (length steps)))
+                  )
+
+                  ;; Calc average time.
+                  (setf elapsed-time (floor (/ (apply #'+ times) (length times))))
+                  (setf avgmins (floor (/ elapsed-time 60)))
+                  (setf avgsecs (- elapsed-time (* avgmins 60)))
+                  
+                  ;; Calc elapsed time.
+                  (setf elapsed-time (apply #'+ times))
+                  (setf emins (floor (/ elapsed-time 60)))
+                  (setf esecs (- elapsed-time (* emins 60)))
+
+                  ;; Calc min time.
+                  (setf elapsed-time (apply #'min times))
+                  (setf minmins (floor (/ elapsed-time 60)))
+                  (setf minsecs (- elapsed-time (* minmins 60)))
+
+                  ;; Calc max time.
+                  (setf elapsed-time (apply #'max times))
+                  (setf maxmins (floor (/ elapsed-time 60)))
+                  (setf maxsecs (- elapsed-time (* maxmins 60)))
+
+                  ;; Print all-runs time statistics.
+                  (format t "~&Elapsed time: ~D:~2,'0d Min time: ~D:~2,'0d Max time: ~D:~2,'0d Avg time: ~D:~2,'0d"
+                        emins esecs
+                        minmins minsecs
+                        maxmins maxsecs
+                        avgmins avgsecs
+                  )
                 )
               ) ; end if
             ) ; end let
