@@ -34,8 +34,8 @@
                       :needs (needstore-new nil)
                       :can-do (needstore-new nil)
                       :cant-do (needstore-new nil)
-                      :selectregions-store (selectregionstore-new nil)
-                      :selectregions-fragments (selectregionstore-new nil)
+                      :selectregions-store (selectregionsstore-new nil)
+                      :selectregions-fragments (selectregionsstore-new nil)
                       :le0-levels nil
                       :regionscorrstore-paths nil
                       :cycle-num 0

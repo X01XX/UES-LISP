@@ -215,29 +215,6 @@
   )
 )
 
-;;; Return two statestores combined, no dups.
-(defun statestore-append (storex storey) ; -> statestore
-  ;; Check arguments.
-  (assert (statestore-p storex))
-  (assert (statestore-p storey))
-  (assert (or (statestore-is-empty storex)
-              (statestore-is-empty storey)
-              (= (statestore-num-bits storex) (statestore-num-bits storey))))
-
-  (let ((ret (statestore-new nil)))
-
-    ;; Construct result.
-    (loop for stax in (statestore-states storex) do
-      (statestore-push ret stax)
-    )
-    (loop for stax in (statestore-states storey) do
-      (statestore-push ret stax)
-    )
-    ;; Return result.
-    ret
-  )
-)
-
 ;;; Return true if a statestore is congruent, by state number bits, with the domain list.
 (defun statestore-congruent (statestore1) ; -> bool
   ;; Check argument.

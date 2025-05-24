@@ -1523,9 +1523,11 @@
             ;(format t "~&checking reg ~A and ~A" (region-str regx) (region-str (nth iny (regionstore-regions cur-regs))))
             (setf regy (nth iny (regionstore-regions cur-regs)))
 
-            (when (and (not (region-eq regx regy)) (region-intersects regx regy))
+            (when (and (region-intersects regx regy)
+                       (not (region-superset-of :sub regx :sup regy))
+                       (not (region-superset-of :sub regy :sup regx)))
 
-              (setf regz (region-new (statestore-states (statestore-append
+              (setf regz (region-new (statestore-states (statestore-union
                            (region-states regx) (region-states regy)))))
 
               (if (squarestore-region-is-valid (action-squares actx) regz)

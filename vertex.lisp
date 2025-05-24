@@ -122,8 +122,6 @@
   (assert (vertex-p vx))
 
   ;; Construct result.
-  (let ((ret (statestore-new (list (vertex-pinnacle vx)))))
-    (statestore-append ret (vertex-edges vx))
-  )
+  (statestore-union (vertex-edges vx) (statestore-new (list (vertex-pinnacle vx))))
 )
 

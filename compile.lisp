@@ -86,3 +86,4 @@
 (progn (format t "~& ") (compile-file "regionpairstore_t.lisp"))
 (progn (format t "~& ") (compile-file "maskstore_t.lisp"))
 (progn (format t "~& ") (compile-file "any1ofeach_t.lisp"))
+(progn (format t "~& ") (compile-file "sessiondata_t.lisp"))
