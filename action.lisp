@@ -1499,13 +1499,13 @@
 
 ;;; Combine possible regions of similar squares, if possible.
 (defun action-combine-regions (actx regsx) ; -> RegionStore instance.
-  ;(format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
+  (format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
   (assert (action-p actx))
   (assert (and (regionstore-p regsx) (regionstore-num-bits regsx)))
 
   (let ((cur-regs (regionstore-new nil)) ; The current regionstore.
         (nxt-regs regsx)                 ; The next regionstore, with combined regions from the current regionstore.
-        regx regy                        ; Temp regions.
+        regx regy regz                   ; Temp regions.
        )
     ;; Test possible combinations
     (loop while (and (> (regionstore-length nxt-regs) 1) (/= (regionstore-length cur-regs) (regionstore-length nxt-regs))) do
@@ -1513,7 +1513,7 @@
       (setf cur-regs nxt-regs)
       (setf nxt-regs (regionstore-new nil))
 
-      ;; Tst all possible pairs of regions.
+      ;; Test all possible pairs of regions.
       (loop for inx from 0 below (1- (regionstore-length cur-regs)) do
 
         (setf regx (nth inx (regionstore-regions cur-regs)))
@@ -1521,12 +1521,16 @@
         (loop for iny from (1+ inx) below (regionstore-length cur-regs) do
 
             ;(format t "~&checking reg ~A and ~A" (region-str regx) (region-str (nth iny (regionstore-regions cur-regs))))
+            (setf regy (nth iny (regionstore-regions cur-regs)))
 
-            (setf regy (region-new (statestore-states (statestore-append
-                (region-states regx) (region-states (nth iny (regionstore-regions cur-regs)))))))
+            (when (and (not (region-eq regx regy)) (region-intersects regx regy))
 
-            (if (squarestore-region-is-valid (action-squares actx) regy)
-               (regionstore-push nxt-regs regy))
+              (setf regz (region-new (statestore-states (statestore-append
+                           (region-states regx) (region-states regy)))))
+
+              (if (squarestore-region-is-valid (action-squares actx) regz)
+                 (regionstore-push-nosubs nxt-regs regz))
+            )
         ) ; end loop 3, next iny.
 
       ) ; end loop 2, next inx.

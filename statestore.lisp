@@ -99,9 +99,6 @@
   ;; Check arguments.
   (assert (statestore-p storex))
   (assert (state-p stax))
-; (assert (statestore-same-num-bits storex))
-; (assert (or (statestore-is-empty storex)
-;             (= (state-num-bits (car (statestore-states storex))) (state-num-bits stax))))
 
   ;; Return result.
   (member stax (statestore-states storex) :test #'state-eq)
