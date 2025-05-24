@@ -1499,7 +1499,7 @@
 
 ;;; Combine possible regions of similar squares, if possible.
 (defun action-combine-regions (actx regsx) ; -> RegionStore instance.
-  (format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
+  ;(format t "~&action-combine-regions: Act ~D regions ~A" (action-id actx) (type-of regsx))
   (assert (action-p actx))
   (assert (and (regionstore-p regsx) (regionstore-num-bits regsx)))
 
