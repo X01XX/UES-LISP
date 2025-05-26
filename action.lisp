@@ -674,14 +674,114 @@
   )
 )
 
-;;; Calculate the logical structure, return needs to improve understanding of the structure.
-;;; Set logical-structure field in action instance.
-(defun action-structure-needs (actx reachable) ; -> needstore
+;;; Validate existing defining regions.
+;;; If valid, return any needs.
+;;; If invaild, delete them and return the result of action-check-for-defining-regions.
+(defun action-validate-defining-regions (actx reachable) ; -> needstore.
+  ;; Check arguments.
   (assert (action-p actx))
   (assert (regionstore-p reachable))
   (assert (or (regionstore-is-empty reachable)
               (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
+  (let (grpx (invalid false) sqr-p sqr-e)
+    ;; Check that each defining region is still represented by a group.
+    (loop for defvtx in (definingstore-defining (action-defining actx))
+          while (not invalid) do
+
+      (setf grpx (action-find-group actx (defining-region defvtx)))
+      (if (null grpx)
+        (setf invalid true))
+    )
+    (when invalid
+      (setf (action-defining actx) (definingstore-new nil))
+      (return-from action-validate-defining-regions (action-check-for-defining-regions actx reachable))
+    )
+
+    ;; Check that each vertex pinnacle is still in only one group.
+    (loop for defvtx in (definingstore-defining (action-defining actx))
+          while (not invalid) do
+       (if (/= 1 (groupstore-length (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle (defining-vertex defvtx)))))
+        (setf invalid true))
+    )
+    (when invalid
+      (setf (action-defining actx) (definingstore-new nil))
+      (return-from action-validate-defining-regions (action-check-for-defining-regions actx reachable))
+    )
+
+    ;; Check that vertices edge states are still incompatible with the pinnacle.
+    ;; Check that each vertex pinnacle is still in only one group.
+    (loop for defvtx in (definingstore-defining (action-defining actx))
+          while (not invalid) do
+
+      (setf sqr-p (action-find-square actx (vertex-pinnacle (defining-vertex defvtx))))
+
+      (when sqr-p
+        (loop for stax in (statestore-states (vertex-edges (defining-vertex defvtx))) do
+          (setf sqr-e (action-find-square actx stax))
+          (when sqr-e
+            (if (not (= (square-compatible sqr-p sqr-e)))
+              (setf invalid true))
+          )
+        )
+      )
+    )
+    (when invalid
+      (setf (action-defining actx) (definingstore-new nil))
+      (return-from action-validate-defining-regions (action-check-for-defining-regions actx reachable))
+    )
+
+    ;; Return result.
+    (action-defining-region-virtex-needs actx)
+  )
+)
+
+;;; Return needs for comfirmimg all states in defining region verticies.
+(defun action-defining-region-virtex-needs (actx) ; -> needstore.
+  ;; Check argument.
+  (assert (action-p actx))
+
+  ;; Check vertices for needs.
+  (let ((needs (needstore-new nil)) sqrx) 
+    (when (definingstore-is-not-empty (action-defining actx))
+      (loop for defvtx in (vertexstore-vertices (action-defining actx)) do
+        (loop for stax in (statestore-states (vertex-states (defining-vertex defvtx))) do
+          (setf sqrx (action-find-square actx stax))
+          (if sqrx
+            (if (not (square-pnc sqrx))
+              (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*
+                                      (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
+            )
+            ; else
+            (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*
+                                    (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
+          )
+        ) ; next stax
+      ) ; next defvtx
+    ) ; end when
+    ;; Return any needs.
+    needs
+  ) ; end let
+)
+
+;;; Calculate the logical structure, return needs to improve understanding of the structure.
+;;; Set logical-structure field in action instance.
+(defun action-structure-needs (actx reachable) ; -> needstore
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (regionstore-p reachable))
+  (assert (or (regionstore-is-empty reachable)
+              (= (action-num-bits actx) (regionstore-num-bits reachable))))
+
+  (if (definingstore-is-not-empty (action-defining actx))
+    (action-validate-defining-regions actx reachable)
+    (action-check-for-defining-regions actx reachable)
+  )
+)
+
+;;; Check dissimilar pairs of squares to develod defining regions and verticies.
+(defun action-check-for-defining-regions (actx reachable) ; -> needstore.
+ 
   (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
         (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
@@ -693,7 +793,7 @@
     (let (sqr-y)
 
       (when (< (length sqrs) 2)
-        (return-from action-structure-needs needs))
+        (return-from action-check-for-defining-regions needs))
 
       ;; Check each pair of squares.
       ;; Store incompatible pairs, with no incompatible pairs between them.
@@ -725,7 +825,7 @@
 
       ;; Check if no disimilar pair was found.
       (when (regionstore-is-empty pairs)
-         (return-from action-structure-needs needs)
+         (return-from action-check-for-defining-regions needs)
       )
     )
 
@@ -764,17 +864,13 @@
          (state-regions-implied-by-dissimilarity (region-first-state prx) (region-second-state prx))))
     )
 
-    ;; Store important pairs.
-    ;(setf (action-structure-pairs actx) (regionstore-append adj-pairs critical-non-adj-pairs))
-    ;(format t "~&action-structure-pairs ~A" (regionstore-str (action-structure-pairs actx)))
-
     ;; Store structure.
     (setf (action-logical-structure actx) logical-structure)
     ;(format t "~&action-logical-structure: ~A" (regionstore-str (action-logical-structure actx)))
 
     ;; If there are adjacent dissimilar pnc needs, return them.
     (if (needstore-is-not-empty needs)
-      (return-from action-structure-needs needs))
+      (return-from action-check-for-defining-regions needs))
 
     ;; Check possible critical non-adjacent pairs for needs.
     (loop for regx in (regionstore-regions critical-non-adj-pairs) do
@@ -790,7 +886,7 @@
 
     ;; If there are non-adjacent dissimilar pnc needs, return them.
     (if (needstore-is-not-empty needs)
-      (return-from action-structure-needs needs))
+      (return-from action-check-for-defining-regions needs))
 
     ;; Vertex optimization.
     (when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
@@ -801,17 +897,6 @@
             region-vertices  ; A list of vertices for a defining region.
             vertices         ; A list of region-vertices, one for each defining region.
            )
-
-        (when (definingstore-is-not-empty (action-defining actx))
-
-          ;; Check if the currently stored vertices are still accurate.
-          ;; If not, delete them.
-          (setf implied-regions (regionstore-intersection defining-regions reachable))
-
-          (if (not (regionstore-eq (definingstore-regions (action-defining actx)) defining-regions))
-            (setf (action-defining actx) (definingstore-new nil))
-          )
-        )
 
         ;; Look for a vertexstore that will produce the defining regions.
         (when (and (regionstore-is-not-empty defining-regions) (definingstore-is-empty (action-defining actx)))
@@ -890,32 +975,15 @@
             )
           )
         )
-
-        ;; Check vertices for needs.
-        (let (sqrx) 
-          (when (definingstore-is-not-empty (action-defining actx))
-            (loop for defvtx in (vertexstore-vertices (action-defining actx)) do
-              (loop for stax in (statestore-states (vertex-states (defining-vertex defvtx))) do
-                (setf sqrx (action-find-square actx stax))
-                (if sqrx
-                  (if (not (square-pnc sqrx))
-                    (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*
-                                            (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
-                  )
-                  ; else
-                  (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*
-                                          (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
-                )
-              ) ; next stax
-            ) ; next defvtx
-          ) ; end when
-        ) ; end let
+        (when (definingstore-is-not-empty (action-defining actx))
+          (setf needs (needstore-append needs (action-defining-region-virtex-needs actx)))
+        )
       ) ; end let
     ) ; end when
 
     ;; Return higher priority needs, if any.
     (if (needstore-is-not-empty needs)
-      (return-from action-structure-needs needs))
+      (return-from action-check-for-defining-regions needs))
   
     ;; Check for non-adjacent incompatible square between needs, which should culminate in a new adjacent dissimilar pair.
     (action-non-adjacent-incompatible-square-needs actx critical-non-adj-pairs)
