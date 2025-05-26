@@ -45,6 +45,8 @@
 (progn (format t "~& ") (compile-file "regionpairstore.lisp"))
 (progn (format t "~& ") (compile-file "maskstore.lisp"))
 (progn (format t "~& ") (compile-file "any1ofeach.lisp"))
+(progn (format t "~& ") (compile-file "defining.lisp"))
+(progn (format t "~& ") (compile-file "definingstore.lisp"))
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
 (progn (format t "~& ") (compile-file "mask_t.lisp"))
@@ -87,3 +89,5 @@
 (progn (format t "~& ") (compile-file "maskstore_t.lisp"))
 (progn (format t "~& ") (compile-file "any1ofeach_t.lisp"))
 (progn (format t "~& ") (compile-file "sessiondata_t.lisp"))
+(progn (format t "~& ") (compile-file "defining_t.lisp"))
+(progn (format t "~& ") (compile-file "definingstore_t.lisp"))

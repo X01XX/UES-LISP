@@ -31,6 +31,8 @@
            (setf states2 (statestore-new states)))
           ((state-p states)
            (setf states2 (statestore-new (list states))))
+          ((statestore-p states)
+           (setf states2 states))
           (t (error "region-new: invalid argumant passed")))
 
     (assert (statestore-same-num-bits states2))

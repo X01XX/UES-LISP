@@ -8,9 +8,8 @@
   base-memory       ; A list of items corresponding to items in base-rules.
                     ; An item will be an association list for a rulestore with GT 1 rules, otherwise the item will be nil.
   logical-structure ; A regionstore of all possibl eregions based on close, dissimilar samples.
-;  structure-pairs   ; A regionstore of adjacent, dissimilar square pairs, used to calculate the logical structure.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
-  vertices          ; A vertexstore, of zero, or more, vertices, using the minimum number of states to generate the defining regions.
+  defining          ; A defining store, defining regions and vertices.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -60,9 +59,9 @@
                             :base-rules rules
                             :base-memory memory
                             :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
-;                           :structure-pairs (regionstore-new nil)
                             :cleanup-flag true
-                            :vertices (vertexstore-new nil)))
+                            :defining (definingstore-new nil)
+                  ))
     ;; Return result.
     actx
   )
@@ -349,18 +348,18 @@
         (if (needstore-is-not-empty structure-needs)
           (setf needs (needstore-append needs structure-needs))
           ;; else
-          ;; Find defining regions in action-logical-structure, using action-vertices.
-          (when (vertexstore-is-not-empty (action-vertices actx))
-           ;(format t "~&action-get-needs: Dom: ~D Act: ~D action-vertices len ~A" *dom-id* *act-id* (vertexstore-length (action-vertices actx)))
+          ;; Find defining regions in action-logical-structure, using action-defining.
+          (when (definingstore-is-not-empty (action-defining actx))
+           ;(format t "~&action-get-needs: Dom: ~D Act: ~D action-defining len ~A" *dom-id* *act-id* (definingstore-length (action-defining actx)))
 
-           (loop for vtx in (vertexstore-vertices (action-vertices actx)) do
+           (loop for defx in (definingstore-defining (action-defining actx)) do
 
-              (setf groups-pinnacle-in (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle vtx)))
+              (setf groups-pinnacle-in (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle (defining-vertex defx))))
               (when (= (groupstore-length groups-pinnacle-in) 1) 
     
                 ;; Generate needs for each region.
                 (setf needs (needstore-append needs (action-structure-group-needs actx (groupstore-first groups-pinnacle-in) 
-                         (vertex-pinnacle vtx))))
+                         (vertex-pinnacle (defining-vertex defx)))))
               )
             )
   
@@ -675,29 +674,6 @@
   )
 )
 
-;;; Return a list of vertices, given a statestore from a vertexpath, and defining regions.
-(defun action-statestore-to-vertices (actx states defining-regions) ; -> vertexstore
-  ;(format t "~&action-statestore-to-vertices: ~A ~A ~A" (type-of actx) (type-of states) (type-of defining-regions))
-  ;; Check arguments.
-  (assert (action-p actx))
-  (assert (statestore-p states))
-  (assert (regionstore-p defining-regions))
-
-  (let ((ret (vertexstore-new nil)) regs adj-stas)
-    ;; Get vertex for each state.
-    (loop for stax in (statestore-states states) do
-      (setf regs (regionstore-regions-state-in defining-regions stax))
-      (assert (= (regionstore-length regs) 1))
-
-      (setf adj-stas (region-adjacent-external-states (regionstore-first-region regs) stax))
-
-      (vertexstore-push ret (vertex-new stax adj-stas))
-    )
-    ;; Return results.
-    ret
-  )
-)
-
 ;;; Calculate the logical structure, return needs to improve understanding of the structure.
 ;;; Set logical-structure field in action instance.
 (defun action-structure-needs (actx reachable) ; -> needstore
@@ -826,19 +802,19 @@
             vertices         ; A list of region-vertices, one for each defining region.
            )
 
-        (when (vertexstore-is-not-empty (action-vertices actx))
+        (when (definingstore-is-not-empty (action-defining actx))
 
           ;; Check if the currently stored vertices are still accurate.
           ;; If not, delete them.
-          (setf implied-regions (regionstore-intersection (vertexstore-structure-implied (action-vertices actx)) reachable))
+          (setf implied-regions (regionstore-intersection defining-regions reachable))
 
-          (if (not (regionstore-subset-of :sub defining-regions :sup implied-regions))
-            (setf (action-vertices actx) (vertexstore-new nil))
+          (if (not (regionstore-eq (definingstore-regions (action-defining actx)) defining-regions))
+            (setf (action-defining actx) (definingstore-new nil))
           )
         )
 
         ;; Look for a vertexstore that will produce the defining regions.
-        (when (and (regionstore-is-not-empty defining-regions) (vertexstore-is-empty (action-vertices actx)))
+        (when (and (regionstore-is-not-empty defining-regions) (definingstore-is-empty (action-defining actx)))
 
           ;; Gather vertices for each defining region.
           (loop for regx in (regionstore-regions defining-regions) do
@@ -866,7 +842,7 @@
                             ; A combination will be evaluated to see if it generates the expected defining regions.
                             ; Options that work, and use a minimum of states, that is, states are shared between vertices,
                             ; will be favored.
-                vtxstr      ; Vertexstore of ane option.
+                vtxstr      ; Vertexstore of one option.
                 states      ; The states that make up a vtxstr, no dups.
                 (min-states 10000)  ; in number of states for an option to generate the defining regions.
                 vertices-found      ; List of vertexstores that generate the defining regions and use the minimum states.
@@ -896,28 +872,42 @@
               )
             ) ; next optx
             ;(format t "~&number vertices-found: ~D number states: ~D" (length vertices-found) min-states)
-            (when (> (length vertices-found) 0)
-              (setf (action-vertices actx) (nth (random (length vertices-found)) vertices-found)))
+            (let (defvertx deflst tmp-vertices)
+              (when (> (length vertices-found) 0)
+                (setf tmp-vertices (nth (random (length vertices-found)) vertices-found))
+
+                ;; Form defining instances.
+                (loop for defx in (regionstore-regions defining-regions)
+                      for vertx in (reverse (vertexstore-vertices tmp-vertices)) do
+
+                  ;(format t "~&defx: ~A vertx: ~A" (region-str defx) (vertex-str vertx))
+                  (setf defvertx (defining-new defx vertx))
+                  ;(format t "~&defx: ~A" (defining-str defvertx))
+                  (push defvertx deflst)
+                )
+                (setf (action-defining actx) (definingstore-new deflst))
+              )
+            )
           )
         )
-               
+
         ;; Check vertices for needs.
         (let (sqrx) 
-          (when (vertexstore-is-not-empty (action-vertices actx))
-            (loop for vtx in (vertexstore-vertices (action-vertices actx)) do
-              (loop for stax in (statestore-states (vertex-states vtx)) do
+          (when (definingstore-is-not-empty (action-defining actx))
+            (loop for defvtx in (vertexstore-vertices (action-defining actx)) do
+              (loop for stax in (statestore-states (vertex-states (defining-vertex defvtx))) do
                 (setf sqrx (action-find-square actx stax))
                 (if sqrx
                   (if (not (square-pnc sqrx))
                     (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*
-                                            (format nil "for ~A" (vertex-str vtx))))
+                                            (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
                   )
                   ; else
                   (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*
-                                          (format nil "for ~A" (vertex-str vtx))))
+                                          (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
                 )
               ) ; next stax
-            ) ; next vtx
+            ) ; next defvtx
           ) ; end when
         ) ; end let
       ) ; end let
@@ -1527,8 +1517,7 @@
                        (not (region-superset-of :sub regx :sup regy))
                        (not (region-superset-of :sub regy :sup regx)))
 
-              (setf regz (region-new (statestore-states (statestore-union
-                           (region-states regx) (region-states regy)))))
+              (setf regz (region-new (statestore-union (region-states regx) (region-states regy))))
 
               (if (squarestore-region-is-valid (action-squares actx) regz)
                  (regionstore-push-nosubs nxt-regs regz))
@@ -1609,18 +1598,8 @@
   (when (not (null (action-logical-structure actx)))
     (format t "~&           calced structure: ~A" (regionstore-str (action-logical-structure actx)))
     (when (> (regionstore-length (action-logical-structure actx)) 2)
-      (let ((defining (regionstore-defining-regions (action-logical-structure actx))) verts grpx)
-        (when (/= (regionstore-length (action-logical-structure actx)) (regionstore-length defining))
-          (format t "~&           defining regions:")
-          (loop for regx in (regionstore-regions defining) do
-            (setf grpx (action-find-group actx regx))
-            (when grpx
-              (setf verts (vertexstore-vertices-in-region (action-vertices actx) regx))
-              (if (vertexstore-is-not-empty verts)
-                (format t " ~A: ~A" (region-str (group-region grpx)) (vertexstore-str verts)))
-            )
-          )
-        )
+      (when (definingstore-is-not-empty (action-defining actx))
+        (format t "~&           defining regions: ~A" (definingstore-str (action-defining actx)))
       )
     )
   )
@@ -1629,9 +1608,6 @@
 ;    (format t "~&           structure pairs: ~A" (regionstore-str (action-structure-pairs actx)))
 ;  )
 
-; (if (> (vertexstore-length (action-vertices actx)) 0)
-;   (format t "~&           structure vertices: ~A" (vertexstore-str (action-vertices actx)))
-; )
 ; (format t "~&   base rules: " (action-base-rules actx))
 ; (loop for rulsx in (action-base-rules actx) do
 ;   (format t " ~A" (rulestore-str rulsx))
@@ -1666,7 +1642,7 @@
   (let (del-sqrs)
     ;; Find squares that are not needed.
     (loop for sqrx in (squarestore-squares (action-squares actx)) do
-      (if (not (vertexstore-state-needed (action-vertices actx) (square-state sqrx)))
+      (if (not (defingstore-state-needed (action-defining actx) (square-state sqrx)))
         (if (not (groupstore-state-needed (action-groups actx) (square-state sqrx)))
           (push sqrx del-sqrs)))
     )

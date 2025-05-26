@@ -151,6 +151,12 @@
 (load #p "any1ofeach.lisp")
 (load #p "any1ofeach_t.lisp")
 
+(load #p "defining.lisp")
+(load #p "defining_t.lisp")
+
+(load #p "definingstore.lisp")
+(load #p "definingstore_t.lisp")
+
 (defun main (&rest args)
   (apply #'run args) ; run uses &rest also.
 )
@@ -756,6 +762,9 @@
   (any1ofeach-tests)
   (sessiondata-tests)
 
+  (defining-tests)
+  (definingstore-tests)
+
   (format t "~&All tests done")
   t
 )
@@ -763,7 +772,7 @@
 (defun main-tests ()
   (format t "~&main-tests beginning")
 
-  ; Test main sessian conversion for read/write session.
+  ; Test session serialization.
   (let (sess1 sess2 sess-str)
 
     ;; Create a session.
@@ -790,11 +799,12 @@
 
     ;; Read session from string.
     (setf sess2 (read-from-string sess-str))
+    (assert (sessiondata-p sess2))
 
     ;; Compare structures.
     (assert (equalp sess1 sess2))
    
-    (format t "~&  main write-read session OK")
+    (format t "~&  main session serialization OK")
   )
 
   (format t "~&main-tests done")
