@@ -7,7 +7,7 @@
   base-rules        ; A list of rulestores to use in generating samples.
   base-memory       ; A list of items corresponding to items in base-rules.
                     ; An item will be an association list for a rulestore with GT 1 rules, otherwise the item will be nil.
-  logical-structure ; A regionstore of all possibl eregions based on close, dissimilar samples.
+  logical-structure ; A regionstore of all possible regions based on close, dissimilar samples.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
   defining          ; A defining store, defining regions and vertices.
 )
@@ -657,23 +657,6 @@
     )
 )
 
-;;; Return a squarestore oy statest representing states in a statestore.
-(defun action-statestore-to-squarestore (actx states) ; -> squarestore.
-  ;; Check arguments.
-  (assert (action-p actx))
-  (assert (statestore-p states))
-
-  (let ((ret (squarestore-new nil)) sqrx)
-    (loop for stax in (statestore-states states) do
-      (setf sqrx (action-find-square actx stax))
-      (if sqrx
-        (squarestore-push ret sqrx))
-    )
-    ;; Return result.
-    ret
-  )
-)
-
 ;;; Validate existing defining regions.
 ;;; If valid, return any needs.
 ;;; If invaild, delete them and return the result of action-check-for-defining-regions.
@@ -745,6 +728,17 @@
   (let ((needs (needstore-new nil)) sqrx) 
     (when (definingstore-is-not-empty (action-defining actx))
       (loop for defvtx in (vertexstore-vertices (action-defining actx)) do
+
+        ;; Check pinnacle.
+        (setf sqrx (action-find-square actx (vertex-pinnacle (defining-vertex defvtx))))
+        (if sqrx
+          (if (not (square-pnc sqrx))
+            (needstore-push needs (action-get-need-resample-state actx (square-state sqrx) *confirm-vertices*
+                                    (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
+          )
+          (error "vertex pinnacle square not found ~A?" (defining-str (defining-vertex defvtx)))
+        )
+        ;; Check edges.
         (loop for stax in (statestore-states (vertex-states (defining-vertex defvtx))) do
           (setf sqrx (action-find-square actx stax))
           (if sqrx

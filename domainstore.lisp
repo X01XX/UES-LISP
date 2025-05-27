@@ -181,19 +181,11 @@
   ;(format t "~&domainstore-get-needs ~A" (type-of dmxs))
   (assert (domainstore-p dmxs))
 
-  (format t "~& ~&Getting needs and plans.")
+  (format t "~& ~&Getting needs.")
   (let ((needs (needstore-new nil)))
     (loop for domx in (domainstore-domains dmxs) do
       (setf needs (needstore-append needs (domain-get-needs domx)))
     )
-
-;   ; Process needs to get can-do, cant-do.
-;   (loop for nedx in (needstore-needs needs) do
-;     (if (need-plan nedx)
-;       (needstore-push can-do nedx)
-;       (needstore-push cant-do nedx)
-;     )
-;   ) ; next nedx
 
     needs
   )

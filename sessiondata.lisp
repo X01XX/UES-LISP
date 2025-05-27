@@ -281,7 +281,7 @@
     (when (needstore-is-empty can-do)
 
       ;; Get need plans while avoiding negative selectregions.
-      (format t "~&Getting plans avoiding negative selectregions.")
+      (format t "~&Getting plans.")
       (let ((dmxs (sessiondata-domains sessx)) needs-sorted)
     
         ;; Sort needs by ascending distance from the domain current state.
