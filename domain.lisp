@@ -438,7 +438,7 @@
                       (setf (domain-current-state domx) (sample-result smpl))
                     )
                     (progn
-                      (format t "~&Alt plan failed")
+                      (format t "~&Dom: ~D Step ~A result ~A unexpected, Alt plan failed, learned something."  (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
                       (return-from domain-run-plan false)
                     )
                   )
@@ -446,7 +446,7 @@
               )
 
               (when (not (region-superset-of-state (step-result-region stepx) (sample-result smpl)))
-                (format t "~&Dom: ~D Step ~A result ~A unexpected, plan failed." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
+                (format t "~&Dom: ~D Step ~A result ~A unexpected, plan failed, learned something." (domain-id domx) (step-str stepx) (state-str (sample-result smpl)))
                 (return-from domain-run-plan false)
               )
             )
