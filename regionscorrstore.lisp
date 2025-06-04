@@ -20,7 +20,7 @@
 ;;; Return a new regionscorrstore instance, from a list of regions.
 (defun regionscorrstore-new (regions) ; -> regionscorrstore.
   ;(format t "~&regions ~A" regions)
-  (assert (regionscorr-list-p regions))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (regionscorr-p x)) regions)))
 
   (make-regionscorrstore :regionscorrs regions)
 )

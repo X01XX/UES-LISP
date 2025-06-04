@@ -5,11 +5,6 @@
   (or (eq val true) (eq val false))
 )
 
-; The opposite of eq.
-(defun neq (arg1 arg2) ; -> bool
-  (not (eq arg1 arg2))
-)
-
 ;;; Remove comments from a string.
 ;;; semicolon to \n, delete a line that is all comment.
 (defun remove-comments (str) ; -> string

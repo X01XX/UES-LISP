@@ -59,18 +59,6 @@
   nil
 )
 
-;;; Return true if there is any square in a given region.
-(defun squarestore-any-in (storex regx) ; -> bool
-  (assert (squarestore-p storex))
-  (assert (region-p regx))
-
-  (loop for stax in (squarestore-squares storex) do
-    (if (region-superset-of-state regx stax)
-      (return-from squarestore-any-in true))
-  )
-  false
-)
-
 ;;; Return square states in a given region.
 (defun squarestore-states-in-region (storex regx) ; -> statestore instance.
   (assert (squarestore-p storex))
@@ -205,26 +193,6 @@
   )
 )
 
-;;; Return a string of square states contained in a squarestore.
-(defun squarestore-states-str (storex) ; -> string
-  ;; Check argument.
-  (assert (squarestore-p storex))
-
-  (let ((ret "(") (first true))
-    ;; Add string for each square.
-    (loop for sqrx in (squarestore-squares storex) do
-        (if first
-          (setf first false)
-          (setf ret (concatenate 'string ret  " ")))
-
-        (setf ret (concatenate 'string ret (format nil "~A" (state-str (square-state sqrx)))))
-    )
-    (setf ret (concatenate 'string ret  ")"))
-    ;; Return result.
-    ret
-  )
-)
-
 ;;; Return the number of squares in a squarestore.
 (defun squarestore-length (storex) ; -> number.
   ;(format t "~&squarestore-length: ~A" storex)
@@ -241,21 +209,6 @@
 
   ;; Return result.
   (squarestore-new (remove sqrx (squarestore-squares storex) :test #'square-eq))
-)
-
-;;; Return states of squares that are not pnc.
-(defun squarestore-not-pnc (storex) ; -> squarestore.
-  ;; Check argument.
-  (assert (squarestore-p storex))
-
-  (let ((ret (squarestore-new nil)))
-    (loop for sqrx in (squarestore-squares storex) do
-      (if (not (square-pnc sqrx))
-        (squarestore-push ret sqrx))
-    )
-    ;; Return result.
-    ret
-  )
 )
 
 ;;; Return true if a squarestore is empty.

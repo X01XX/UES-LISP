@@ -17,10 +17,11 @@
 ;   (copy-actionstore <instance>) copies a actionstore instance.
 (defun actionstore-new (actions) ; -> actionstore.
   ;(format t "~&actions ~A" actions)
-  (assert (action-list-p actions))
+  (assert (listp actions))
 
   (let ((ret (make-actionstore :actions nil)))
     (loop for actx in actions do
+        (assert (action-p actx))
         (actionstore-push ret actx)
     )
     ret

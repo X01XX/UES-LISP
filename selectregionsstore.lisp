@@ -19,12 +19,13 @@
 ;   (copy-selectregionsstore <instance>) copies a selectregionsstore instance.
 
 ;;; Return a new selectregionsstore instance.
-(defun selectregionsstore-new (selectregionss) ; -> selectregionsstore.
+(defun selectregionsstore-new (selectregions) ; -> selectregionsstore.
   ;; Check argument.
-  (assert (selectregions-list-p selectregionss))
+  (assert (listp selectregions))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (selectregions-p x)) selectregions)))
 
   ;; Return result.
-  (make-selectregionsstore :selectregions selectregionss)
+  (make-selectregionsstore :selectregions selectregions)
 )
 
 ; Push a new selectregions into a selectregionsstore.

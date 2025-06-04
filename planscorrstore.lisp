@@ -24,15 +24,16 @@
 
 ;;; Return a new planscorrstore instance, from a list of planscorr.
 ;;; Default value to 0.
-(defun planscorrstore-new (planscorr-list) ; -> planscorrstore.
+(defun planscorrstore-new (planscorrs) ; -> planscorrstore.
   ;(format t "~&planscorrstore ~A" planscorr-list)
-  (assert (planscorr-list-p planscorr-list))
+  (assert (listp planscorrs))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (planscorr-p x)) planscorrs)))
 
   (let (ret)
-    (setf ret (make-planscorrstore :planscorrs planscorr-list :value 0))
+    (setf ret (make-planscorrstore :planscorrs planscorrs :value 0))
     (assert (planscorrstore-is-valid ret))
     ret
-  )	
+  )
 )
 
 ;;; Seh the value of a planscorrstore.

@@ -187,19 +187,6 @@
   )
 )
 
-;;; Return the number of samples needed to reach pnc
-(defun square-number-samples-needed (sqrx)  ; -> integer, 0 - 2
-  ;; Check argument.
-  (assert (square-p sqrx))
-
-  (cond   ((pn-eq (square-pn sqrx) *pn-none*) 0)
-          ((pn-eq (square-pn sqrx) *pn-one*)
-              (if (eq 1 (square-count sqrx)) 1 0))
-          ((pn-eq (square-pn sqrx) *pn-two*)
-              (if (eq 2 (square-count sqrx)) 2
-                  (if (eq 3 (square-count sqrx)) 1 0))))
-)
-
 ;;; Return true if two squares are equal.
 (defun square-eq (sqr1 sqr2)  ; -> bool
   ;; Check arguments.
@@ -274,30 +261,16 @@
   (state-is-adjacent (square-state sqr1) (square-state sqr2))
 )
 
-;;; Return true if the argument is a list of squares.
-(defun square-list-p (squares) ; -> bool
-  ;; Check argument.
-  ;(format t "~&square-list-p: ~A ~A" (type-of squares) squares)
-  (if (not (listp squares))
-    (return-from square-list-p false))
-
-  ;; Check for a non-square.
-  (loop for stpx in squares do
-    (if (not (square-p stpx))
-      (return-from square-list-p false))
-  )
-  true
-)
-
 ;;; Return a list of squares with the highest number of results.
 (defun square-list-sample-next (sqrs) ; -> list of squares.
   ;; Check argument.
-  (assert (square-list-p sqrs))
+  (assert (listp sqrs))
 
   (let ((ret nil) (max-results 1))
 
     ;; Generate list of squares with the highest number of previous samples.
     (loop for sqrx in sqrs do
+      (assert (square-p sqrx))
       (when (> (square-results-length sqrx) max-results)
         (setf ret nil)
         (setf max-results (square-results-length sqrx))
@@ -315,16 +288,5 @@
   (assert (square-p sqrx))
 
   (state-num-bits (square-state sqrx))
-)
-
-;;; Return the rough number of samples taken for a square, for
-;;; comparisons.  Its rough in that there is a maximun number based on the pn value.
-(defun square-rate (sqrx) ; -> integer.
-  ;; Check argument.
-  (assert (square-p sqrx))
-
-  (if (square-pnc sqrx)
-    (if (pn-eq (square-pn sqrx) *pn-two*) 4 3)
-    (square-count sqrx))
 )
 

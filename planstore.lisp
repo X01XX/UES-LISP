@@ -20,7 +20,8 @@
 ;;; Return a new planstore instance, from a list of plans.
 (defun planstore-new (plans) ; -> planstore.
   ;; Check argument.
-  (assert (plan-list-p plans))
+  (assert (listp plans))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (plan-p x)) plans)))
 
   ;; Construct result.
   (make-planstore :plans plans)

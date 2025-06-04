@@ -16,10 +16,11 @@
 ;   (make-needstore [:<field-name> <field-needstore>]*), use needstore-new instead.
 ;   (copy-needstore <instance>) copies a needstore instance.
 
-;;; Return a new needstore instance.
+;;; Return a new needstore instance, given a list of needs.
 (defun needstore-new (needs) ; -> needstore.
   ;(format t "~&needstore-new ~A" needs)
-  (assert (need-list-p needs))
+  (assert (listp needs))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (need-p x)) needs)))
 
   (make-needstore :needs needs)
 )

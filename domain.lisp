@@ -150,6 +150,9 @@
 ;;; Choose one step randomly, then recurse.
 ;;; So random forward-chaining, backward-chaining, with each step.
 (defun domain-get-plan2 (domx rule-from-to with-reg depth &optional no-alt) ; -> plan, or nil.
+  (assert (domain-p domx))
+  (assert (rule-p rule-from-to))
+  (assert (region-p with-reg))
  ; (format t "~&domain-get-plan2: domx ~D rule ~A within ~A depth ~D no-alt ~A" (domain-id domx) (rule-str rule-from-to)
  ;    (region-str with-reg) depth no-alt)
 
@@ -211,7 +214,7 @@
     (setf steps-from (stepstore-initial-region-intersects steps from-reg))
 
     ;; Get steps that intersect the to-region.
-    (setf steps-to   (stepstore-initial-region-intersects steps to-reg))
+    (setf steps-to   (stepstore-result-region-intersects steps to-reg))
 
     ;; Get steps that intersect the from-region and the to-region.
     (setf steps-both (stepstore-intersection steps-from steps-to))
@@ -266,10 +269,13 @@
 
             (setf plan1 (domain-get-plan2 domx (rule-region-to-region from-reg (step-initial-region stepy)) with-reg (1- depth) no-alt))
             (if (null plan1) (return-from domain-get-plan2 nil))
+
             (setf plan2 (plan-link plan1 (plan-new (list stepy))))
             (if (null plan2) (return-from domain-get-plan2 nil))
+
             (setf plan3 (domain-get-plan2 domx (rule-region-to-region (plan-result-region plan2) to-reg) with-reg (1- depth) no-alt))
             (if (null plan3) (return-from domain-get-plan2 nil))
+
             (setf plan4 (plan-link plan2 plan3))
             ;(format t "~&domain-get-pl: intermediate step found: plan1 ~A step ~A plan3 ~A~&plan4 ~A"
             ;       (plan-str plan1) (step-str stepy) (plan-str plan3) (plan-str plan4))
@@ -295,7 +301,7 @@
           )
           (progn
             (setf stepy (step-restrict-result-region stepy to-reg))
-            (setf planx (domain-get-plan2 domx from-reg (rule-region-to-regiot (step-initial-region stepy) with-reg) (1- depth) no-alt))
+            (setf planx (domain-get-plan2 domx (rule-region-to-region from-reg (step-initial-region stepy)) with-reg (1- depth) no-alt))
             (if planx
               (return-from domain-get-plan2 (plan-link planx (plan-new (list stepy))))
               (return-from domain-get-plan2 nil))

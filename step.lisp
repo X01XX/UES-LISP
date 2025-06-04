@@ -51,33 +51,6 @@
     )
 )
 
-;;; Return true if the argument is a list of steps, or nil.
-(defun step-list-p (steps) ; -> bool
-  ;(format t "~&step-list-p: ~A ~A" (type-of steps) steps)
-  (if (not (listp steps))
-    (return-from step-list-p false))
-
-  (if (null steps)
-    (return-from step-list-p true))
-
-  ;; Check items in the list.
-  (if (not (step-p (car steps)))
-    (return-from step-list-p false))
-
-  (let ((num-bits (step-num-bits (car steps))))
-
-    (loop for stpx in (cdr steps) do
-      ;; Check item type.
-      (if (not (step-p stpx))
-        (return-from step-list-p false))
-      ;; Check item number bits.
-      (if (/= (step-num-bits stpx) num-bits)
-        (return-from step-list-p false))
-    )
-  )
-  true
-)
-
 ;;; Return true if two steps ar equal.
 (defun step-eq (stp1 stp2) ; -> bool
   (assert (step-p stp1))

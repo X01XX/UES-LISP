@@ -23,21 +23,28 @@
 ;   (copy-region <instance>) copies a region instance.
 
 ;;; Return a new region, made up of one, or more, states.
-(defun region-new (states) ; -> region.
+(defun region-new (&rest states) ; -> region.
+  ;; Check args.
+  (assert (not (null states))) ; There is no null region.
+
+  ;; Convert to statestore if needed.
   (let (states2)
-    ;; Allow a single state or a state list as argument.
-    (cond ((listp states)
-           (assert (not (null states)))
+    (cond ((listp (car states)) ; A list of states.
+           (eval (append (list 'and) (mapcar #'(lambda (x) (state-p x)) (car states))))
+           (setf states2 (statestore-new (car states))))
+
+          ((state-p (car states)) ; Enumerated states.
+           (eval (append (list 'and) (mapcar #'(lambda (x) (state-p x)) states)))
            (setf states2 (statestore-new states)))
-          ((state-p states)
-           (setf states2 (statestore-new (list states))))
-          ((statestore-p states)
-           (setf states2 states))
+
+          ((statestore-p (car states)) ; A statestore.
+           (setf states2 (car states)))
+
           (t (error "region-new: invalid argumant passed")))
 
     (assert (statestore-same-num-bits states2))
 
-    ;; Construct result.
+    ;; Construct result, no states between another two states.
     (make-region :states (statestore-remove-unneeded states2))
   )
 )
@@ -299,21 +306,6 @@
 
   ;; Return result.
   (not (region-eq reg1 reg2))
-)
-
-;;; Return true if a list is a list of regions.
-;;; An empty list will return true.
-(defun region-list-p (reglst) ; -> bool
-  ;; Check argument.
-  (if (not (listp reglst))
-    (return-from region-list-p false))
-
-  (loop for regx in reglst do
-    (if (not (region-p regx))
-      (return-from region-list-p false))
-  )
-  ;; Return a positive result.
-  true
 )
 
 ;;; Return the intersection of two regions.

@@ -179,17 +179,6 @@
     (format t "~&  regionstore-split-by-intersections OK")
   )
 
-  ;; Test regionstore-unique-subregions.
-  (let ((regstr (regionstore-from (read-from-string "(rX10X  rX1X1  r1X01 r0X11)"))) rslt (ureg (region-from 'rX10x)))
-
-    (setf rslt (regionstore-unique-subregions regstr ureg))
-    ;(format t "~&rslt: ~A" (regionstore-str rslt))
-    (assert (= (regionstore-length rslt) 1))
-    (assert (regionstore-member rslt (region-from 'rX100)))
-
-    (format t "~&  regionstore-unique-subregions OK")
-  )
-
   (format t "~&regionstore-tests done")
   t
 )

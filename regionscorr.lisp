@@ -212,23 +212,6 @@
   )
 )
 
-;;; Return true if a list is a list of regionscorr.
-;;; An empty list will return true.
-(defun regionscorr-list-p (region-list) ; -> bool
-  ;; Check argument.
-  (if (not (listp region-list))
-    (return-from regionscorr-list-p false))
-
-  (loop for regx in region-list do
-
-    ;; Check item type.
-    (if (not (regionscorr-p regx))
-      (return-from regionscorr-list-p false)) ; Return negative result.
-  )
-  ;; Return positive result.
-  true
-)
-
 ;;; Return a regionscorr instance, given a list of symbols.
 ;;; Like (RC (()), (RC (1010)), or (RC (101, 1000)).
 (defun regionscorr-from (symbols) ; -> regionscorr instance.

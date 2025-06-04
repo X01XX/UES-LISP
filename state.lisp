@@ -223,22 +223,6 @@
   (value-not (state-value stax))
 )
 
-;;; Return true if a list is a list of states.
-;;; An empty list will return true.
-(defun state-list-p (stelst) ; -> bool
-  ;; Check argument.
-  (if (not (listp stelst))
-    (return-from state-list-p false))
-
-  (loop for stax in stelst do
-    ;; Check argument item.
-    (if (not (state-p stax))
-      (return-from state-list-p false)) ; Return negative result.
-  )
-  ;; Return positive result.
-  true
-)
-
 ;;; Return a random state of a given number of bits.
 (defun state-random (num-bits) ; -> state
   ;; Check argument.
@@ -297,15 +281,6 @@
     ;; Calc result.
     (regionstore-subtract-state max-regionstore stax)
   )
-)
-
-;; Return the bits value of a state.
-(defun state-bits (stax) ; -> integer.
-  ;; Check argument.
-  (assert (state-p stax))
-
-  ;; Return bits.
-  (value-bits (state-value stax))
 )
 
 ;;; Return a state from a state-or operation.

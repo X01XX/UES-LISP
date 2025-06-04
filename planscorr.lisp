@@ -26,9 +26,12 @@
 ;;; Return a new planscorr instance, from a list of plans.
 (defun planscorr-new (plans) ; -> planscorr, or nil.
   ;(format t "~&planscorr-new: plans ~A" (type-of plans))
+
   (let (storex)
 
-    (cond ((listp plans) (setf storex (planstore-new plans)))
+    (cond ((listp plans)
+           (eval (append (list 'and) (mapcar #'(lambda (x) (plan-p x)) plans)))
+           (setf storex (planstore-new plans)))
           ((planstore-p plans) (setf storex plans))
           (t (error "unexpected argument")))
     
@@ -74,20 +77,6 @@
         for plnx2 in (planscorr-plan-list plnsc2) do
 	(if (region-ne (plan-result-region plnx1) (plan-initial-region plnx2))
 	  (return-from planscorr-are-sequence false))
-  )
-  true
-)
-
-;;; Return true if two planscorrs can be linked into a sequence, that is
-;;; The results of the first planscorr intersect the initial regions of the second.
-(defun planscorr-can-be-linked (plnsc1 plnsc2) ; -> bool
-  (assert (planscorr-p plnsc1))
-  (assert (planscorr-p plnsc2))
-
-  (loop for plnx1 in (planscorr-plan-list plnsc1)
-        for plnx2 in (planscorr-plan-list plnsc2) do
-	(if (not (region-intersects (plan-result-region plnx1) (plan-initial-region plnx2)))
-	  (return-from planscorr-can-be-linked false))
   )
   true
 )
@@ -141,20 +130,6 @@
     )
     (regionscorr-new (regionstore-new (reverse regs)))
   )
-)
-
-;;; Return true if a list is a list of planscorr.
-;;; An empty list will return true.
-(defun planscorr-list-p (plnlst) ; -> bool
-  ;(format t "~&planscorr-list-p: ~A" plnlst)
-  (if (not (listp plnlst))
-    (return-from planscorr-list-p false))
-
-  (loop for plnx in plnlst do
-    (if (not (planscorr-p plnx))
-      (return-from planscorr-list-p false))
-  )
-  true
 )
 
 ;;; Return true if the result regions of a planscorr instance matches the initial regions of another.

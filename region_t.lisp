@@ -328,33 +328,6 @@
     (format t "~&  region-subtract OK")
   )
 
-  ; Test region-list-p.
-  (let (lst1)
-    ;; Test null list.
-    (assert (region-list-p lst1))
-
-    ;; Test not a list.
-    (assert (not (region-list-p 1)))
-
-    ;; Test a list with one region.
-    (setf lst1 (list (region-from 'rXXXX)))
-    (assert (region-list-p lst1))
-
-    ;; Test a list with one region and one not-a-region.
-    (setf lst1 (list (region-from 'rXXXX) 1))
-    (assert (not (region-list-p lst1)))
-
-    ;; Test a list with two regions.
-    (setf lst1 (list (region-from 'r01XX) (region-from 'r10XX)))
-    (assert (region-list-p lst1))
-
-    ;; Test a list with two regions of differing number bits.
-    (setf lst1 (list (region-from 'r01XX) (region-from 'r10X)))
-    (assert (region-list-p lst1))
-
-    (format t "~&  region-list-p OK")
-  )
-
   ;; Test region-edge-dif-mask.
   (let (reg1 reg2 msk1)
     (setf reg1 (region-from 'rX01X))

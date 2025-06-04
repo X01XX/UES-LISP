@@ -53,26 +53,6 @@
     (format t "~&  planscorr-are-sequence OK")
   )
 
-  ;; Test planscorr-can-be-linked.
-  (let (plnsc1 plnsc2 step1 plan1 (*domain-num-bits-list* (list 4)))
-    (setf step1 (step-new 0 (rule-from-str "[00/00/01/XX]")))
-    (setf plan1 (plan-new (list step1)))
-
-    (setf plnsc1 (planscorr-new (list plan1)))
-    ;(format t "~&plnsc1 ~A" plnsc1)
-
-    (setf step1 (step-new 0 (rule-from-str "[01/XX/11/00]")))
-    (setf plan1 (plan-new (list step1)))
-
-    (setf plnsc2 (planscorr-new (list plan1)))
-    ;(format t "~&plnsc2 ~A" plnsc2)
-
-    (assert (planscorr-can-be-linked plnsc1 plnsc2))
-    (assert (not (planscorr-can-be-linked plnsc2 plnsc1)))
-
-    (format t "~&  planscorr-can-be-linked OK")
-  )
-
   ;; Test planscorr-link.
   (let (plnsc1 plnsc2 step1 plan1 lnk plnsc1a plnsc2a (*domain-num-bits-list* (list 4)))
 

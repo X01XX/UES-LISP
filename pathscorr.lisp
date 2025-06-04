@@ -45,13 +45,14 @@
 ;   (make-pathscorr [:<field-name> <field-pathscorr>]*), use pathscorr-new instead.
 ;   (copy-pathscorr <instance>) copies a pathscorr instance.
 
-;;; Return a new pathscorr instance, from a regionscorr.
-(defun pathscorr-new (regions) ; -> pathscorr, or nil.
+;;; Return a new pathscorr instance, from a list of regionscorr.
+(defun pathscorr-new (regioncorrs) ; -> pathscorr, or nil.
   ;(format t "~&pathscorr-new: regions ~A" (type-of regions))
-  (assert (regionscorr-list-p regions))
+  (assert (listp regioncorrs))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (regionscorr-p x)) regioncorrs)))
 
   (let (ret)
-    (setf ret (make-pathscorr :regionscorrstore (regionscorrstore-new regions)))
+    (setf ret (make-pathscorr :regionscorrstore (regionscorrstore-new regioncorrs)))
     (assert (pathscorr-is-valid ret))
     ret
   )

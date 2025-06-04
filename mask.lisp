@@ -362,22 +362,6 @@
   )
 )
 
-;;; Return true if a list is a list of masks.
-;;; An empty list will return true.
-(defun mask-list-p (msklst) ; -> bool
-  ;; Check argument.
-  (if (not (listp msklst))
-    (return-from mask-list-p false))
-
-  ;; Check each item.
-  (loop for mskx in msklst do
-    (if (not (mask-p mskx))
-      (return-from mask-list-p false)) ; Return negative result.
-  )
-  ;; Return positive result.
-  true
-)
-
 ;; Return the bits value of a mask.
 (defun mask-bits (mskx) ; -> integer.
   ;; Check argument.

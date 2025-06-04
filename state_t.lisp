@@ -5,8 +5,7 @@
   ;; Test state-new.
   (let (stax)
     (setf stax (state-new (value-from 'v0000_0011)))
-    (assert (state-p stax))
-    (assert (and (state-p stax) (= (state-bits stax) 3)))
+    (assert (and (state-p stax) (state-eq stax (state-from 's0000_0011))))
 
     (format t "~&  state-new OK")
   )
@@ -15,8 +14,8 @@
   (let (stax)
      (setf stax (state-from 's0010_0011))
      (assert (state-p stax))
-     (assert (= (value-num-bits (state-value stax)) 8))
-     (assert (= (state-bits stax) #x23))
+     (assert (= (state-num-bits stax) 8))
+     (assert (value-eq (state-value stax) (value-from 'v0010_0011)))
 
      (format t "~&  state-from OK")
   )

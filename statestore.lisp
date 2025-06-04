@@ -22,15 +22,18 @@
 (defun statestore-new (&rest states) ; -> statestore.
   (let (listx)
 
-    ;; Check argument, convert list of list to list.
-    (if (listp (car states))
-      (setf listx (car states))
-      (setf listx states))
+    (cond ((null states) nil)
+
+          ((listp (car states)) ; A list of states.
+           (setf listx (car states)))
+
+          ((state-p (car states)) ; Enumerated states.
+           (setf listx states))
+
+          (t (error "statestore-new: invalid argumant passed")))
 
     ;; Check each item type.
-    (loop for sqrx in listx do
-      (assert (state-p sqrx))
-    )
+    (eval (append (list 'and) (mapcar #'(lambda (x) (state-p x)) listx)))
 
     ;; Construct results.
     (make-statestore :states listx)
@@ -183,7 +186,7 @@
       ;; Check each option list.
       (loop for optx in options do
 
-        ;; Make statestore fron state list.
+        ;; Make statestore from state list.
         (setf storey (statestore-new optx))
 
         ;; Get statestore x-mask.
@@ -247,16 +250,6 @@
   (state-num-bits (statestore-first-state storex))
 )
 
-;;; Add a state to the end of a statestore.
-(defun statestore-add-end (storex stax) ; -> nothing, side-effect statestore changed.
-  ;; Check arguments.
-  (assert (statestore-p storex))
-  (assert (state-p stax))
-
-  ;; Chonge passed statestore.
-  (setf (statestore-states storex) (append (statestore-states storex) (list stax)))
-)
-
 ;;; Return true if two statestores have the same length and states, in any order.
 (defun statestore-eq (storex storey) ; -> bool
   (assert (statestore-p storex))
@@ -270,40 +263,6 @@
       (return-from statestore-eq false))
   )
   true
-)
-
-;;; Return true if a statestore is a superset of anather.
-(defun statestore-superset-of (&key sup sub) ; -> bool
-  ;; Check arguments.
-  (assert (statestore-p sup))
-  (assert (statestore-p sub))
-
-  ;; Check all states in sub are in sup.
-  (loop for stax in (statestore-states sub) do
-    (if (not (statestore-member sup stax))
-      (return-from statestore-superset-of false)) ; Return negative result.
-  )
-  ;; Return positive result.
-  true
-)
-
-;;; Return states not equal states in a second store.
-(defun statestore-difference (storex storey) ; -> statestore.
-  ;; Check arguments.
-  (assert (statestore-p storex))
-  (assert (statestore-p storey))
-  (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
-              (= (statestore-num-bits storex) (statestore-num-bits storey))))
-
-  (let ((ret (statestore-new nil)))
-    ;; Construct result.
-    (loop for stax in (statestore-states storex) do
-      (if (not (statestore-member storey stax))
-        (statestore-push ret stax))
-    )
-    ;; Return result.
-    ret
-  )
 )
 
 ;;; Return the union of two statestores.
@@ -323,62 +282,6 @@
     (loop for stax in (statestore-states storey) do
       (if (not (statestore-member ret stax))
         (statestore-push ret stax))
-    )
-    ;; Return result.
-    ret
-  )
-)
-
-;;; Return states in both statestores.
-(defun statestore-intersection (storex storey) ; -> statestore.
-  ;; Check arguments.
-  (assert (statestore-p storex))
-  (assert (statestore-p storey))
-  (assert (or (statestore-is-empty storex) (statestore-is-empty storey)
-              (= (statestore-num-bits storex) (statestore-num-bits storey))))
-
-  (let ((ret (statestore-new nil)))
-    ;; Construct result.
-    (loop for stax in (statestore-states storex) do
-      (if (statestore-member storey stax)
-        (statestore-push ret stax))
-    )
-    ;; Return result.
-    ret
-  )
-)
-
-;;; Pop a state from a statestore.
-(defun statestore-pop (store) ; -> State, side-effect statestore is changed.
-  ;; Check argument.
-  (assert (statestore-p store))
-  (assert (statestore-is-not-empty store))
-
-  ;; Remove state, return it.
-  (pop (statestore-states store))
-)
-
-;;; Return a statestore with state list reversed.
-(defun statestore-reverse (storex) ; -> statestore
-  ;; Check argument.
-  (assert (statestore-p storex))
-
-  ;; Return result.
-  (statestore-new (reverse (statestore-states storex)))
-)
-
-;;; Return a count of states in a statestore that match states in a regionstore.
-(defun statestore-num-match-regions (storex regions) ; -> integer, GE 0.
-  ;; Check arguments.
-  (assert (statestore-p storex))
-  (assert (regionstore-p regions))
-
-  (let ((ret 0))
-    (loop for regx in (regionstore-regions regions) do
-      (loop for stax in (statestore-states (region-states regx)) do
-        (if (statestore-member storex stax)
-          (incf ret))
-      )
     )
     ;; Return result.
     ret

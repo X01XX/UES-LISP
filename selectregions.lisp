@@ -52,20 +52,6 @@
   (not (selectregions-eq sregs1 sregs2))
 )
 
-;;; Return true if a list is a list of selectregionss.
-;;; An empty list will return true.
-(defun selectregions-list-p (sregslst) ; -> bool
-  ;(format t "~&selectregions-list-p: ~A" sregslst)
-  (if (not (listp sregslst))
-    (return-from selectregions-list-p false))
-
-  (loop for sregsx in sregslst do
-    (if (not (selectregions-p sregsx))
-      (return-from selectregions-list-p false))
-  )
-  true
-)
-
 ;;; Translate a list of symbols into a selectregions instance.
 ;;; Like (SR (RC (r1010)) (RT 0 2-1))
 (defun selectregions-from (symbols) ; -> selectregions
@@ -93,10 +79,5 @@
 
         (selectregions-new rc rate)
     )
-)
-
-;;; Return net value.
-(defun selectregions-net-value (sregsx) ; -> integer
-  (rate-net-value (selectregions-rate sregsx))
 )
 

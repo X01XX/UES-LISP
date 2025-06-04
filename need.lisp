@@ -136,16 +136,3 @@
     )
 )
 
-;;; Return true if a list is a list of needs.
-;;; An empty list will return true.
-(defun need-list-p (nedlst) ; -> bool
-  (if (not (listp nedlst))
-    (return-from need-list-p false))
-
-  (loop for nedx in nedlst do
-    (if (not (need-p nedx))
-      (return-from need-list-p false))
-  )
-  true
-)
-

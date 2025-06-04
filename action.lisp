@@ -28,14 +28,21 @@
 ;;; Return an action.
 (defun action-new (&key id rules)
   ;; Check arguments.
-  (assert (rulestore-list-p rules))
   (assert (not (null rules)))
   (assert (and (integerp id) (>= id 0)))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (rulestore-p x)) rules)))
 
-  (let (rulsx rulsy actx memory tmp-state)
+  (let (rulsx rulsy actx memory tmp-state num-bits)
 
-    ;; Populate memory list.
-    (loop for rulsx in rules do (push nil memory))
+    ;; Populate memory list, other checks.
+    (loop for rulsx in rules do 
+      (assert (rulestore-is-not-empty rulsx))
+      (if num-bits
+        (assert (= (rulestore-num-bits rulsx) num-bits))
+        (setf num-bits (rulestore-num-bits rulsx))
+      )
+      (push nil memory)
+    )
 
     ;; Check rules for consistency.
     (loop for inx from 0 below (1- (length rules)) do
@@ -99,20 +106,6 @@
 ;       )
         str
     )
-)
-
-; Return true if the argument is a null list, or a list of actions.
-(defun action-list-p (actions) ; -> bool
-
-  (if (not (listp actions))
-    (return-from action-list-p false))
-
-  ; Check for a non-state.
-  (loop for actx in actions do
-    (if (not (action-p actx))
-      (return-from action-list-p false))
-  )
-  true
 )
 
 ;;; Return possible steps given a rule to satisfy.
@@ -1434,9 +1427,9 @@
 (defun action-make-groups-from-squares (actx sqrs) ; side-effect, action changed.
   ;(format t "~&action-make-groups-from-squares: Act ~D ~A" (action-id actx) (mapcar #'(lambda (x) (state-str (square-state x))) sqrs))
   (assert (action-p actx))
-  (assert (square-list-p sqrs))
 
   (loop for sqrx in sqrs do
+    (assert (square-p sqrx))
     ;; Check if a previously processed square created a group encompassing this square.
     (if (not (groupstore-multistate-groups-state-in (action-groups actx) (square-state sqrx)))
       (action-make-groups-from-square actx sqrx)

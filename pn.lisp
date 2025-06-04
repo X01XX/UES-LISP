@@ -18,8 +18,6 @@
 ;   (make-pn [:<field-name> <field-value>]*).
 ;   (copy-pn <instance>) copies a pn instance.
 
-; Use eq and neq (macro) for simple comparisons of pn values.
-
 (defvar *pn-one*  1)
 (defvar *pn-two*  2)
 (defvar *pn-none* 3)

@@ -618,22 +618,6 @@
        (rule-sequence-blocks-changes :first rul2 :next rul1 :wanted wanted))
 )
 
-;;; Return true if a list is a list of rules.
-;;; An empty list will return true.
-(defun rules-list-p (rullst) ; -> bool
-  ;; Check argument.
-  (if (not (listp rullst))
-    (return-from rules-list-p false))
-
-  ;; Check each item.
-  (loop for rulx in rullst do
-    (if (not (rule-p rulx))
-      (return-from rules-list-p false)) ; Return negative result.
-  )
-  ;; Return positive result.
-  true
-)
-
 ;;; Return the result of applying a rule to a state.
 (defun rule-result-from-state (rulx stax) ; -> state instance.
   ;; Check arguments.

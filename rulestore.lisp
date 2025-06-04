@@ -19,10 +19,11 @@
 ;;; Return a rulestore given one, or two, rules.
 (defun rulestore-new (rules) ; -> rulestore.
   ;; Check argument.
-  (assert (rules-list-p rules))
+  (assert (listp rules))
   (assert (< (length rules) 4)) ;; Defining an unpredictable region, for action-base-rules, requires three rules.
   (if (> (length rules) 1)
     (loop for rulx in (cdr rules) do
+      (assert (rule-p rulx))
       (assert (region-eq (rule-initial-region (car rules)) (rule-initial-region rulx)))))
 
   ;; Construct result.
@@ -145,22 +146,6 @@
 
   ;; Return result.
   (second (rulestore-rules storex))
-)
-
-;;; Return true if a list is a list of rulestores.
-;;; An empty list will return true.
-(defun rulestore-list-p (rullst) ; -> bool
-  ;; Check argument.
-  (if (not (listp rullst))
-    (return-from rulestore-list-p false))
-
-  ;; Check each list item type.
-  (loop for rulx in rullst do
-    (if (not (rulestore-p rulx))
-      (return-from rulestore-list-p false))
-  )
-  ;; Return positive result.
-  true
 )
 
 ;;; Translate a string, or list of token, into a rulestore.

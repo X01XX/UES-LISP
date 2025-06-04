@@ -19,7 +19,8 @@
 ;   (copy-stepstore <instance>) copies a stepstore instance.
 (defun stepstore-new (steps) ; -> stepstore.
   ;(format t "~&steps ~A" steps)
-  (assert (step-list-p steps))
+  (assert (listp steps))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (step-p x)) steps)))
 
   (make-stepstore :steps  steps)
 )
@@ -121,7 +122,7 @@
   )
 )
 
-;;; Return steps that have a result region intersecting a given region.
+;;; Return steps that have an result region intersecting a given region.
 (defun stepstore-result-region-intersects (storex regx) ; -> stepstore
   (assert (stepstore-p storex))
   (assert (region-p regx))

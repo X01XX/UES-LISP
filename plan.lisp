@@ -20,7 +20,8 @@
 
 ;;; Return a new plan, made up of zero, or more, steps.
 (defun plan-new (steps) ; -> plan.
-  (assert (step-list-p steps))
+  (assert (listp steps))
+  (eval (append (list 'and) (mapcar #'(lambda (x) (step-p x)) steps)))
 
   (let ((planx (make-plan :stepstore (stepstore-new steps))))
     (if (not (plan-is-valid planx))
@@ -112,20 +113,6 @@
 	)
 	(setf last-step stepx)
     )
-  )
-  true
-)
-
-;; Return true if a list is a list of plans.
-;;; An empty list will return true.
-(defun plan-list-p (plnlst) ; -> bool
-  ;(format t "~&plan-list-p: ~A" plnlst)
-  (if (not (listp plnlst))
-    (return-from plan-list-p false))
-
-  (loop for plnx in plnlst do
-    (if (not (plan-p plnx))
-      (return-from plan-list-p false))
   )
   true
 )

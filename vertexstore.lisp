@@ -122,61 +122,6 @@
   )
 )
 
-;;; Return edge states in a region.
-(defun vertexstore-edges-in-region (storex regx) ; -> statestore.
-  ;; Check arguments.
-  (assert (vertexstore-p storex))
-  (assert (region-p regx))
-
-  (let ((ret (statestore-new nil)))
-
-    (loop for vtx in (vertexstore-vertices storex)  do
-      (loop for stax in (statestore-states (vertex-edges vtx)) do
-        (if (region-superset-of-state regx stax)
-          (statestore-push ret stax))
-      )
-    )
-    ;; Return result.
-    ret
-  )
-)
-
-;;; Return verticies in region.
-;;; An applicable vertex should have the same number of edges as the region.
-(defun vertexstore-vertices-in-region (storex regx) ; -> vertexstore.
-  ;; Check arguments.
-  (assert (vertexstore-p storex))
-  (assert (region-p regx))
-
-  (let ((ret (vertexstore-new nil)))
-
-    (loop for vtx in (vertexstore-vertices storex)  do
-      (if (region-superset-of-state regx (vertex-pinnacle vtx))
-          (vertexstore-push ret vtx))
-    )
-    ;; Return result.
-    ret
-  )
-)
-
-;;; Return vertices that cantain a given state.
-(defun vertexstore-vertices-containing-state (storex stax) ; -> vertexstore.
-  ;; Check arguments.
-  (assert (vertexstore-p storex))
-  (assert (state-p stax))
-
-  (let ((ret (vertexstore-new nil)))
-    ;; Check each vertex.
-    (loop for vx in (vertexstore-vertices storex) do
-  
-      (if (vertex-member vx stax)
-        (vertexstore-push ret vx))
-    )
-    ;; Return result.
-    ret
-  )
-)
-
 ;;; Return vertices that contain a given state.
 (defun vertexstore-find (storex stax) ; -> vertex, or nil.
   ;; Check arguments.
@@ -191,87 +136,6 @@
   )
   ;; Return negative result.
   nil
-)
-
-;;; Return the difference of two vertexstores.
-(defun vertexstore-difference (storex storey) ; -> vertexstore.
-  (assert (vertexstore-p storex))
-  (assert (vertexstore-p storey))
-
-  (vertexstore-new (set-difference (vertexstore-vertices storex) (vertexstore-vertices storey) :test #'vertex-eq))
-)
-
-;;; Return the states connected to a given state though vertices.
-;;; The given state will be the first in the result list.
-(defun vertexstore-states-connected (storex stax) ; -> statestore.
-  (assert (vertexstore-p storex))
-  (assert (state-p stax))
-
-  (let (
-        ;; Current vertices not connected to yet.
-        (vertices storex)
-        ;; List of new states to process.
-        (new-states (statestore-new (list stax)))
-        ;; List of processed states.
-        (processed (statestore-new nil))
-        ;; Verticies the current state is in.
-        verts-state-in
-        ;; Union of states in processed and new-states statestores.
-        all-stored-states
-        ;; Current state to use to look for vertex connections.
-        cur-state
-       )
-
-    (loop
-
-      ;; Get next state to process.
-      (setf cur-state (statestore-pop new-states))
-      (statestore-push processed cur-state)
-
-      ;; Get verticies the state is in.
-      (setf verts-state-in (vertexstore-vertices-containing-state vertices cur-state))
-
-      (when (vertexstore-is-not-empty verts-state-in)
-
-        ;; Take found vertices out of the working list.
-        (setf vertices (vertexstore-difference vertices verts-state-in))
-
-        ;; Process each vertex.
-        (loop for vtx in (vertexstore-vertices verts-state-in) do
-          ;; Get all current states.
-          (setf all-stored-states (statestore-union processed new-states))
-          ;; Get states in vertex not currently stored.
-          (setf new-states (statestore-union new-states (statestore-difference (vertex-states vtx) all-stored-states)))
-        )
-      )
-
-      ;;  Check for no more verticies to process.
-      (if (vertexstore-is-empty vertices)
-        (return-from vertexstore-states-connected (statestore-reverse (statestore-union new-states processed)))
-      )
-
-      ;; Check for no more states to process.
-      (if (statestore-is-empty new-states)
-        (return-from vertexstore-states-connected (statestore-reverse processed))
-      )
-    ) ; next new square.
-  )
-)
-
-;;; Return a vertex list, from given states.
-(defun vertexstore-from-states (storex states) ; -> vertexstore
-  ;; Check arguments.
-  (assert (vertexstore-p storex))
-  (assert (statestore-p states))
-
-  (let ((ret (vertexstore-new nil)))
-    (loop for vtx in (vertexstore-vertices storex) do
-      (if (statestore-is-empty (statestore-difference (vertex-states vtx) states))
-        (vertexstore-push ret vtx)
-      )
-    )
-    ret
-  )
 )
 
 ;;; Return all states in the vertices in a vertexstore.
@@ -295,39 +159,5 @@
     ;; Return result.
     ret
   )
-)
-
-;;; Return true if two vertexstores are equal.
-(defun vertexstore-eq (storex storey) ; -> bool
-  ;; Check arguments.
-  (assert (vertexstore-p storex))
-  (assert (vertexstore-p storey))
-
-  ;; Check lengths.
-  (if (/= (vertexstore-length storex) (vertexstore-length storey))
-    (return-from vertexstore-eq false)) ; Return negative result.
-
-  ;; Check each vertex.
-  (loop for item in (vertexstore-vertices storey) do
-    (if (not (vertexstore-member storex item))
-      (return-from vertexstore-eq false)) ; Return negative result.
-  )
-  ;; Return positive result.
-  true
-)
-
-;;; Return true if a state is used in vertexstore.
-(defun vertexstore-state-needed (storex stax) ; -> bool
-  ;; Check arguments.
-  (assert (vertexstore-p storex))
-  (assert (state-p stax))
-
-  ;; Check each vertex.
-  (loop for vtx in (vertexstore-vertices storex) do
-    (if (vertex-member vtx stax)
-      (return-from vertexstore-state-needed true)) ; Return positive result.
-  )
-  ;; Return negative result.
-  false
 )
 

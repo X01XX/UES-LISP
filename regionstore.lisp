@@ -414,21 +414,6 @@
   )
 )
 
-;; Return true if a state is used in a regionstore.
-(defun regionstore-state-needed (storex stax) ; -> bool
-  ;; Check arguments.
-  (assert (regionstore-p storex))
-  (assert (state-p stax))
-  (assert (or (regionstore-is-empty storex) (= (regionstore-num-bits storex) (state-num-bits stax))))
-
-  (loop for regx in (regionstore-regions storex) do
-    (if (region-state-needed regx stax)
-      (return-from regionstore-state-needed true)) ; Return positive result.
-  )
-  ;; Return negative result.
-  false
-)
-
 ;;; Return true if a state is in only one region.
 (defun regionstore-regions-state-in (storex stax) ; -> regionstore
   ;; Check arguments.
@@ -467,23 +452,6 @@
     )
     ;; Return result.
     ret-store
-  )
-)
-
-;;; Return unique subregions of a given region, assuming the given region is in the
-;;; store, which will be skipped.
-(defun regionstore-unique-subregions (storex regx) ; -> regionstore
-  ;; Check arguments.
-  (assert (regionstore-p storex))
-  (assert (region-p regx))
-
-  (let ((ret (regionstore-new (list regx))))
-
-    (loop for regy in (regionstore-regions storex) do
-      (if (and (null (region-eq regy regx)) (regionstore-any-intersection-of ret regy))
-        (setf ret (regionstore-subtract-region ret regy)))
-    )
-    ret
   )
 )
 

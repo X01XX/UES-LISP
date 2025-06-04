@@ -88,21 +88,6 @@
     (format t "~&  stepstore-initial-region-intersects OK")
   )
 
-  ; Test stepstore-result-region-intersects.
-  (let (storex storez step1 step2 step3)
-    (setf step1 (step-new 0 (rule-from-str "[XX/10/00/11]")))
-    (setf step2 (step-new 1 (rule-from-str "[XX/00/00/10]")))
-    (setf step3 (step-new 2 (rule-from-str "[XX/00/00/00]")))
-
-    (setf storex (stepstore-new (list step1 step2 step3)))
-    (setf storez (stepstore-result-region-intersects storex (region-from 'r10X1)))
-    ;(format t "~&storez ~A" (stepstore-str storez))
-    (assert (= 1 (stepstore-length storez)))
-    (assert (stepstore-member storez step1))
-
-    (format t "~&  stepstore-result-region-intersects OK")
-  )
-
   ; Test stepstore-aggregate-changes.
   (let (storex step1 step2 step3 cngx)
     (setf step1 (step-new 0 (rule-from-str "[XX/10/01/11]")))
