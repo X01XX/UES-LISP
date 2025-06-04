@@ -83,7 +83,7 @@
     (setf storez (stepstore-initial-region-intersects storex (region-from 'r10X1)))
     ;(format t "~&storez ~A" (stepstore-str storez))
     (assert (= 1 (stepstore-length storez)))
-    (assert (stepstore-member storez step2))
+    (assert (stepstore-member storez (step-new 1 (rule-from-str "[11/00/00/10]"))))
 
     (format t "~&  stepstore-initial-region-intersects OK")
   )

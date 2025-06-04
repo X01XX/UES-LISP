@@ -116,7 +116,7 @@
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
       (if (region-intersects (step-initial-region stpx) regx)
-        (stepstore-push ret stpx))
+        (stepstore-push ret (step-restrict-initial-region stpx regx)))
     )
     ret
   )
@@ -130,7 +130,7 @@
   (let ((ret (stepstore-new nil)))
     (loop for stpx in (stepstore-steps storex) do
       (if (region-intersects (step-result-region stpx) regx)
-        (stepstore-push ret stpx))
+        (stepstore-push ret (step-restrict-result-region stpx regx)))
     )
     ret
   )

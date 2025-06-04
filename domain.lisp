@@ -166,7 +166,7 @@
 
   (let (steps
        (wanted-changes (rule-changes rule-from-to))
-        steps-from steps-to steps-both
+        steps-from steps-to
         (from-reg (rule-initial-region rule-from-to))
         (to-reg (rule-result-region rule-from-to))
        )
@@ -216,24 +216,38 @@
     ;; Get steps that intersect the to-region.
     (setf steps-to   (stepstore-result-region-intersects steps to-reg))
 
-    ;; Get steps that intersect the from-region and the to-region.
-    (setf steps-both (stepstore-intersection steps-from steps-to))
-
     ;; Check for one step that spans the gap.
-    ;; The ultimate end of recursion.
-    (let (span-steps stepy)
-      (loop for stepx in (stepstore-steps steps-both) do
-        (setf stepy (step-restrict-initial-region stepx from-reg))
-        (when (region-intersects (step-result-region stepy) to-reg)
-           (setf stepy (step-restrict-result-region stepy to-reg))
+    (let (span-steps stepy planx)
+      (loop for stepx in (stepstore-steps steps-from) do
+        (when (region-intersects (step-result-region stepx) to-reg)
+           (setf stepy (step-restrict-result-region stepx to-reg))
            (push stepy span-steps)
         )
       )
       (when span-steps
-	    (setf stepy (nth (random (length span-steps)) span-steps))
-        ;(format t "~&domain-get-plan2: returning 3 plan")
-	    (return-from domain-get-plan2 (plan-new (list stepy)))
+	    (setf planx (plan-new (list (nth (random (length span-steps)) span-steps))))
+        ;(format t "~&one step span found: from: ~A to: ~A plan: ~A" (region-str from-reg) (region-str to-reg) (plan-str planx))
+	    (return-from domain-get-plan2 planx)
       )
+    )
+
+    ;; Check for two steps that span the gap.
+    (let (planx)
+      (loop for step-f in (stepstore-steps steps-from) do
+
+        (loop for step-t in (stepstore-steps steps-to) do
+  
+          (when (region-intersects (step-result-region step-f) (step-initial-region step-t))
+
+            (setf planx (plan-new (list
+              (step-restrict-result-region  step-f (step-initial-region step-t))
+              (step-restrict-initial-region step-t (step-result-region step-f))))
+            )
+            ;(format t "~&two step span found: from: ~A to: ~A plan: ~A" (region-str from-reg) (region-str to-reg) (plan-str planx))
+            (return-from domain-get-plan2 planx)
+          )
+        ) ; next step-t
+      ) ; next step-f
     )
 
     ;; Gather steps that intersect the from-reg or to-reg.
