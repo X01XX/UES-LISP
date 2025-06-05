@@ -434,24 +434,31 @@
   (assert (not (regionscorr-intersects from-regs to-regs)))
   ;(format t "~&sessiondata-get-plans2: from: ~A to: ~A" (regionscorr-str from-regs) (regionscorr-str to-regs))
 
-  (let (from-rate to-rate min-rate le0-position plans path)
+  (let ((min-rate 0) plans path)
 
     ;; Find maximum rate possible by the least rate of the from and to regionscorr.
-    (setf from-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) from-regs))
-    (setf to-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) to-regs))
-    (setf min-rate (min (rate-negative from-rate) (rate-negative to-rate)))
-
-    ;; Find the rate position in the le0-levels list, and corresponding regionscorrstore-paths list.
-    (setf le0-position (position min-rate (sessiondata-le0-levels sessx)))
-    (if (null le0-position)
-      (error "min-rate not found?"))
-
-    ;; From the maximum le0 rate, on down, try finding a path.
-    (loop for inx from le0-position below (length (sessiondata-le0-levels sessx))
-          while (null path) do
-
-      (setf min-rate (nth inx (sessiondata-le0-levels sessx)))
-      (setf path (regionscorrstore-find-path (nth inx (sessiondata-regionscorrstore-paths sessx)) from-regs to-regs))
+    (if (selectregionsstore-is-not-empty (sessiondata-selectregions-store sessx))
+      (let (from-rate to-rate le0-position)
+        (setf from-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) from-regs))
+        (setf to-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) to-regs))
+        (setf min-rate (min (rate-negative from-rate) (rate-negative to-rate)))
+    
+        ;; Find the rate position in the le0-levels list, and corresponding regionscorrstore-paths list.
+        (setf le0-position (position min-rate (sessiondata-le0-levels sessx)))
+        (if (null le0-position)
+          (error "min-rate not found?"))
+  
+        ;; From the maximum le0 rate, on down, try finding a path.
+        (loop for inx from le0-position below (length (sessiondata-le0-levels sessx))
+              while (null path) do
+    
+          (setf min-rate (nth inx (sessiondata-le0-levels sessx)))
+          (setf path (regionscorrstore-find-path (nth inx (sessiondata-regionscorrstore-paths sessx)) from-regs to-regs))
+        )
+      )
+      ;; else 
+      (setf path (regionscorrstore-find-path
+           (regionscorrstore-new (list (domainstore-max-regions (sessiondata-domains sessx)))) from-regs to-regs))
     )
 
     (when (null path)

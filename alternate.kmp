@@ -2,24 +2,12 @@
 ;; Quotes around rulestores are used to preserve case for Xx bit positions.
 (sessiondata-from
   '(SD(DS((DOM
-            (ACT ("[XX/XX/XX/Xx]")) ;; One rulestore, with one rule, covering all states, that is in XXXX.
+            (ACT ("[00/XX/XX/Xx]")) ; Set up rule that may produce asymmetric steps.
             (ACT ("[XX/XX/Xx/XX]"))
             (ACT ("[XX/Xx/XX/XX]"))
-            (ACT ("[01/XX/00/XX]") ("[10/XX/00/XX]") ("[01/XX/11/XX]") ("[10/XX/11/XX]"))) ;; Show that the program is not just copying this definition, the result will be [Xx/XX/XX/XX].
-       (DOM
-            (ACT ("[XX/XX/Xx]"))
-            (ACT ("[XX/Xx/XX]"))
-            (ACT ("[Xx/XX/XX]"))
-            (ACT ("[00/Xx/XX]")) ;; 1XXX, not accounted for here, will default to no change.
-            (ACT ("[11/Xx/XX]")) 
-            (ACT ("[01/XX/XX]" "[00/XX/Xx]")) ;; Two different rules, for same the region, in one rulestore.
-            (ACT ("[01/XX/XX]" "[00/XX/XX]")) ;; Two different rules, for same the region, in one rulestore, one rule does not change anything.
-            (ACT ("[Xx/XX/XX]" "[XX/XX/Xx]" "[XX/Xx/XX]"))) ;; Three different rules, for same the region, in one rulestore, interpretted as unpredictable.
+            (ACT ("[Xx/XX/XX/XX]")))
         )
       )
-      (SR (RC (r110X r110)) (RT 0 -1))
-      (SR (RC (r11X1 r110)) (RT 4 0))
-      (SC (s0101 s111))
   )
 )
 

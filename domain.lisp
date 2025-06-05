@@ -220,13 +220,9 @@
 
     ;; Get steps that intersect the from-region.
     (setf steps-from (stepstore-initial-region-intersects steps from-reg))
-    (if (stepstore-is-empty steps-from) ; Regardless of the tortuous route required, you have to touch the from region.
-      (return-from domain-get-plan2 nil))
 
     ;; Get steps that intersect the to-region.
     (setf steps-to (stepstore-result-region-intersects steps to-reg))
-    (if (stepstore-is-empty steps-to) ; Regardless of the tortuous route required, you have to touch the to region.
-      (return-from domain-get-plan2 nil))
 
     ;; Check for one step that spans the gap.
     (let (span-steps stepy planx)
@@ -263,7 +259,7 @@
     )
 
     ;; Check for asymmetric, required, steps.
-    (let ((asym-steps (stepstore-asymmetric-steps steps rule-from-to)) stepx plan1 plan2 plan3)
+    (let ((asym-steps (stepstore-asymmetric-steps steps rule-from-to)) stepx plan1 plan2 plan3 plan4)
       (when (stepstore-is-not-empty asym-steps)
         ;; Choose a step.
         (setf stepx (stepstore-nth asym-steps (random (stepstore-length asym-steps))))
@@ -278,7 +274,17 @@
             ;; Get second leg of plan. 
             (setf plan3 (domain-get-plan2 domx (rule-region-to-region (plan-result-region plan2) to-reg) with-reg (1- depth) no-alt))
             (if plan3
-              (return-from domain-get-plan2 (plan-link plan2 plan3))
+              (progn
+                (setf plan4 (plan-link plan2 plan3))
+                (if plan4
+                  (progn
+                    ;(format t "~&domain-get-plan2: Dom: ~D plan: ~A from: ~A to: ~A asym step ~A" *dom-id* (plan-str plan4)
+                    ;   (region-str from-reg) (region-str to-reg) (step-str stepx))
+                    (return-from domain-get-plan2 plan4)
+                  )
+                  (return-from domain-get-plan2 nil)
+                )
+              )
               (return-from domain-get-plan2 nil)
             )
           )
@@ -287,11 +293,22 @@
       )
     )
 
+    (if (and (stepstore-is-empty steps-from) (stepstore-is-empty steps-to))
+      (return-from domain-get-plan2 nil))
+
     ;; Choose a step to continue.
-    (let (step-f step-t rest-of-plan)
+    (let (choice step-f step-t rest-of-plan)
+
+      (setf choice (random 2))
+
+      (if (stepstore-is-empty steps-from)
+        (setf choice 0))
+
+      (if (stepstore-is-empty steps-to)
+        (setf choice 1))
 
       ;; Choose a from step, or to-step.
-      (if (= (random 2) 1)
+      (if (= choice 1)
         (progn
           (setf step-f (stepstore-nth steps-from (random (stepstore-length steps-from))))
           (setf rest-of-plan (domain-get-plan2 domx (rule-region-to-region (step-result-region step-f) to-reg) with-reg (1- depth) no-alt))

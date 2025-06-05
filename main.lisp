@@ -621,7 +621,7 @@
           (when sdx-in
             ;(pprint sdx-in)
             (setf sdx (eval sdx-in))
-            (format t "~&sdx ~A" sdx)
+            ;(format t "~&sdx ~A" sdx)
             (let ((*domain-num-bits-list* (domainstore-num-bits-list (sessiondata-domains sdx))) steps)
               (if (zerop cnt)
                 (do-interactive-session sdx)
