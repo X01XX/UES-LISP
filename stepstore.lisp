@@ -254,3 +254,50 @@
     ret-step
   )
 )
+
+;; Return asymmetric steps that need to be addressed.
+;; An asymmetric step is not available between from-to regions, and no
+;; step with the same needed change is.
+;; So the plan from-region -> asymmetric-step -> to-region needs to be developed.
+(defun stepstore-asymmetric-steps (steps rule-from-to) ; -> stepstore
+  ;; Check args.
+  (assert (stepstore-p steps))
+  (assert (rule-p rule-from-to))
+
+  ;; Look for asymmetric steps.
+  (let ((ret (stepstore-new nil))
+        (change-single-bits (change-split (rule-changes rule-from-to)))
+        (glide-path (region-union (rule-initial-region rule-from-to) (rule-result-region rule-from-to)))
+        step-list
+        asymmetric-flag
+       )
+
+    ;; For each single change bit.
+    (loop for cngx in change-single-bits do
+      ;; Find steps that include a single bit change.
+      (setf step-list nil)
+      (loop for stepx in (stepstore-steps steps) do
+        (if (change-is-not-low (change-and cngx (rule-changes (step-rule stepx))))
+          (push stepx step-list)
+        )
+      )
+      ;; Check if all steps are outside of the from-to glidepath.
+      (setf asymmetric-flag true)
+      (loop for stepx in step-list do
+        (if (and (region-intersects (step-initial-region stepx) glide-path)
+                 (region-intersects (step-result-region stepx)  glide-path))
+          (setf asymmetric-flag false)
+        )
+      )
+      ;; Load asymmetric steps, if any.
+      (if asymmetric-flag
+        (loop for stepx in step-list do
+          (stepstore-push ret stepx)
+        )
+      )
+    ) ; next cngx
+    ;; Return result.
+    ret
+  )
+)
+

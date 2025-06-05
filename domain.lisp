@@ -146,9 +146,17 @@
   )
 )
 
-;;; Return a plan to change a current region to a goal region.
-;;; Choose one step randomly, then recurse.
-;;; So random forward-chaining, or backward-chaining, with each step.
+;;; Return a plan to change from a from-region to a to-region.
+;;; An asymmetric step requires changes to get to the step, not within the expected changes between the from-region and to-region.
+;;;
+;;; Check for a one, or two, step solution.
+;;; Else, check for asymmetric steps.
+;;; Else, choose a forward-chaining step, or a backward-chaining step. randomly, then recurse.
+;;;
+;;; Wanted changes:     (rule-changes rule-from-to)
+;;; Don't care changes: (change-new :m01 (region-x-mask to-region) :m10 (region-x-mask to-region))
+;;; Unwanted changes:   (change-new :m01 (mask-new-and (region-0-mask from-region) (region-0-mask to-region))
+;;;                                 :m10 (mask-new-and (region-1-mask from-region) (region-1-mask to-region)))
 (defun domain-get-plan2 (domx rule-from-to with-reg depth &optional no-alt) ; -> plan, or nil.
   (assert (domain-p domx))
   (assert (rule-p rule-from-to))
@@ -252,6 +260,31 @@
           )
         ) ; next step-t
       ) ; next step-f
+    )
+
+    ;; Check for asymmetric, required, steps.
+    (let ((asym-steps (stepstore-asymmetric-steps steps rule-from-to)) stepx plan1 plan2 plan3)
+      (when (stepstore-is-not-empty asym-steps)
+        ;; Choose a step.
+        (setf stepx (stepstore-nth asym-steps (random (stepstore-length asym-steps))))
+
+        ;; Get first leg of a plan.
+        (setf plan1 (domain-get-plan2 domx (rule-region-to-region from-reg (step-initial-region stepx)) with-reg (1- depth) no-alt))
+        (if plan1
+          (progn
+            ;; Add stepx to plan, possibly restricting stepx.
+            (setf plan2 (plan-link plan1 (plan-new (list stepx))))
+
+            ;; Get second leg of plan. 
+            (setf plan3 (domain-get-plan2 domx (rule-region-to-region (plan-result-region plan2) to-reg) with-reg (1- depth) no-alt))
+            (if plan3
+              (return-from domain-get-plan2 (plan-link plan2 plan3))
+              (return-from domain-get-plan2 nil)
+            )
+          )
+          (return-from domain-get-plan2 nil)
+        )
+      )
     )
 
     ;; Choose a step to continue.

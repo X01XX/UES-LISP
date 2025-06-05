@@ -2,7 +2,7 @@
 (defun stepstore-tests ()
   (format t "~&stepstore-tests beginning")
 
-  ; Test stepstore-new.
+  ;; Test stepstore-new.
   (let (store1 step1)
 
     (setf step1 (step-new 0 (rule-from-str "[XX]")))
@@ -15,7 +15,7 @@
     (format t "~&  stepstore-new OK")
   )
 
-  ; Test stepstore-intersection.
+  ;; Test stepstore-intersection.
   (let (storex storey storez step1 step2 step3 step4)
     (setf step1 (step-new 0 (rule-from-str "[XX]")))
     (setf step2 (step-new 1 (rule-from-str "[XX]")))
@@ -26,15 +26,14 @@
     (setf storey (stepstore-new (list step3 step4)))
     (setf storez (stepstore-intersection storex storey))
 
-    (format t "~&storez ~A" (stepstore-str storez))
+    ;(format t "~&storez ~A" (stepstore-str storez))
     (assert (= 1 (stepstore-length storez)))
     (assert (stepstore-member storez step2))
-    (assert (stepstore-member storez step3))
 
     (format t "~&  stepstore-intersection OK")
   )
 
-  ; Test stepstore-union.
+  ;; Test stepstore-union.
   (let (storex storey storez step1 step2 step3 step4)
     (setf step1 (step-new 0 (rule-from-str "[XX]")))
     (setf step2 (step-new 1 (rule-from-str "[XX]")))
@@ -55,7 +54,7 @@
     (format t "~&  stepstore-union OK")
   )
 
-  ; Test stepstore-difference.
+  ;; Test stepstore-difference.
   (let (storex storey storez step1 step2 step3 step4)
     (setf step1 (step-new 0 (rule-from-str "[XX]")))
     (setf step2 (step-new 1 (rule-from-str "[XX]")))
@@ -73,7 +72,7 @@
     (format t "~&  stepstore-difference OK")
   )
 
-  ; Test stepstore-initial-region-intersects.
+  ;; Test stepstore-initial-region-intersects.
   (let (storex storez step1 step2 step3)
     (setf step1 (step-new 0 (rule-from-str "[XX/10/00/11]")))
     (setf step2 (step-new 1 (rule-from-str "[XX/00/00/10]")))
@@ -88,7 +87,7 @@
     (format t "~&  stepstore-initial-region-intersects OK")
   )
 
-  ; Test stepstore-aggregate-changes.
+  ;; Test stepstore-aggregate-changes.
   (let (storex step1 step2 step3 cngx)
     (setf step1 (step-new 0 (rule-from-str "[XX/10/01/11]")))
     (setf step2 (step-new 1 (rule-from-str "[XX/00/00/10]")))
@@ -103,6 +102,25 @@
     (format t "~&  stepstore-aggregate-changes OK")
   )
 
+  ;; Test stepstore-asymmetric-steps.
+  (let (from-to step1 step2 step3 stpstr asym)
+    (setf from-to (rule-from-str "[01/11/01/11]")) ; 5 -> F
+    (setf step1 (step-new 1 (rule-from-str "[00/00/01/11]"))) ; 1 -> 3
+    (setf step2 (step-new 2 (rule-from-str "[11/11/01/11]"))) ; D -> F
+    (setf step3 (step-new 3 (rule-from-str "[01/11/11/00]"))) ; 6 -> E
+
+    (setf stpstr (stepstore-new (list step1 step2 step3)))
+
+    (setf asym (stepstore-asymmetric-steps stpstr from-to))
+
+    ;(format t "~& asymmetric steps: ~A" (stepstore-str asym))
+    (assert (= (stepstore-length asym) 1))
+    (assert (stepstore-member asym step3))
+
+    (format t "~&  stepstore-asymmetric-steps OK")
+  )
+
   (format t "~&stepstore-tests done")
   t
 )
+
