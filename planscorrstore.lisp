@@ -45,9 +45,13 @@
 
 ;;; Add planscorr to the end of a planscorrstore.
 (defun planscorrstore-add-end (storex plnscx) ; -> nothing, side-effect planscorrstore changed.
+  ;; Check args.
   (assert (planscorrstore-p storex))
   (assert (planscorr-p plnscx))
-  ;(format t "~&~A ~A" (planscorrstore-str storex) (planscorr-str plnscx))
+  ;(format t "~&planscorrstore-add-end: ~A + ~A" (planscorrstore-str storex) (planscorr-str plnscx))
+  (if (planscorrstore-is-not-empty storex)
+    (assert (regionscorr-eq (planscorr-result-regions (car (last (planscorrstore-planscorrs storex)))) (planscorr-initial-regions plnscx)))
+  )
 
   (setf (planscorrstore-planscorrs storex) (append (planscorrstore-planscorrs storex) (list plnscx)))
 
@@ -97,7 +101,7 @@
   )
 )
 
-;;; Check that planscorr items are linked.
+;;; Check that planscorr items are in sync.
 (defun planscorrstore-is-valid (storex) ; -> bool
   (assert (planscorrstore-p storex))
 
@@ -107,10 +111,6 @@
     (if (not (planscorr-is-linked-to plnx plny))
       (return-from planscorrstore-is-valid false))
 
-  )
-  (loop for plnx in (planscorrstore-planscorrs storex) do
-    (if (not (planscorr-act0-steps-valid plnx))
-      (return-from planscorrstore-is-valid false))
   )
   true
 )

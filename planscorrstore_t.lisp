@@ -8,6 +8,7 @@
     ; Test empty planscorrstore.
     (setf store1 (planscorrstore-new nil))
     (assert (planscorrstore-p store1))
+    (assert (zerop (planscorrstore-length store1)))
 
     ; Test non-empty planscorrx store.
     (setf step1 (step-new 0 (rule-from-str "[00/00/01/XX]")))
@@ -22,6 +23,10 @@
 
     (setf plnsc1 (planscorr-new (list plan1 plan2)))
     ;(format t "~&plnsc1 ~A" (planscorr-str plnsc1))
+
+    (setf store1 (planscorrstore-new (list plnsc1)))
+    (assert (planscorrstore-p store1))
+    (assert (= (planscorrstore-length store1) 1))
 
     (format t "~&  planscorrstore-new OK")
   )

@@ -78,49 +78,49 @@
 
     (assert (= (plan-length plan3) 2))
     (assert (region-eq (plan-initial-region plan3) (region-from 'r0X0X)))
-    (assert (region-eq (plan-result-region plan3) (region-from 'r1X1X)))
+    (assert (region-eq (plan-result-region plan3)  (region-from 'r1X1X)))
 
-    ;; Test plans with result region superset result region.
-    (setf step1 (step-new  1 (rule-from-str "[00/XX/01/XX]")))
+    ;; Test plans with plan1 result region superset plan2 initial region.
+    (setf step1 (step-new  1 (rule-from-str "[Xx/Xx/Xx/Xx]")))
     (setf plan1 (plan-new (list step1)))
 
-    (setf step2 (step-new  1 (rule-from-str "[01/11/11/XX]")))
+    (setf step2 (step-new  1 (rule-from-str "[00/01/11/10]")))
     (setf plan2 (plan-new (list step2)))
 
     (setf plan3 (plan-link plan1 plan2))
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from 'r010X)))
-    (assert (region-eq (plan-result-region plan3) (region-from 'r111X)))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r1100)))
+    (assert (region-eq (plan-result-region plan3)  (region-from 'r0110)))
 
-    ;; Test plans with result region superset initial region.
-    (setf step1 (step-new  1 (rule-from-str "[00/X1/01/XX]")))
+    ;; Test plans with plan1 result region subset plan2 initial region.
+    (setf step1 (step-new  1 (rule-from-str "[00/01/11/10]")))
     (setf plan1 (plan-new (list step1)))
 
-    (setf step2 (step-new  1 (rule-from-str "[01/XX/11/XX]")))
+    (setf step2 (step-new  1 (rule-from-str "[Xx/Xx/Xx/Xx]")))
     (setf plan2 (plan-new (list step2)))
 
     (setf plan3 (plan-link plan1 plan2))
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from 'r0X0X)))
-    (assert (region-eq (plan-result-region plan3) (region-from 'r111X)))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r0011)))
+    (assert (region-eq (plan-result-region plan3) (region-from  'r1001)))
 
     ;; Test result region and initial region intersect, but neither is superset.
-    (setf step1 (step-new  1 (rule-from-str "[00/X1/01/XX]")))
+    (setf step1 (step-new  1 (rule-from-str "[Xx/01/Xx/10]")))
     (setf plan1 (plan-new (list step1)))
 
-    (setf step2 (step-new  1 (rule-from-str "[01/XX/11/10]")))
+    (setf step2 (step-new  1 (rule-from-str "[00/Xx/11/Xx]")))
     (setf plan2 (plan-new (list step2)))
 
     (setf plan3 (plan-link plan1 plan2))
     (assert (plan-p plan3))
 
     (assert (= (plan-length plan3) 2))
-    (assert (region-eq (plan-initial-region plan3) (region-from 'r0X01)))
-    (assert (region-eq (plan-result-region plan3) (region-from 'r1110)))
+    (assert (region-eq (plan-initial-region plan3) (region-from 'r1001)))
+    (assert (region-eq (plan-result-region plan3)  (region-from 'r0011)))
 
     (format t "~&  plan-link OK")
   )
@@ -140,7 +140,7 @@
   (let (plan1 rulx)
     (setf plan1 (plan-from "r0x1-2>r1x0-1>r010"))
     (setf rulx (plan-as-rule plan1))
-    (format t "~&plan ~A as rule ~A" (plan-str plan1) (rule-str rulx))
+    ;(format t "~&plan ~A as rule ~A" (plan-str plan1) (rule-str rulx))
     (assert (rule-eq rulx (rule-from-str "[00/X1/10]")))
 
     (format t "~&  plan-as-rule OK")

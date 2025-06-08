@@ -42,17 +42,6 @@
   )
 )
 
-;;; Chegk if use of act 0 steps is valid.
-(defun planscorr-act0-steps-valid (plansc) ; -> bool
-  (assert (planscorr-p plansc))
-
-  (loop for plnx in (planscorr-plan-list plansc) do
-    (if (not (plan-act0-steps-valid plnx))
-      (return-from planscorr-act0-steps-valid false))
-  )
-  true
-)
-
 ;;; Return a string representing a planscorr.
 (defun planscorr-str (plansc) ; -> string.
   (assert (planscorr-p plansc))
@@ -79,33 +68,6 @@
 	  (return-from planscorr-are-sequence false))
   )
   true
-)
-
-;;; Return a list of two planscorrs, restricting the plans by the result regions
-;;; of the first and the initial regions of the second.
-(defun planscorr-link (plnsc1 plnsc2) ; -> (planscorr1', planscorr2'), nil.
-  (assert (planscorr-p plnsc1))
-  (assert (planscorr-p plnsc2))
-
-  (let (plans-list1 plans-list2 pln1 pln2)
-
-    (loop for plnx1 in (planscorr-plan-list plnsc1)
-          for plnx2 in (planscorr-plan-list plnsc2) do
-
-	(if (not (region-intersects (plan-result-region plnx1) (plan-initial-region plnx2)))
-	  (return-from planscorr-link nil))
-
-	(setf pln1 (plan-restrict-result-region  plnx1 (plan-initial-region plnx2)))
-	(setf pln2 (plan-restrict-initial-region plnx2 (plan-result-region plnx1)))
-
-	(if (or (null pln1) (null pln2))
-	  (return-from planscorr-link nil))
-
-	(setf plans-list1 (append plans-list1 (list pln1)))
-	(setf plans-list2 (append plans-list2 (list pln2)))
-    )
-    (list (planscorr-new plans-list1) (planscorr-new plans-list2))
-  )
 )
 
 ;;; Return a planscorr initial regions.

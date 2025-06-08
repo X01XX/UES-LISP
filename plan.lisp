@@ -210,21 +210,21 @@
     (if (not (region-intersects result-reg initial-reg))
       (return-from plan-link nil))
 
-    (if (region-eq result-reg initial-reg)
-      (return-from plan-link (plan-new (append (plan-step-list planx) (plan-step-list plany)))))
-
     (let ((int-reg (region-intersection result-reg initial-reg)))
 
-      (cond ((region-superset-of :sup result-reg :sub initial-reg)
+      (cond ((region-eq result-reg initial-reg)
+               (plan-new (append (plan-step-list planx) (plan-step-list plany)))
+            )
+            ((region-superset-of :sup result-reg :sub initial-reg)
                (plan-new (append (plan-step-list (plan-restrict-result-region planx int-reg)) (plan-step-list plany)))
-	     )
+	        )
             ((region-superset-of :sup initial-reg :sub result-reg)
                (plan-new (append (plan-step-list planx) (plan-step-list (plan-restrict-initial-region plany int-reg))))
-	     )
-	    (t
+	        )
+	        (t 
                (plan-new (append (plan-step-list (plan-restrict-result-region planx int-reg))
                                  (plan-step-list (plan-restrict-initial-region plany int-reg))))
-	    )
+	        )
       )
     )
   )
@@ -320,20 +320,6 @@
       planx
     )
   )
-)
-
-;;; Check use of act 0 steps.
-(defun plan-act0-steps-valid (plnx) ; -> bool.
-  (assert (plan-p plnx))
-
-  (if (< (length (plan-step-list plnx)) 2)
-    (return-from plan-act0-steps-valid true))
-
-  (loop for stepx in (plan-step-list plnx) do
-    (if (zerop (step-act-id stepx))
-      (return-from plan-act0-steps-valid false))
-  )
-  true
 )
 
 ;;; Return a rule that makes the same changes as running a plan.
