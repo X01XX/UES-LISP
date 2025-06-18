@@ -76,10 +76,27 @@
 
 ;;; Set the id.
 (defun action-set-id (actx id)
+  ;; Check arguments.
   (assert (action-p actx))
   (assert (and (integerp id) (>= id 0)))
 
   (setf (action-id actx) id)
+)
+
+;;; Return a new mask of zeros.
+(defun action-mask-new-low (actx) ; -> mask.
+  ;; Check arguments.
+  (assert (action-p actx))
+
+  (mask-new (value-new :num-bits (action-num-bits actx) :bits 0))
+)
+
+;;; Return a new state of zeros.
+(defun action-state-new-low (actx) ; -> state.
+  ;; Check arguments.
+  (assert (action-p actx))
+
+  (state-new (value-new :num-bits (action-num-bits actx) :bits 0))
 )
 
 ;;; Return the number of bits used by an action.
@@ -543,7 +560,7 @@
 
     ;; Check each square inside the region is pnc.
     (loop for maskx in x-bit-masks do
-      (setf sta-adj (state-new (state-xor sta-first maskx)))
+      (setf sta-adj (state-new-xor sta-first maskx))
 
       (setf sqr-adj (action-find-square actx sta-adj))
 
@@ -603,12 +620,12 @@
               ;; The dissimilar states are not close, find equidistant states to sample.
 
               ;; For the bit differences between sta-x and sta-y, make different combinations of distance/2 bits.
-              (setf mask-lists (any-x-of-n (ash dist -1) (mask-split (mask-new (state-xor sta-x sta-y)))))
+              (setf mask-lists (any-x-of-n (ash dist -1) (mask-split (mask-new-xor sta-x sta-y))))
 
               (loop for msklx in mask-lists do
                 (needstore-push needs
                       (action-get-need-sample-state actx
-                            (state-new (state-xor sta-x (mask-list-or msklx)))
+                            (state-new-xor sta-x (mask-list-or msklx))
                             *between-ip*
                             (format nil "between ~A and ~A" (state-str sta-x) (state-str sta-y))))
               )
@@ -833,15 +850,9 @@
     )
 
     ;; Look for non-adjacent pairs that affect the structure.
-    (let (regs1 regs2)
-      (loop for prx in (regionstore-regions non-adj-pairs) do
-        (setf regs1 (regionstore-regions-state-in logical-structure (region-first-state prx)))
-        (setf regs2 (regionstore-regions-state-in logical-structure (region-second-state prx)))
-  
-        (if (and (= (regionstore-length regs1) 1) (= (regionstore-length regs2) 1))
-          (if (region-eq (regionstore-first-region regs1) (regionstore-first-region regs2))
-            (regionstore-push critical-non-adj-pairs prx)))
-      )
+    (loop for prx in (regionstore-regions non-adj-pairs) do
+       (if (= (regionstore-num-superset logical-structure prx) 1)
+          (regionstore-push critical-non-adj-pairs prx))
     )
     ;(format t "~&critical-non-adj-pairs: ~A" (regionstore-str critical-non-adj-pairs))
 
@@ -1673,8 +1684,8 @@
 (defun action-changes (actx) ; -> change.
   (assert (action-p actx))
 
-  (let ((ret (change-new :m01 (mask-new (value-new :num-bits (action-num-bits actx) :bits 0))
-                         :m10 (mask-new (value-new :num-bits (action-num-bits actx) :bits 0)))))
+  (let ((ret (change-new :m01 (action-mask-new-low actx)
+                         :m10 (action-mask-new-low actx))))
 
     (loop for grpx in (groupstore-groups (action-groups actx)) do
       (if (group-makes-predictable-change grpx)

@@ -112,7 +112,7 @@
   (assert (region-p regx))
 
   ;; Construct result.
-  (mask-new (state-xor (region-high-state regx) (region-low-state regx)))
+  (mask-new-xor (region-high-state regx) (region-low-state regx))
 )
 
 ;;; Return the edge 1s mask of a region.
@@ -121,7 +121,7 @@
   (assert (region-p regx))
 
   ;; Construct result.
-  (mask-new (state-and (region-first-state regx) (region-second-state regx)))
+  (mask-new-and (region-first-state regx) (region-second-state regx))
 )
 
 ;;; Return the edge 0s mask of a region.
@@ -130,7 +130,7 @@
   (assert (region-p regx))
 
   ;; Construct result.
-  (mask-new (value-and (state-not (region-first-state regx)) (state-not (region-second-state regx))))
+  (mask-new-and (state-not (region-first-state regx)) (state-not (region-second-state regx)))
 )
 
 ;;; Return the second state in a region, really the far state from the first state.
@@ -142,7 +142,7 @@
     ;; Construct result.
     (cond ((= len 1) (region-first-state regx))
           ((= len 2) (statestore-last-state (region-states regx)))
-          (t (state-new (state-xor (region-first-state regx) (region-x-mask regx)))))
+          (t (state-new-xor (region-first-state regx) (region-x-mask regx))))
   )
 )
 
@@ -186,7 +186,7 @@
   (assert (region-p regx))
 
   (let ((strs "") ; String to build up for result.
-        (bit-pos (mask-msb (mask-new (state-value (region-first-state regx))))) ; msb, to successively shift to test bit positions.
+        (bit-pos (mask-msb (region-first-state regx))) ; msb, to successively shift to test bit positions.
         (first-state (region-first-state regx))
         (second-state (region-second-state regx))
         fval        ; First state bit-pos value.
@@ -239,6 +239,7 @@
       ret) ; return value.
   )
 )
+
 ;;; Return a region instance from a string.
 (defun region-from-str (strx) ; -> region instance.
   ;; Check argument.
@@ -321,8 +322,8 @@
     (return-from region-intersection nil))
 
   ;; Construct result.
-  (region-new (list (state-new (state-and (region-high-state reg1) (region-high-state reg2)))
-                    (state-new (state-or  (region-low-state reg1)  (region-low-state reg2)))))
+  (region-new (list (state-and (region-high-state reg1) (region-high-state reg2))
+                    (state-or  (region-low-state reg1)  (region-low-state reg2))))
 )
 
 ;;; Return the union of two regions.
@@ -333,8 +334,8 @@
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
   ;; Construct result.
-  (region-new (list (state-new (state-or  (region-high-state reg1) (region-high-state reg2)))
-                    (state-new (state-and (region-low-state reg1) (region-low-state reg2)))))
+  (region-new (list (state-or  (region-high-state reg1) (region-high-state reg2))
+                    (state-and (region-low-state reg1) (region-low-state reg2))))
 )
 
 ;;; Return the union of two regions.
@@ -345,8 +346,8 @@
   (assert (= (region-num-bits reg1) (state-num-bits stax)))
 
   ;; Construct result.
-  (region-new (list (state-new (state-or  (region-high-state reg1) stax))
-                    (state-new (state-and (region-low-state reg1) stax))))
+  (region-new (list (state-or  (region-high-state reg1) stax)
+                    (state-and (region-low-state reg1) stax)))
 )
 
 ;;; Return a mask of edge bit positions.
@@ -366,8 +367,8 @@
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
   ;; Construct result.
-  (mask-new-and (mask-new-and (region-edge-mask reg1) (region-edge-mask reg2))
-                (mask-new (state-xor (region-first-state reg1) (region-first-state reg2))))
+  (mask-new-and (mask-and (region-edge-mask reg1) (region-edge-mask reg2))
+                (mask-new-xor (region-first-state reg1) (region-first-state reg2)))
 )
 
 ;;; Return the distance between two regions.
@@ -418,8 +419,8 @@
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
   ;; Calc result.
-  (region-new (list (state-new (mask-or mskx (region-high-state regx)))
-                    (state-new (mask-or mskx (region-low-state regx)))))
+  (region-new (list (state-new-or mskx (region-high-state regx))
+                    (state-new-or mskx (region-low-state regx))))
 )
 
 ;;; Return a region with edges of a mask set to zeros.
@@ -430,9 +431,9 @@
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
   ;; Calc result.
-  (let ((mskn (mask-new (mask-not mskx))))
-    (region-new (list (state-new (mask-and mskn (region-high-state regx)))
-                      (state-new (mask-and mskn (region-low-state regx)))))
+  (let ((mskn (mask-not mskx)))
+    (region-new (list (state-new-and mskn (region-high-state regx))
+                      (state-new-and mskn (region-low-state regx))))
   )
 )
 
@@ -444,9 +445,9 @@
   (assert (= (region-num-bits regx) (mask-num-bits mskx)))
 
   ;; Calc result.
-  (let ((mskn (mask-new (mask-not mskx))))
-    (region-new (list (state-new (mask-or  mskx (region-high-state regx)))
-                      (state-new (mask-and mskn (region-low-state regx)))))
+  (let ((mskn (mask-not mskx)))
+    (region-new (list (state-new-or  mskx (region-high-state regx))
+                      (state-new-and mskn (region-low-state regx))))
   )
 )
 
@@ -466,7 +467,7 @@
     (return-from region-subtract (regionstore-new nil)))
 
   (let ((ret (regionstore-new nil))
-        (sub-bits (mask-split (mask-new-and (region-x-mask min-reg) (region-edge-mask sub-reg))))
+        (sub-bits (mask-split (mask-and (region-x-mask min-reg) (region-edge-mask sub-reg))))
        )
     ;; Calc result.
     ;; Copy and store the region, except, one position by one position, X over 0 becomes 1/0, X over 1 becomes 0/1.
@@ -520,9 +521,9 @@
   (assert (= (region-num-bits regx) (state-num-bits stax)))
 
   ;; Construct result.
-  (mask-num-ones (mask-new (state-and
+  (mask-num-ones (mask-new-and
                   (state-new-xor (region-first-state regx) stax)
-                  (state-new-xor (region-second-state regx) stax))))
+                  (state-new-xor (region-second-state regx) stax)))
 )
 
 ;;; Return true if the first region is a superset of a state.
@@ -598,8 +599,8 @@
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
   (assert (region-is-adjacent reg1 reg2))
 
-  (let ((to-x (mask-new-or (mask-new-and (region-1-mask reg1) (region-0-mask reg2))
-                           (mask-new-and (region-0-mask reg1) (region-1-mask reg2))))
+  (let ((to-x (mask-or (mask-new-and (region-1-mask reg1) (region-0-mask reg2))
+                       (mask-new-and (region-0-mask reg1) (region-1-mask reg2))))
         reg-a reg-b)
 
     (setf reg-a (region-set-to-x reg1 to-x))

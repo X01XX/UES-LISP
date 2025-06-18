@@ -155,8 +155,8 @@
 ;;;
 ;;; Wanted changes:     (rule-changes rule-from-to)
 ;;; Don't care changes: (change-new :m01 (region-x-mask to-region) :m10 (region-x-mask to-region))
-;;; Unwanted changes:   (change-new :m01 (mask-new-and (region-0-mask from-region) (region-0-mask to-region))
-;;;                                 :m10 (mask-new-and (region-1-mask from-region) (region-1-mask to-region)))
+;;; Unwanted changes:   (change-new :m01 (mask-and (region-0-mask from-region) (region-0-mask to-region))
+;;;                                 :m10 (mask-and (region-1-mask from-region) (region-1-mask to-region)))
 (defun domain-get-plan2 (domx rule-from-to with-reg depth &optional no-alt) ; -> plan, or nil.
   (assert (domain-p domx))
   (assert (rule-p rule-from-to))
@@ -523,8 +523,8 @@
     ;; Apply possible changes to the current state.
     ;; Combine regions, like (1xxx, 0xxx) or (01x1, 11x1, x101, x111).
     (setf xmask (mask-new-or
-                  (mask-new-and (mask-new (state-not (domain-current-state domx))) (change-m01 domain-changes))
-                  (mask-new-and (mask-new (state-value (domain-current-state domx))) (change-m10 domain-changes))
+                  (mask-new-and (state-not (domain-current-state domx)) (change-m01 domain-changes))
+                  (mask-new-and (domain-current-state domx) (change-m10 domain-changes))
                 )
     )
     (setf max-region (region-set-to-x max-region xmask))

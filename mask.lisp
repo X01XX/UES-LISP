@@ -18,13 +18,20 @@
 ;   (make-mask [:<field-name> <field-mask>]*), use mask-new instead.
 ;   (copy-mask <instance>) copies a mask instance.
 
-;;; Return a new mask.
-(defun mask-new (value) ; -> mask.
-  ;; Check argument.
-  (assert (value-p value))
+;;; Return a new mask, from a value or state.
+(defun mask-new (arg1) ; -> mask.
+  ;(format t "~&mask-new ~A" (type-of arg1))
 
-  ;; Construct return value.
-  (make-mask :value value)
+  (cond ((value-p arg1)
+         (make-mask :value arg1))
+        ((state-p arg1)
+         (make-mask :value (state-value arg1)))
+        (t (error "invalid argument")))
+)
+
+;;; Return a low mask, given a mask.
+(defun mask-new-low (msk1) ; -> mask.
+  (mask-new (value-new-low (mask-value msk1)))
 )
 
 ;;; Return a string for a mask.
@@ -100,13 +107,17 @@
   )
 )
 
-;;; Return a mask with the most significant bit set to one.
-(defun mask-msb (msk) ; -> mask.
-  ;; Check argument.
-  (assert (mask-p msk))
+;;; Return a mask with the most significant bit set to one,
+;;; given a mask or state.
+(defun mask-msb (arg1) ; -> mask.
+  (let (val1)
+    (cond ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          ((state-p arg1) (setf val1 (state-value arg1)))
+          (t (error "invalid arg1")))
 
-  ;; Construct result.
-  (mask-new (value-msb (mask-value msk)))
+    ;; Construct result.
+    (mask-new (value-msb val1))
+  )
 )
 
 ;;; Return a mask with the least significant bit set to one.
@@ -136,35 +147,18 @@
   (value-zerop (mask-value msk))
 )
 
-;;; Return the Boolean "and" mask of a mask and a mask, state, or value.
-(defun mask-and (msk1 other) ; -> value.
+;;; Return a mask from the Boolean "and" of two masks.
+(defun mask-and (msk1 msk2) ; -> mask.
   ;; Check arguments.
   (assert (mask-p msk1))
+  (assert (mask-p msk2))
+  (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))
 
-  (cond ((mask-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
-         ;; Calc result
-         (value-and (mask-value msk1) (mask-value other))
-        )
-        ((state-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (state-num-bits other)))
-         ;; Calc result
-         (value-and (mask-value msk1) (state-value other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (value-num-bits other)))
-         ;; Calc result
-         (value-and (mask-value msk1) other)
-        )
-        (t (error "~&other type ~A not expected" (type-of other)))
-  )
+  (mask-new (value-and (mask-value msk1) (mask-value msk2)))
 )
 
-;;; Return the Boolean "xor" mask of a mask and a mask, state, or value.
-(defun mask-xor (msk1 other) ; -> value.
+;;; Return the "and" mask of a mask and the "not" of a mask, state.
+(defun mask-and-not (msk1 other) ; -> mask.
   ;; Check arguments.
   (assert (mask-p msk1))
 
@@ -172,46 +166,13 @@
          ;; Check arguments, continued.
          (assert (= (mask-num-bits msk1) (mask-num-bits other)))
          ;; Calc result
-         (value-xor (mask-value msk1) (mask-value other))
+         (mask-and msk1 (mask-not other))
         )
         ((state-p other)
          ;; Check arguments, continued.
          (assert (= (mask-num-bits msk1) (state-num-bits other)))
          ;; Calc result
-         (value-xor (mask-value msk1) (state-value other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (value-num-bits other)))
-         ;; Calc result
-         (value-xor (mask-value msk1) other)
-        )
-        (t (error "~&other type ~A not expected" (type-of other)))
-  )
-)
-
-;;; Return the "and" mask of a mask and the "not" of a mask, state, or value.
-(defun mask-and-not (msk1 other) ; -> value.
-  ;; Check arguments.
-  (assert (mask-p msk1))
-
-  (cond ((mask-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
-         ;; Calc result
-         (value-and (mask-value msk1) (mask-not other))
-        )
-        ((state-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (state-num-bits other)))
-         ;; Calc result
-         (value-and (mask-value msk1) (state-not other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (value-num-bits other)))
-         ;; Calc result
-         (value-and (mask-value msk1) (value-not other))
+         (mask-new-and msk1 (state-not other))
         )
         (t (error "~&other type ~A not expected" (type-of other)))
   )
@@ -234,41 +195,32 @@
   )
 )
 
-;;; Return the Boolean "or" of a mask, and a mask, state, or value.
-(defun mask-or (msk1 other) ; -> value.
+;;; Return a mask from the Boolean "or" of two masks.
+(defun mask-or (msk1 msk2) ; -> mask.
   ;; Check arguments.
   (assert (mask-p msk1))
+  (assert (mask-p msk2))
+  (assert (= (mask-num-bits msk1) (mask-num-bits msk2)))
 
-  ; Create value to return.
-  (cond ((mask-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (mask-num-bits other)))
-         ;; Calc result
-         (value-or (mask-value msk1) (mask-value other))
-        )
-        ((state-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (state-num-bits other)))
-         ;; Calc result
-         (value-or (mask-value msk1) (state-value other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (mask-num-bits msk1) (value-num-bits other)))
-         ;; Calc result
-         (value-or (mask-value msk1) other)
-        )
-        (t (error "~&other type not expected ~A" (type-of other)))
-  )
+  (mask-new (value-or (mask-value msk1) (mask-value msk2)))
 )
 
-;;; Return the "not" bit mask of a given mask.
-(defun mask-not (msk) ; -> value.
+;;; Return a mask from the "not" bit mask of a given mask.
+(defun mask-not (msk) ; -> mask.
   ;; Check argument.
   (assert (mask-p msk))
 
   ;; Construct result.
-  (value-not (mask-value msk))
+  (mask-new (value-not (mask-value msk)))
+)
+
+;;; Return a mask from the "not" bit mask of a given mask or state.
+(defun mask-new-not (arg1) ; -> mask.
+  (cond ((mask-p arg1)
+         (mask-new (value-not (mask-value arg1))))
+        ((state-p arg1)
+         (mask-new (value-not (state-value arg1))))
+        (t (error "Invalid argument")))
 )
 
 ;;; Return the number of bits set to one in a mask.
@@ -288,7 +240,7 @@
   (assert (= (mask-num-bits sub-mask) (mask-num-bits sup-mask)))
 
   ;; Calc result.
-  (value-eq (mask-and sub-mask sup-mask) (mask-value sub-mask))
+  (mask-eq (mask-and sub-mask sup-mask) sub-mask)
 )
 
 ;;; Return true if a mask is a ones-superset of another.
@@ -299,7 +251,7 @@
   (assert (= (mask-num-bits sub-mask) (mask-num-bits sup-mask)))
 
   ;; Calc result.
-  (value-eq (mask-and sub-mask sup-mask) (mask-value sub-mask))
+  (mask-eq (mask-and sub-mask sup-mask) sub-mask)
 )
 
 ;;; Return true if a mask is zero.
@@ -329,22 +281,50 @@
   (plusp (value-bits (mask-value mskx)))
 )
 
-;;; Return a mask from a mask-or operation.
-(defun mask-new-or (msk1 msk2) ; -> mask
-  ;; Check arguments.
-  (assert (mask-p msk1))
+;;; Return a mask from a Boolean "xor" operation on any combination of state or mask.
+(defun mask-new-xor (arg1 arg2) ; -> mask
+  (let (val1 val2)
+    (cond ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          ((state-p arg1) (setf val1 (state-value arg1)))
+          (t (error "Invalid arg1")))
 
-  ;; Construct result.
-  (mask-new (mask-or msk1 msk2))
+    (cond ((mask-p arg2)  (setf val2 (mask-value arg2)))
+          ((state-p arg2) (setf val2 (state-value arg2)))
+          (t (error "Invalid arg2")))
+
+    (mask-new (value-xor val1 val2))
+  )
 )
 
-;;; Return a mask from a mask-and operation.
-(defun mask-new-and (msk1 msk2) ; -> mask
-  ;; Check arguments.
-  (assert (mask-p msk1))
+;;; Return a mask from a Boolean "or" operation on any combination of state or mask.
+(defun mask-new-or (arg1 arg2) ; -> mask
+  (let (val1 val2)
+    (cond ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          ((state-p arg1) (setf val1 (state-value arg1)))
+          (t (error "Invalid arg1")))
 
-  ;; Construct result.
-  (mask-new (mask-and msk1 msk2))
+    (cond ((mask-p arg2)  (setf val2 (mask-value arg2)))
+          ((state-p arg2) (setf val2 (state-value arg2)))
+          (t (error "Invalid arg2")))
+
+    (mask-new (value-or val1 val2))
+  )
+)
+
+;;; Return a mask from a Boolean "and" operation on any combination of state or mask.
+(defun mask-new-and (arg1 arg2) ; -> mask
+  ;(format t "~&mask-new-and: ~A ~A" (type-of arg1) (type-of arg2))
+  (let (val1 val2)
+    (cond ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          ((state-p arg1) (setf val1 (state-value arg1)))
+          (t (error "Invalid arg1")))
+
+    (cond ((mask-p arg2)  (setf val2 (mask-value arg2)))
+          ((state-p arg2) (setf val2 (state-value arg2)))
+          (t (error "Invalid arg2")))
+
+    (mask-new (value-and val1 val2))
+  )
 )
 
 ;;; Return a list of masks, each one having one bit from a given mask.

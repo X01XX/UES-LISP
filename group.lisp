@@ -287,7 +287,7 @@
       (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
 
       (loop for maskx in x-bit-masks do
-        (setf sta-adj (state-new (state-xor sta-first maskx)))
+        (setf sta-adj (state-new-xor sta-first maskx))
         (if (state-eq sta-adj stax)
           (return-from group-state-needed true))
       )

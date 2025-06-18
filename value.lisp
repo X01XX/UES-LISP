@@ -179,6 +179,7 @@
 (defun value-and (&rest vals) ; -> value.
   ;; Check arguments.
   (assert (> (length vals) 1))
+  ;(format t "~&value-and ~A" vals)
   (assert (value-p (car vals)))
 
   ;; Init working values based on the first value.

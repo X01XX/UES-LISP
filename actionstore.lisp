@@ -136,8 +136,8 @@
 (defun actionstore-changes (storex) ; -> change.
   (assert (actionstore-p storex))
 
-  (let ((ret (change-new :m01 (mask-new (value-new :num-bits (action-num-bits (car (actionstore-actions storex))) :bits 0))
-                         :m10 (mask-new (value-new :num-bits (action-num-bits (car (actionstore-actions storex))) :bits 0)))))
+  (let ((ret (change-new :m01 (action-mask-new-low (car (actionstore-actions storex)))
+                         :m10 (action-mask-new-low (car (actionstore-actions storex))))))
     (loop for actx in (actionstore-actions storex) do
       (setf ret (change-or ret (action-changes actx)))
     )

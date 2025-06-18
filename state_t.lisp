@@ -15,7 +15,7 @@
      (setf stax (state-from 's0010_0011))
      (assert (state-p stax))
      (assert (= (state-num-bits stax) 8))
-     (assert (value-eq (state-value stax) (value-from 'v0010_0011)))
+     (assert (state-eq stax (state-from 's0010_0011)))
 
      (format t "~&  state-from OK")
   )
@@ -65,11 +65,11 @@
 
      ; Test state xor state.
      (setf valx (state-xor sta1 sta2))
-     (assert (and (value-p valx) (value-eq valx (value-from 'v0100_1011))))
+     (assert (and (state-p valx) (state-eq valx (state-from 's0100_1011))))
 
-     ; Test state xor mask.
-     (setf valx (state-xor sta1 msk1))
-     (assert (and (value-p valx) (value-eq valx (value-from 'v0111_1000))))
+     ; Test state xor state.
+     (setf valx (state-new-xor sta1 msk1))
+     (assert (and (state-p valx) (state-eq valx (state-from 's0111_1000))))
 
      (format t "~&  state-xor OK")
   )
@@ -101,11 +101,11 @@
 
      ; Test state and state.
      (setf valx (state-and sta1 sta2))
-     (assert (and (value-p valx) (value-eq valx (value-from 'v0001_0010))))
+     (assert (and (state-p valx) (state-eq valx (state-from 's0001_0010))))
 
      ; Test state and mask.
-     (setf valx (state-and sta1 msk1))
-     (assert (and (value-p valx) (value-eq valx (value-from 'v0100_0010))))
+     (setf valx (state-new-and sta1 msk1))
+     (assert (and (state-p valx) (state-eq valx (state-from 's0100_0010))))
 
      (format t "~&  state-and OK")
   )
@@ -120,11 +120,11 @@
 
      ; Test state or state.
      (setf valx (state-or sta1 sta2))
-     (assert (and (value-p valx) (value-eq valx (value-from 'v0101_1011))))
+     (assert (and (state-p valx) (state-eq valx (state-from 's0101_1011))))
 
      ; Test state or mask.
-     (setf valx (state-or sta1 msk1))
-     (assert (and (value-p valx) (value-eq valx (value-from 'v0111_1010))))
+     (setf valx (state-new-or sta1 msk1))
+     (assert (and (state-p valx) (state-eq valx (state-from 's0111_1010))))
 
      (format t "~&  state-or OK")
   )

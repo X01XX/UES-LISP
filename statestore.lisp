@@ -137,10 +137,10 @@
   ;; Calc result.
   (let (ret (first-state (statestore-first-state storex)))
 
-    (setf ret (value-new :num-bits (state-num-bits first-state) :bits 0))
+    (setf ret (state-new-low first-state))
 
     (loop for stax in (cdr (statestore-states storex)) do
-       (setf ret (value-or ret (state-xor stax first-state)))
+       (setf ret (state-or ret (state-xor stax first-state)))
     )
     ;; Return result.
     (mask-new ret)

@@ -19,13 +19,14 @@
 ;   (make-state [:<field-name> <field-state>]*), use state-new instead.
 ;   (copy-state <instance>) copies a state instance.
 
-;;; Return a new state.
-(defun state-new (value) ; -> state.
-  ;; Check argument.
-  (assert (value-p value))
-
-  ;; Construct result.
-  (make-state :value value)
+;;; Return a new state, from a value or mask.
+(defun state-new (arg1) ; -> state.
+  ;(format t "~&state-new: ~A" (type-of arg1))
+  (cond ((value-p arg1)
+         (make-state :value arg1))
+        ((mask-p arg1)
+         (make-state :value (mask-value arg1)))
+        (t (error "Invalid argument")))
 )
 
 ;;; Return a state of the same number bits, with a high value.
@@ -122,31 +123,14 @@
   (value-eq (state-value sta1) (state-value sta2))
 )
 
-;;; Return the value of a state xor another state, mask, or value.
-(defun state-xor (sta other) ; -> value inst.
+;;; Return a state, from a state Boolean "xor" another state.
+(defun state-xor (sta1 sta2) ; -> state.
   ;; Check arguments.
-  (assert (state-p sta))
+  (assert (state-p sta1))
+  (assert (state-p sta2))
+  (assert (= (state-num-bits sta1) (state-num-bits sta2)))
 
-  (cond ((state-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (state-num-bits other)))
-         ;; Calc result.
-         (value-xor (state-value sta) (state-value other))
-        )
-        ((mask-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (mask-num-bits other)))
-         ;; Calc result.
-         (value-xor (state-value sta) (mask-value other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (value-num-bits other)))
-         ;; Calc result.
-         (value-xor (state-value sta) other)
-        )
-        (t (error "~&other type not expected ~A" (type-of other)))
-  )
+  (state-new (value-xor (state-value sta1) (state-value sta2)))
 )
 
 ;;; Return true if two states are not equal.
@@ -160,67 +144,41 @@
   (not (state-eq sta1 sta2))
 )
 
-;;; Return the value of a state and another state, mask, or value.
-(defun state-and (sta other) ; -> value inst.
+;;; Return a state, from a state Boolean "and" another state.
+(defun state-and (sta1 sta2) ; -> state.
   ;; Check arguments.
-  (assert (state-p sta))
+  (assert (state-p sta1))
+  (assert (state-p sta2))
+  (assert (= (state-num-bits sta1) (state-num-bits sta2)))
 
-  (cond ((state-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (state-num-bits other)))
-         ;; Calc result.
-         (value-and (state-value sta) (state-value other))
-        )
-        ((mask-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (mask-num-bits other)))
-         ;; Calc result.
-         (value-and (state-value sta) (mask-value other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (value-num-bits other)))
-         ;; Calc result.
-         (value-and (state-value sta) other)
-        )
-        (t (error "~&other type not expected ~A" (type-of other)))
-  )
+  (state-new (value-and (state-value sta1) (state-value sta2)))
 )
 
-;;; Return the value of a state or another state, mask, or value.
-(defun state-or (sta other) ; -> value inst.
+;;; Return a state, from a state Boolean "or" another state.
+(defun state-or (sta1 sta2) ; -> state.
   ;; Check arguments.
-  (assert (state-p sta))
+  (assert (state-p sta1))
+  (assert (state-p sta2))
+  (assert (= (state-num-bits sta1) (state-num-bits sta2)))
 
-  (cond ((state-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (state-num-bits other)))
-         ;; Calc result.
-         (value-or (state-value sta) (state-value other))
-        )
-        ((mask-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (mask-num-bits other)))
-         ;; Calc result.
-         (value-or (state-value sta) (mask-value other))
-        )
-        ((value-p other)
-         ;; Check arguments, continued.
-         (assert (= (state-num-bits sta) (value-num-bits other)))
-         ;; Calc result.
-         (value-or (state-value sta) other)
-        )
-        (t (error "~&other type not expected ~A" (type-of other)))
-  )
+  (state-new (value-or (state-value sta1) (state-value sta2)))
 )
 
-;;; Return the inverted, "not", value of a state.
-(defun state-not (stax) ; -> value.
-  ;; Check argument.
-  (assert (state-p stax))
+;;; Return a state from the Boolean "not" of a state.
+(defun state-not (sta1) ; -> state.
+  ;; Check arguments.
+  (assert (state-p sta1))
 
-  ;; Calc result.
-  (value-not (state-value stax))
+  (state-new (value-not (state-value sta1)))
+)
+
+;;; Return a state from the Boolean "not" of a state, or mask.
+(defun state-new-not (arg1) ; -> state.
+  (cond ((state-p arg1)
+         (state-new (value-not (state-value arg1))))
+        ((mask-p arg1)
+         (state-new (value-not (mask-value arg1))))
+        (t (error "Invalid argument")))
 )
 
 ;;; Return a random state of a given number of bits.
@@ -257,7 +215,7 @@
   (assert (= (state-num-bits sta1) (state-num-bits sta2)))
 
   ;; Calc result.
-  (value-num-ones (state-xor sta1 sta2))
+  (state-num-ones (state-xor sta1 sta2))
 )
 
 ;;; Return the regions implied by two dissimilar states.
@@ -283,22 +241,50 @@
   )
 )
 
-;;; Return a state from a state-or operation.
-(defun state-new-or (sta1 sta2) ; -> state
-  ;; Check arguments.
-  (assert (state-p sta1))
+;;; Return a state from a Boolean "xor" operation on any combination of state or mask.
+(defun state-new-xor (arg1 arg2) ; -> state
+  (let (val1 val2)
+    (cond ((state-p arg1) (setf val1 (state-value arg1)))
+          ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          (t (error "Invalid arg1")))
 
-  ;; Construct result.
-  (state-new (state-or sta1 sta2))
+    (cond ((state-p arg2) (setf val2 (state-value arg2)))
+          ((mask-p arg2)  (setf val2 (mask-value arg2)))
+          (t (error "Invalid arg2")))
+
+    (state-new (value-xor val1 val2))
+  )
 )
 
-;;; Return a state from a state-and operation.
-(defun state-new-and (sta1 sta2) ; -> state
-  ;; Check arguments.
-  (assert (state-p sta1))
+;;; Return a state from a Boolean "or" operation on any combination of state or mask.
+(defun state-new-or (arg1 arg2) ; -> state
+  (let (val1 val2)
+    (cond ((state-p arg1) (setf val1 (state-value arg1)))
+          ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          (t (error "Invalid arg1")))
 
-  ;; Construct result.
-  (state-new (state-and sta1 sta2))
+    (cond ((state-p arg2) (setf val2 (state-value arg2)))
+          ((mask-p arg2)  (setf val2 (mask-value arg2)))
+          (t (error "Invalid arg2")))
+
+    (state-new (value-or val1 val2))
+  )
+)
+
+
+;;; Return a state from a Boolean "and" operation on any combination of state or mask.
+(defun state-new-and (arg1 arg2) ; -> state
+  (let (val1 val2)
+    (cond ((state-p arg1) (setf val1 (state-value arg1)))
+          ((mask-p arg1)  (setf val1 (mask-value arg1)))
+          (t (error "Invalid arg1")))
+
+    (cond ((state-p arg2) (setf val2 (state-value arg2)))
+          ((mask-p arg2)  (setf val2 (mask-value arg2)))
+          (t (error "Invalid arg2")))
+
+    (state-new (value-and val1 val2))
+  )
 )
 
 ;;; Return a mask of matching bit positions of two states.
@@ -312,12 +298,11 @@
   (mask-new (value-eqv (state-value sta1) (state-value sta2)))
 )
 
-;;; Return a state from a state-xor operation.
-(defun state-new-xor (sta1 sta2) ; -> state
+;;; Return the number of one bits in a state.
+(defun state-num-ones (sta1) ; -> integer.
   ;; Check arguments.
   (assert (state-p sta1))
-
-  ;; Construct result.
-  (state-new (state-xor sta1 sta2))
+  
+  (value-num-ones (state-value sta1))
 )
 

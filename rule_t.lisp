@@ -714,34 +714,6 @@
     (format t "~&  rule-result-region OK")
   )
 
-  ;; Test rule-split-xb.
-  (let (rul1 rules)
-    (setf rul1 (rule-from-str "[00/01/11/10/XX/Xx]"))
-    (setf rules (rule-split-xb rul1))
-    (assert (= 1 (rulestore-length rules)))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx]")))
-
-    (setf rul1 (rule-from-str "[00/01/11/10/XX/Xx/X1]"))
-    (setf rules (rule-split-xb rul1))
-    (assert (= 2 (rulestore-length rules)))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx/01]")))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx/11]")))
-
-    (setf rul1 (rule-from-str "[00/01/11/10/XX/Xx/X1/X0]"))
-    (setf rules (rule-split-xb rul1))
-    (assert (= 4 (rulestore-length rules)))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx/01/00]")))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx/01/10]")))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx/11/00]")))
-    (assert (rulestore-member rules (rule-from-str "[00/01/11/10/XX/Xx/11/10]")))
-
-    (setf rul1 (rule-from-str "[00/01/11/10/XX/Xx/X0/X1/X0]"))
-    (setf rules (rule-split-xb rul1))
-    (assert (= 8 (rulestore-length rules)))
-
-    (format t "~&  rule-split-xb OK")
-  )
-
   ;; Test rule-restrict-by-change
   (let (rul1 rul2 cngs rul3)
     (setf rul1 (rule-from-str "[00/01/11/10/XX/Xx/X0/X1]"))

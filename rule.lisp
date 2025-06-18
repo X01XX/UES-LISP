@@ -45,10 +45,10 @@
   ;; Check argument.
   (assert (sample-p smpl))
 
-  (let ((m00 (mask-new (value-and (state-not (sample-initial smpl)) (state-not (sample-result smpl)))))
-        (m01 (mask-new (state-and (sample-result smpl) (state-not (sample-initial smpl)))))
-        (m11 (mask-new (state-and (sample-initial smpl) (sample-result smpl))))
-        (m10 (mask-new (state-and (sample-initial smpl) (state-not (sample-result smpl)))))
+  (let ((m00 (mask-new-and (state-not (sample-initial smpl)) (state-not (sample-result smpl))))
+        (m01 (mask-new-and (sample-result smpl) (state-not (sample-initial smpl))))
+        (m11 (mask-new-and (sample-initial smpl) (sample-result smpl)))
+        (m10 (mask-new-and (sample-initial smpl) (state-not (sample-result smpl))))
        )
     ;; Construct result.
     (make-rule :m00 m00 :m01 m01 :m11 m11 :m10 m10)
@@ -178,13 +178,13 @@
 
          ;; Assign value to bitval according to the rule masks.
          (setf bitval 0)
-         (if (not (value-zerop (mask-and bit-pos m00)))
+         (if (not (mask-is-low (mask-and bit-pos m00)))
              (setf bitval 1))
-         (if (not (value-zerop (mask-and bit-pos m01)))
+         (if (not (mask-is-low (mask-and bit-pos m01)))
              (incf bitval 2))
-         (if (not (value-zerop (mask-and bit-pos m11)))
+         (if (not (mask-is-low (mask-and bit-pos m11)))
              (incf bitval 4))
-         (if (not (value-zerop (mask-and bit-pos m10)))
+         (if (not (mask-is-low (mask-and bit-pos m10)))
              (incf bitval 8))
 
          ;; Add separator, if needed.
@@ -253,10 +253,10 @@
 
   (let (rulx)
     ;; Construct rule union.
-    (setf rulx (make-rule :m00 (mask-new-or (rule-m00 rul1) (rule-m00 rul2))
-                          :m01 (mask-new-or (rule-m01 rul1) (rule-m01 rul2))
-                          :m11 (mask-new-or (rule-m11 rul1) (rule-m11 rul2))
-                          :m10 (mask-new-or (rule-m10 rul1) (rule-m10 rul2))))
+    (setf rulx (make-rule :m00 (mask-or (rule-m00 rul1) (rule-m00 rul2))
+                          :m01 (mask-or (rule-m01 rul1) (rule-m01 rul2))
+                          :m11 (mask-or (rule-m11 rul1) (rule-m11 rul2))
+                          :m10 (mask-or (rule-m10 rul1) (rule-m10 rul2))))
 
     ;; Return result.
     (if (rule-is-valid-union rulx) rulx nil)
@@ -270,8 +270,8 @@
 
   ;; Calc result.
   (and
-    (value-zerop (mask-and (rule-m00 rulx) (rule-m01 rulx)))
-    (value-zerop (mask-and (rule-m11 rulx) (rule-m10 rulx)))
+    (mask-is-low (mask-and (rule-m00 rulx) (rule-m01 rulx)))
+    (mask-is-low (mask-and (rule-m11 rulx) (rule-m10 rulx)))
   )
 )
 
@@ -284,10 +284,10 @@
 
   (let (rulx)
     ;; Construct rule intersection.
-    (setf rulx (make-rule :m00 (mask-new-and (rule-m00 rul1) (rule-m00 rul2))
-                          :m01 (mask-new-and (rule-m01 rul1) (rule-m01 rul2))
-                          :m11 (mask-new-and (rule-m11 rul1) (rule-m11 rul2))
-                          :m10 (mask-new-and (rule-m10 rul1) (rule-m10 rul2))))
+    (setf rulx (make-rule :m00 (mask-and (rule-m00 rul1) (rule-m00 rul2))
+                          :m01 (mask-and (rule-m01 rul1) (rule-m01 rul2))
+                          :m11 (mask-and (rule-m11 rul1) (rule-m11 rul2))
+                          :m10 (mask-and (rule-m10 rul1) (rule-m10 rul2))))
 
     ;; Return result.
     (if (rule-is-valid-intersection rulx) rulx nil)
@@ -300,10 +300,10 @@
   (assert (rule-p rul))
 
   ;; Calc result.
-  (mask-is-high (mask-new-or
+  (mask-is-high (mask-or
                   (rule-m00 rul)
-                  (mask-new-or (rule-m01 rul)
-                    (mask-new-or (rule-m11 rul) (rule-m10 rul)))))
+                  (mask-or (rule-m01 rul)
+                    (mask-or (rule-m11 rul) (rule-m10 rul)))))
 )
 
 ;;; Return true if two rules are equal.
@@ -336,8 +336,8 @@
 
   (let (
     ;; Calc result.
-    (sta1 (state-new (mask-or (rule-m10 rulx) (rule-m11 rulx))))
-    (sta2 (state-new (value-not (mask-or (rule-m01 rulx) (rule-m00 rulx))))))
+    (sta1 (state-new-or (rule-m10 rulx) (rule-m11 rulx)))
+    (sta2 (state-new-not (mask-or (rule-m01 rulx) (rule-m00 rulx)))))
 
     ;; Return result.
     (if (state-eq sta1 sta2)
@@ -352,14 +352,14 @@
   (assert (rule-p rulx))
 
   (let (
-    (sta1 (state-new (mask-or (rule-m11 rulx) (rule-m01 rulx))))
-    (sta2 (state-new (value-not (mask-or (rule-m00 rulx) (rule-m10 rulx)))))
+    (sta1 (state-new-or (rule-m11 rulx) (rule-m01 rulx)))
+    (sta2 (state-new-not (mask-or (rule-m00 rulx) (rule-m10 rulx))))
     (x-not-x (mask-and (rule-m01 rulx) (rule-m10 rulx))))
 
     ;; The initial region for a rule will have all X positions represented by a capitol X.
     ;; To indicate X->x, the result region position needs to be changed to lower-case.
-    (setf sta1 (state-new (value-xor x-not-x (state-value sta1))))
-    (setf sta2 (state-new (value-xor x-not-x (state-value sta2))))
+    (setf sta1 (state-new-xor x-not-x sta1))
+    (setf sta2 (state-new-xor x-not-x sta2))
 
     ;; Return result.
     (if (state-eq sta1 sta2)
@@ -401,25 +401,25 @@
   (assert (region-p reg2))
   (assert (= (region-num-bits reg1) (region-num-bits reg2)))
 
-  (let (v00 vxx vx0 v01 vx1 v11 v10 v0x v1x)
+  (let (m00 mxx mx0 m01 mx1 m11 m10 m0x m1x)
 
     ; Make masks for each possible bit position, (0, 1, X) to (0, 1, X), 3 X 3 = 9 possibilities.
-    (setf v00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
-    (setf v0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
-    (setf vxx (mask-and (region-x-mask reg1) (region-x-mask reg2)))
+    (setf m00 (mask-and (region-0-mask reg1) (region-0-mask reg2)))
+    (setf m0x (mask-and (region-0-mask reg1) (region-x-mask reg2)))
+    (setf mxx (mask-and (region-x-mask reg1) (region-x-mask reg2)))
 
-    (setf vx0 (mask-and (region-x-mask reg1) (region-0-mask reg2)))
-    (setf v01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
-    (setf vx1 (mask-and (region-x-mask reg1) (region-1-mask reg2)))
-    (setf v11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
-    (setf v10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
-    (setf v1x (mask-and (region-1-mask reg1) (region-x-mask reg2)))
+    (setf mx0 (mask-and (region-x-mask reg1) (region-0-mask reg2)))
+    (setf m01 (mask-and (region-0-mask reg1) (region-1-mask reg2)))
+    (setf mx1 (mask-and (region-x-mask reg1) (region-1-mask reg2)))
+    (setf m11 (mask-and (region-1-mask reg1) (region-1-mask reg2)))
+    (setf m10 (mask-and (region-1-mask reg1) (region-0-mask reg2)))
+    (setf m1x (mask-and (region-1-mask reg1) (region-x-mask reg2)))
 
     ;; Construct result.
-    (make-rule :m00 (mask-new (value-or v00 vxx vx0 v0x))
-               :m01 (mask-new (value-or v01 vx1))
-               :m11 (mask-new (value-or v11 vxx vx1 v1x))
-               :m10 (mask-new (value-or v10 vx0)))
+    (make-rule :m00 (mask-or m00 (mask-or mxx (mask-or mx0 m0x)))
+               :m01 (mask-or m01 mx1)
+               :m11 (mask-or m11 (mask-or mxx (mask-or mx1 m1x)))
+               :m10 (mask-or m10 mx0))
   )
 )
 
@@ -431,13 +431,13 @@
   (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
   (let (msk-in rulz)
-    (setf msk-in (mask-new (mask-not msk-out)))
+    (setf msk-in (mask-not msk-out))
 
     ;; Construct modified rule.
     (setf rulz (make-rule :m00 (rule-m00 rulex)
                           :m01 (rule-m01 rulex)
-                          :m11 (mask-new-and (rule-m11 rulex) msk-in)
-                          :m10 (mask-new-and (rule-m10 rulex) msk-in)))
+                          :m11 (mask-and (rule-m11 rulex) msk-in)
+                          :m10 (mask-and (rule-m10 rulex) msk-in)))
 
     (assert (rule-is-valid-intersection rulz))
     ;; Return result.
@@ -453,11 +453,11 @@
   (assert (= (rule-num-bits rulex) (mask-num-bits msk-out)))
 
   (let (msk-in rulz)
-    (setf msk-in (mask-new (mask-not msk-out)))
+    (setf msk-in (mask-not msk-out))
 
     ;; Construct modified rule.
-    (setf rulz (make-rule :m00 (mask-new-and (rule-m00 rulex) msk-in)
-                          :m01 (mask-new-and (rule-m01 rulex) msk-in)
+    (setf rulz (make-rule :m00 (mask-and (rule-m00 rulex) msk-in)
+                          :m01 (mask-and (rule-m01 rulex) msk-in)
                           :m11 (rule-m11 rulex)
                           :m10 (rule-m10 rulex)))
 
@@ -477,10 +477,10 @@
   (assert (region-intersects (rule-result-region rul1) (rule-initial-region rul2)))
 
   ;; Consrtuct result.
-  (make-rule :m00 (mask-new-or (mask-new-and (rule-m00 rul1) (rule-m00 rul2)) (mask-new-and (rule-m01 rul1) (rule-m10 rul2)))
-             :m01 (mask-new-or (mask-new-and (rule-m01 rul1) (rule-m11 rul2)) (mask-new-and (rule-m00 rul1) (rule-m01 rul2)))
-             :m11 (mask-new-or (mask-new-and (rule-m11 rul1) (rule-m11 rul2)) (mask-new-and (rule-m10 rul1) (rule-m01 rul2)))
-             :m10 (mask-new-or (mask-new-and (rule-m10 rul1) (rule-m00 rul2)) (mask-new-and (rule-m11 rul1) (rule-m10 rul2))))
+  (make-rule :m00 (mask-or (mask-and (rule-m00 rul1) (rule-m00 rul2)) (mask-and (rule-m01 rul1) (rule-m10 rul2)))
+             :m01 (mask-or (mask-and (rule-m01 rul1) (rule-m11 rul2)) (mask-and (rule-m00 rul1) (rule-m01 rul2)))
+             :m11 (mask-or (mask-and (rule-m11 rul1) (rule-m11 rul2)) (mask-and (rule-m10 rul1) (rule-m01 rul2)))
+             :m10 (mask-or (mask-and (rule-m10 rul1) (rule-m00 rul2)) (mask-and (rule-m11 rul1) (rule-m10 rul2))))
 )
 
 ;;; Return the combination of two rules.
@@ -510,14 +510,14 @@
   (assert (region-intersects (rule-initial-region rulx) regx))
 
   (let* ((regint (region-intersection (rule-initial-region rulx) regx))
-         (zeros (mask-new (state-not (region-low-state regint))))
-         (ones  (mask-new (state-value (region-high-state regint)))))
+         (zeros (mask-new-not (region-low-state regint)))
+         (ones  (mask-new (region-high-state regint))))
 
     ;; Construct result.
-    (make-rule :m00 (mask-new-and (rule-m00 rulx) zeros)
-               :m01 (mask-new-and (rule-m01 rulx) zeros)
-               :m11 (mask-new-and (rule-m11 rulx) ones)
-               :m10 (mask-new-and (rule-m10 rulx) ones))
+    (make-rule :m00 (mask-and (rule-m00 rulx) zeros)
+               :m01 (mask-and (rule-m01 rulx) zeros)
+               :m11 (mask-and (rule-m11 rulx) ones)
+               :m10 (mask-and (rule-m10 rulx) ones))
   )
 )
 
@@ -530,14 +530,14 @@
   (assert (region-intersects (rule-result-region rulx) regx))
 
   (let* ((regint (region-intersection (rule-result-region rulx) regx))
-         (zeros (mask-new (state-not (region-low-state regint))))
-         (ones  (mask-new (state-value (region-high-state regint)))))
+         (zeros (mask-new-not (region-low-state regint)))
+         (ones  (mask-new (region-high-state regint))))
 
     ;; Construct result.
-    (make-rule :m00 (mask-new-and (rule-m00 rulx) zeros)
-               :m01 (mask-new-and (rule-m01 rulx) ones)
-               :m11 (mask-new-and (rule-m11 rulx) ones)
-               :m10 (mask-new-and (rule-m10 rulx) zeros))
+    (make-rule :m00 (mask-and (rule-m00 rulx) zeros)
+               :m01 (mask-and (rule-m01 rulx) ones)
+               :m11 (mask-and (rule-m11 rulx) ones)
+               :m10 (mask-and (rule-m10 rulx) zeros))
   )
 )
 
@@ -579,20 +579,20 @@
   (assert (change-p wanted))
   (assert (= (rule-num-bits first) (rule-num-bits next)))
   (assert (= (rule-num-bits first) (change-num-bits wanted)))
-  (assert (value-is-low (mask-and (change-m01 wanted) (change-m10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
-  (assert (value-is-not-low (mask-or (change-m01 wanted) (change-m10 wanted)))) ; At least one change should be needed.
+  (assert (mask-is-low (mask-and (change-m01 wanted) (change-m10 wanted)))) ; 0->1 and 1->0 is never needed for the same bit position.
+  (assert (mask-is-not-low (mask-or (change-m01 wanted) (change-m10 wanted)))) ; At least one change should be needed.
 
   (let ((rule-comb (rule-combine-sequence first next))
-        (msk01 (mask-new-and (rule-m01 first) (change-m01 wanted)))
-        (msk10 (mask-new-and (rule-m10 first) (change-m10 wanted)))
+        (msk01 (mask-and (rule-m01 first) (change-m01 wanted)))
+        (msk10 (mask-and (rule-m10 first) (change-m10 wanted)))
        )
 
     ;; Check that 0->1 changes are preserved.
-    (if (mask-is-not-low (mask-new-and (rule-m01 rule-comb) msk01))
+    (if (mask-is-not-low (mask-and (rule-m01 rule-comb) msk01))
       (return-from rule-sequence-blocks-changes false)) ; Return negative result.
 
     ;; Check that 1->0 changes are preserved.
-    (if (mask-is-not-low (mask-new-and (rule-m10 rule-comb) msk10))
+    (if (mask-is-not-low (mask-and (rule-m10 rule-comb) msk10))
       (return-from rule-sequence-blocks-changes false)) ; Return negative result.
 
     ;; Return positive result.
@@ -608,7 +608,7 @@
   (assert (change-p wanted))
   (assert (= (rule-num-bits rul1) (rule-num-bits rul2)))
   (assert (= (rule-num-bits rul1) (change-num-bits wanted)))
-  (assert (value-is-low (mask-and (change-m01 wanted) (change-m10 wanted))))    ; 0->1 and 1->0 is never needed for the same bit position.
+  (assert (mask-is-low (mask-and (change-m01 wanted) (change-m10 wanted))))    ; 0->1 and 1->0 is never needed for the same bit position.
   (assert (change-is-not-low wanted)) ; At least one change should be needed.
   (assert (change-is-not-low (rule-intersection-change rul1 wanted))) ; rul1 should have a wanted change.
   (assert (change-is-not-low (rule-intersection-change rul2 wanted))) ; rul2 should have a wanted change.
@@ -628,12 +628,12 @@
 
   (let (cng1s cng0s)
     ;; Find one bits that should change.
-    (setf cng1s (mask-new (state-and stax (rule-m10 rulx))))
+    (setf cng1s (mask-new-and stax (rule-m10 rulx)))
     ;; Find zero bits that should change.
-    (setf cng0s (mask-new (mask-and (mask-new (state-not stax)) (rule-m01 rulx))))
+    (setf cng0s (mask-new-and (state-not stax) (rule-m01 rulx)))
 
     ;; Calc result.
-    (state-new (state-xor stax (mask-new (mask-or cng1s cng0s))))
+    (state-new-xor stax (mask-or cng1s cng0s))
   )
 )
 
@@ -756,107 +756,23 @@
     (setf r-0 (region-0-mask result))
     (setf r-1 (region-1-mask result))
 
-    (setf xx (mask-new (mask-and (rule-m00 rulx) (rule-m11 rulx))))
-    (setf x-not-x (mask-new (mask-and (rule-m10 rulx) (rule-m01 rulx))))
+    (setf xx (mask-and (rule-m00 rulx) (rule-m11 rulx)))
+    (setf x-not-x (mask-and (rule-m10 rulx) (rule-m01 rulx)))
 
-    ;; Check for X->0, it should have been split by running rule-split-xb, before calling this.
-    (if (mask-is-not-low (mask-new-and i-x r-0))
+    ;; Check for X->0.
+    (if (mask-is-not-low (mask-and i-x r-0))
       (error "Rule with x->0 bit position cannot be reversed"))
 
-    ;; Check for X->1, it should have been split by running rule-split-xb, before calling this.
-    (if (mask-is-not-low (mask-new-and i-x r-1))
+    ;; Check for X->1.
+    (if (mask-is-not-low (mask-and i-x r-1))
       (error "Rule with x->1 bit position cannot be reversed"))
 
     ;; Construct result.
-    (make-rule :m00 (mask-new-or (mask-new-and i-0 r-0) xx)
-               :m01 (mask-new-or (mask-new-and i-1 r-0) x-not-x)
-               :m11 (mask-new-or (mask-new-and i-1 r-1) xx)
-               :m10 (mask-new-or (mask-new-and i-0 r-1) x-not-x)
+    (make-rule :m00 (mask-or (mask-and i-0 r-0) xx)
+               :m01 (mask-or (mask-and i-1 r-0) x-not-x)
+               :m11 (mask-or (mask-and i-1 r-1) xx)
+               :m10 (mask-or (mask-and i-0 r-1) x-not-x)
     )
-  )
-)
-
-;; Return rules split by x->0, x->1 positions.
-;; To enable return to the original state, after an alternate result.
-;;
-;; Splitting an X->b position, where b is 0 or 1, produces two rule fragments, one with a 0->b position, and one with a 1->b position,
-;; which allows knowing the exact original state to return to, to sample again to get the desired result.
-;;
-;; Unfortunately, multiple X->b positions results in 2 to the number positions power rule fragments.
-(defun rule-split-xb (rulx) ; -> a rulestore of 2 to power number of x->0, x->1, positions.
-  ;; Check argument.
-  (assert (rule-p rulx))
-
-  (let (initial result xb-mask xb-positions (ret-rules (rulestore-new nil)) tmp-initial
-       position-masks
-       pattern-masks
-       num-positions
-       to-0-mask to-1-mask mrul)
-
-    (setf initial (rule-initial-region rulx))
-    (setf result  (rule-result-region rulx))
-
-    ;; For 00/x0/xx/x1, this will be m0101.
-    (setf xb-mask (mask-new-and (region-x-mask initial) (region-edge-mask result)))
-
-    ;; Check if no xb positions.
-    (if (mask-is-low xb-mask)
-      (return-from rule-split-xb (rulestore-new (list rulx))))
-
-    ;; Get masks with a single bit set to one for each xb position.
-    ;; For m0101, this will be (m0100, m0001).
-    (setf xb-positions (mask-split xb-mask))
-
-    (setf num-positions (length xb-positions))
-
-    ;; Get a list masks for each bit position.
-    ;; if there are two positions, this will be (m01 m10).
-    (loop for bit-position from 0 below num-positions do
-      (push (mask-new (value-new :num-bits num-positions :bits (expt 2 bit-position))) position-masks)
-    )
-
-    ;; Get list of each possible bit pattern, with positions to be set to 0 or 1.
-    ;; If there are two xb positions, this will be (m00 m01 m10 m11).
-    (loop for bit-pattern from 0 below (expt 2 num-positions) do
-      (push (mask-new (value-new :num-bits num-positions :bits bit-pattern)) pattern-masks)
-    )
-
-    ;; For each pattern mask, like (m00 m01 m10 m11),
-    ;; For each position pattern (m0010, m0001), for each prob mask (m00 m01 m10 m11),
-    ;; Set xb positions .x.x to .0.0 for m00.
-    ;; Set xb positions .x.x to .0.1 for m01.
-    ;; Set xb positions .x.x to .1.0 for m10.
-    ;; Set xb positions .x.x to .1.1 for m11.
-    (loop for pattern-mask in pattern-masks do
-
-      ;; Init masks for changing the original rule initial region.
-      (setf to-0-mask (mask-new (value-new :num-bits (region-num-bits initial) :bits 0)))
-      (setf to-1-mask (mask-new (value-new :num-bits (region-num-bits initial) :bits 0)))
-
-      ;; For each position mask, like (m01 m10),
-      (loop for position-mask in position-masks
-            for inx from 0 below num-positions do
-
-        ;; If pattern mask is zero, accumulate xb-positions to set to zero.
-        ;; If pattern mask is one , accumulate xb-positions to set to one.
-        (if (mask-is-low (mask-new-and position-mask pattern-mask))
-           (setf to-0-mask (mask-new-or to-0-mask (nth inx xb-positions)))
-           (setf to-1-mask (mask-new-or to-1-mask (nth inx xb-positions)))
-        )
-      )
-
-      ;; Alter original rule initial region.
-      (setf tmp-initial (region-set-to-zeros initial to-0-mask))
-      (setf tmp-initial (region-set-to-ones tmp-initial to-1-mask))
-
-      ;; Restrict original rule to new initial region.
-      (setf mrul (rule-restrict-initial-region rulx tmp-initial))
-
-      ;; Save rule fragment.
-      (rulestore-push ret-rules mrul)
-    )
-    ;; Return result.
-    ret-rules
   )
 )
 
