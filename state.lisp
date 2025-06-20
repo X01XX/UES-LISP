@@ -219,6 +219,7 @@
 )
 
 ;;; Return the regions implied by two dissimilar states.
+;;; That is ~A + ~B, which means no possible region will contain both states.
 (defun state-regions-implied-by-dissimilarity (stax stay) ; -> regionstore.
   ;; Check arguments.
   (assert (state-p stax))

@@ -151,6 +151,20 @@
   )
 )
 
+;;; Return true if a state is in exactly one group.
+(defun groupstore-state-in-one-group (groups stax) ; -> bool
+  (assert (groupstore-p groups))
+  (assert (state-p stax))
+
+  (let ((cnt 0))
+    (loop for grpx in (groupstore-groups groups) do
+      (if (region-superset-of-state (group-region grpx) stax)
+         (incf cnt))
+    )
+    (= cnt 1)
+  )
+)
+
 ;;; Return true if a state is in at least one group.
 (defun groupstore-state-in (groups stax) ; -> bool.
   ;(format t "~&groupstore-state-in: ~A ~A" (type-of groups) (type-of stax))
@@ -346,5 +360,18 @@
       (return-from groupstore-state-needed true))
   )
   false
+)
+
+;;; Return a regionstore of regions from groups.
+(defun groupstore-regions (storex) ; -> regionstore
+  ;; Check argument.
+  (assert (groupstore-p storex))
+
+  (let ((ret (regionstore-new nil)))
+    (loop for grpx in (groupstore-groups storex) do
+      (regionstore-push ret (group-region grpx))
+    )
+    ret
+  )
 )
 

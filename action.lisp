@@ -9,7 +9,6 @@
                     ; An item will be an association list for a rulestore with GT 1 rules, otherwise the item will be nil.
   logical-structure ; A regionstore of all possible regions based on close, dissimilar samples.
   cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
-  defining          ; A defining store, defining regions and vertices.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -67,7 +66,6 @@
                             :base-memory memory
                             :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
                             :cleanup-flag true
-                            :defining (definingstore-new nil)
                   ))
     ;; Return result.
     actx
@@ -353,26 +351,28 @@
       ) ; end let
   
       ;; Get structure needs.
-      (let ((structure-needs (action-structure-needs actx reachable)) groups-pinnacle-in)
-  
+      (let ((structure-needs (action-structure-needs actx reachable)))
+
         (if (needstore-is-not-empty structure-needs)
           (setf needs (needstore-append needs structure-needs))
           ;; else
           ;; Find defining regions in action-logical-structure, using action-defining.
-          (when (definingstore-is-not-empty (action-defining actx))
-           ;(format t "~&action-get-needs: Dom: ~D Act: ~D action-defining len ~A" *dom-id* *act-id* (definingstore-length (action-defining actx)))
-
-           (loop for defx in (definingstore-defining (action-defining actx)) do
-
-              (setf groups-pinnacle-in (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle (defining-vertex defx))))
-              (when (= (groupstore-length groups-pinnacle-in) 1) 
-    
-                ;; Generate needs for each region.
-                (setf needs (needstore-append needs (action-structure-group-needs actx (groupstore-first groups-pinnacle-in) 
-                         (vertex-pinnacle (defining-vertex defx)))))
+          (progn
+            (loop for grpx in (groupstore-groups (action-groups actx)) do
+ 
+              (when (not (null (group-anchor grpx)))
+ 
+                (if (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle (group-anchor grpx)))
+       
+                  ;; Generate needs for each region.
+                  (setf needs (needstore-append needs (action-structure-group-needs actx grpx 
+                                (vertex-pinnacle (group-anchor grpx)))))
+                  ;; Else
+                  (setf (group-anchor grpx) nil)
+                )
               )
             )
-  
+   
             ;; Check for groups not supported by the logical structure.
             (when (> (regionstore-length (action-logical-structure actx)) 1)
               (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
@@ -380,7 +380,7 @@
                   (action-process-invalidated-groups actx invalidated-groups))
               )
             )
-          )
+          ) ; end if
         ) ; end if
       )
   
@@ -543,32 +543,35 @@
   (assert (action-p actx))
   (assert (group-p grpx))
 
-  (let ((needs (needstore-new nil)) sta-first sqr-first x-bit-masks sta-adj sqr-adj)
+  (let ((needs (needstore-new nil)) sta-pin sqr-first x-bit-masks sta-adj sqr-adj)
 
-    ;; Get first state and square of group region.
-    (setf sta-first (region-first-state (group-region grpx)))
+    (when (not (null (group-anchor grpx)))
 
-    (if (not (regionstore-state-in-exactly-one (action-logical-structure actx) sta-first))
-      (return-from action-confirm-unused-group-needs needs))
-
-    (setf sqr-first (action-find-square actx sta-first))
-    (if (null sqr-first)
-      (error "action-confirm-unused-group-needs: square of first state ~A defining group ~A region not found"
-          (state-str sta-first) (region-str (group-region grpx))))
-
-    (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
-
-    ;; Check each square inside the region is pnc.
-    (loop for maskx in x-bit-masks do
-      (setf sta-adj (state-new-xor sta-first maskx))
-
-      (setf sqr-adj (action-find-square actx sta-adj))
-
-      (if sqr-adj
-        (if (not (square-pnc sqr-adj))
-          (needstore-push needs (action-get-need-resample-state actx sta-adj *confirm-group* (format nil "group ~A that will not be used" (region-str (group-region grpx)))))
+      ;; Get first state and square of group region.
+      (setf sta-pin (vertex-pinnacle (group-anchor grpx)))
+  
+      (if (not (regionstore-state-in-one-region (action-logical-structure actx) sta-pin))
+        (return-from action-confirm-unused-group-needs needs))
+  
+      (setf sqr-first (action-find-square actx sta-pin))
+      (if (null sqr-first)
+        (error "action-confirm-unused-group-needs: square of first state ~A defining group ~A region not found"
+            (state-str sta-pin) (region-str (group-region grpx))))
+  
+      (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
+  
+      ;; Check each square inside the region is pnc.
+      (loop for maskx in x-bit-masks do
+        (setf sta-adj (state-new-xor sta-pin maskx))
+  
+        (setf sqr-adj (action-find-square actx sta-adj))
+  
+        (if sqr-adj
+          (if (not (square-pnc sqr-adj))
+            (needstore-push needs (action-get-need-resample-state actx sta-adj *confirm-group* (format nil "group ~A that will not be used" (region-str (group-region grpx)))))
+          )
+          (needstore-push needs (action-get-need-sample-state actx sta-adj *confirm-group* (format nil "group ~A that will not be used" (region-str (group-region grpx)))))
         )
-        (needstore-push needs (action-get-need-sample-state actx sta-adj *confirm-group* (format nil "group ~A that will not be used" (region-str (group-region grpx)))))
       )
     )
     needs
@@ -677,92 +680,79 @@
   (assert (or (regionstore-is-empty reachable)
               (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
-  (let (grpx (invalid false) sqr-p sqr-e)
-    ;; Check that each defining region is still represented by a group.
-    (loop for defvtx in (definingstore-defining (action-defining actx))
-          while (not invalid) do
+  (let (invalid sqr-p sqr-e)
+    (loop for grpx in (groupstore-groups (action-groups actx)) do
 
-      (setf grpx (action-find-group actx (defining-region defvtx)))
-      (if (null grpx)
-        (setf invalid true))
-    )
-    (when invalid
-      (setf (action-defining actx) (definingstore-new nil))
-      (return-from action-validate-defining-regions (action-check-for-defining-regions actx reachable))
-    )
+      (when (not (null (group-anchor grpx)))
+        (setf invalid false)
 
-    ;; Check that each vertex pinnacle is still in only one group.
-    (loop for defvtx in (definingstore-defining (action-defining actx))
-          while (not invalid) do
-       (if (/= 1 (groupstore-length (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle (defining-vertex defvtx)))))
-        (setf invalid true))
-    )
-    (when invalid
-      (setf (action-defining actx) (definingstore-new nil))
-      (return-from action-validate-defining-regions (action-check-for-defining-regions actx reachable))
-    )
-
-    ;; Check that vertices edge states are still incompatible with the pinnacle.
-    ;; Check that each vertex pinnacle is still in only one group.
-    (loop for defvtx in (definingstore-defining (action-defining actx))
-          while (not invalid) do
-
-      (setf sqr-p (action-find-square actx (vertex-pinnacle (defining-vertex defvtx))))
-
-      (when sqr-p
-        (loop for stax in (statestore-states (vertex-edges (defining-vertex defvtx))) do
-          (setf sqr-e (action-find-square actx stax))
-          (when sqr-e
-            (if (not (= (square-compatible sqr-p sqr-e)))
-              (setf invalid true))
+        ;; Check that vertex pinnacle is still in only one group.
+        (if (not (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle (group-anchor grpx))))
+          (setf (group-anchor grpx) nil)
+          ; else
+          (progn
+            ;; Check that vertices edge states are still incompatible with the pinnacle.
+            ;; Check that each vertex pinnacle is still in only one group.
+            (setf sqr-p (action-find-square actx (vertex-pinnacle (group-anchor grpx))))
+      
+            (if (null sqr-p)
+              (format t "~&action-validate-defining-regions: vertex pinnacle ~A, square not found?")
+              ; else
+              (loop for stax in (statestore-states (vertex-edges (group-anchor grpx)))
+                    while (not invalid)  do
+                (setf sqr-e (action-find-square actx stax))
+                (when sqr-e
+                  (if (= (square-compatible sqr-p sqr-e) *compatible*)
+                    (setf invalid true))
+                )
+              ) ; next stax
+            )
           )
         )
+        (if invalid
+          (setf (group-anchor grpx) nil)
+        )
       )
-    )
-    (when invalid
-      (setf (action-defining actx) (definingstore-new nil))
-      (return-from action-validate-defining-regions (action-check-for-defining-regions actx reachable))
-    )
-
+    ) ; next grpx
     ;; Return result.
-    (action-defining-region-virtex-needs actx)
+    (action-defining-region-vertex-needs actx)
   )
 )
 
 ;;; Return needs for comfirmimg all states in defining region verticies.
-(defun action-defining-region-virtex-needs (actx) ; -> needstore.
+(defun action-defining-region-vertex-needs (actx) ; -> needstore.
   ;; Check argument.
   (assert (action-p actx))
 
   ;; Check vertices for needs.
   (let ((needs (needstore-new nil)) sqrx) 
-    (when (definingstore-is-not-empty (action-defining actx))
-      (loop for defvtx in (vertexstore-vertices (action-defining actx)) do
+      (loop for grpx in (groupstore-groups (action-groups actx)) do
+        (when (not (null (group-anchor grpx)))
 
-        ;; Check pinnacle.
-        (setf sqrx (action-find-square actx (vertex-pinnacle (defining-vertex defvtx))))
-        (if sqrx
-          (if (not (square-pnc sqrx))
-            (needstore-push needs (action-get-need-resample-state actx (square-state sqrx) *confirm-vertices*
-                                    (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
-          )
-          (error "vertex pinnacle square not found ~A?" (defining-str (defining-vertex defvtx)))
-        )
-        ;; Check edges.
-        (loop for stax in (statestore-states (vertex-states (defining-vertex defvtx))) do
-          (setf sqrx (action-find-square actx stax))
+          ;; Check pinnacle.
+          (setf sqrx (action-find-square actx (vertex-pinnacle (group-anchor grpx))))
           (if sqrx
             (if (not (square-pnc sqrx))
-              (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*
-                                      (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
+              (needstore-push needs (action-get-need-resample-state actx (square-state sqrx) *confirm-vertices*
+                                      (format nil "for ~A" (vertex-str (group-anchor grpx)))))
             )
-            ; else
-            (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*
-                                    (format nil "for ~A" (vertex-str (defining-vertex defvtx)))))
+            (error "vertex pinnacle square not found ~A?" (vertex-str (group-anchor grpx)))
           )
-        ) ; next stax
-      ) ; next defvtx
-    ) ; end when
+          ;; Check edges.
+          (loop for stax in (statestore-states (vertex-states (group-anchor grpx))) do
+            (setf sqrx (action-find-square actx stax))
+            (if sqrx
+              (if (not (square-pnc sqrx))
+                (needstore-push needs (action-get-need-resample-state actx stax *confirm-vertices*
+                                        (format nil "for ~A" (vertex-str (group-anchor grpx)))))
+              )
+              ; else
+              (needstore-push needs (action-get-need-sample-state actx stax *confirm-vertices*
+                                      (format nil "for ~A" (vertex-str (group-anchor grpx)))))
+            )
+          ) ; next stax
+        )
+      ) ; next grpx
     ;; Return any needs.
     needs
   ) ; end let
@@ -777,14 +767,43 @@
   (assert (or (regionstore-is-empty reachable)
               (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
-  (if (definingstore-is-not-empty (action-defining actx))
-    (action-validate-defining-regions actx reachable)
-    (action-check-for-defining-regions actx reachable)
+  (action-validate-defining-regions actx reachable)
+  (action-check-for-defining-regions actx reachable)
+)
+
+;;; Return a rate for a vertex, for comparing options in a group that contains more than one.
+(defun action-rate-vertex (actx vertx) ; -> integer GE 0.
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (vertex-p vertx))
+
+  ;; Basic validity check.
+  (if (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle vertx))
+    (return-from action-rate-vertex 0))
+
+  (let ((ret 1))
+    ;; Rate edge states for being in only one group.
+    (loop for stax in (statestore-states (vertex-edges vertx)) do
+      (incf ret)
+      (if (groupstore-state-in-one-group (action-groups actx) stax)
+        (incf ret 5))
+    )
+    
+    ;; Rate vertex for sharing a state with other vertices.
+    (loop for grpx in (groupstore-groups (action-groups actx)) do
+      (if (not (null (group-anchor grpx)))
+        (if (statestore-member (vertex-edges (group-anchor grpx)) (vertex-pinnacle vertx))
+          (incf ret 100)))
+    )
+    ret
   )
 )
 
 ;;; Check dissimilar pairs of squares to develod defining regions and verticies.
 (defun action-check-for-defining-regions (actx reachable) ; -> needstore.
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (regionstore-p reachable))
  
   (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
         (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
@@ -889,92 +908,62 @@
     ;; Vertex optimization.
     (when (and (not (null (action-logical-structure actx))) (> (regionstore-length (action-logical-structure actx)) 1))
 
-      (let ((defining-regions (regionstore-defining-regions (action-logical-structure actx)))
+      (let ((defining-regions (regionstore-defining-regions (groupstore-regions (action-groups actx))))
             reg-stas         ; States in a defining region.
-            implied-regions  ; Regions implied by a given combination of vertices.
             region-vertices  ; A list of vertices for a defining region.
-            vertices         ; A list of region-vertices, one for each defining region.
+            grpx             ; Current group being processep.
            )
 
         ;; Look for a vertexstore that will produce the defining regions.
-        (when (and (regionstore-is-not-empty defining-regions) (definingstore-is-empty (action-defining actx)))
+        (when (regionstore-is-not-empty defining-regions)
 
           ;; Gather vertices for each defining region.
           (loop for regx in (regionstore-regions defining-regions) do
   
-            (setf region-vertices nil)
- 
-            ;; Get states in the defining region.
-            (setf reg-stas (squarestore-states-in-region (action-squares actx) regx))
-  
-            ;; If a square in a defining region is only in one region, use it to make a vertex, store the vertex.
-            (loop for stax in (statestore-states reg-stas) do
-              (when (regionstore-state-in-exactly-one (action-logical-structure actx) stax)
-                (push (vertex-new stax (region-adjacent-external-states regx stax)) region-vertices)
-              )
-            )
-            ;(format t "~&defining region: ~A" (region-str regx))
-            ;(format t " vertices: ~A" (vertexstore-str (vertexstore-new region-vertices)))
-            ;; Save defining region vertices, maintaing order correspondence with the defining region regionstore.
-            (setf vertices (append vertices (list region-vertices)))
-          )
-  
-          ;; Search for the first combination of vertices that creates the expected defining regions.
-          (let (
-                options     ; A list of vertex combinations, one from each defining region.
-                            ; A combination will be evaluated to see if it generates the expected defining regions.
-                            ; Options that work, and use a minimum of states, that is, states are shared between vertices,
-                            ; will be favored.
-                vtxstr      ; Vertexstore of one option.
-                states      ; The states that make up a vtxstr, no dups.
-                (min-states 10000)  ; in number of states for an option to generate the defining regions.
-                vertices-found      ; List of vertexstores that generate the defining regions and use the minimum states.
-               )
-            (setf options (any-1-of-each vertices))
-            ;(format t "~&number options: ~D" (length options))
-          
-            (loop for optx in options do
-              (setf vtxstr (vertexstore-new optx))
-              (setf states (vertexstore-states vtxstr))
-              ;(format t "~&Dom: ~D Act: ~D option: ~A states: ~A" *dom-id* *act-id* (vertexstore-str vtxstr) (statestore-str states))
-              (if (<= (statestore-length states) min-states)
-                (progn
-                  (setf implied-regions (regionstore-intersection (vertexstore-structure-implied vtxstr) reachable))
-                  (if (regionstore-subset-of :sub defining-regions :sup implied-regions)
-                    (progn
-                      (when (< (statestore-length states) min-states)
-                        (setf vertices-found nil)
-                        (setf min-states (statestore-length states)))
+            (setf grpx (action-find-group actx regx))
+
+            (when grpx
+
+              (setf region-vertices nil)
+   
+              ;; Get states in the defining region.
+              (setf reg-stas (squarestore-states-in-region (action-squares actx) regx))
     
-                      (when (= (statestore-length states) min-states)
-                         (push vtxstr vertices-found)
-                      )
+              ;; If a square in a defining region is only in one region, use it to make a vertex, store the vertex.
+              (loop for stax in (statestore-states reg-stas) do
+                (when (regionstore-state-in-one-region (action-logical-structure actx) stax)
+                  (push (vertex-new stax (region-adjacent-external-states regx stax reachable)) region-vertices)
+                )
+              )
+  
+              (when (not (null region-vertices))
+                (let (max-rate tmp-rate max-rate-verts)
+                  ;; Find max-rate vertices in group.
+                  (setf max-rate 0 max-rate-verts nil)
+                  (loop for vertx in region-vertices do
+                    (setf tmp-rate (action-rate-vertex actx vertx))
+                    (if (> tmp-rate max-rate)
+                      (setf max-rate tmp-rate max-rate-verts nil)
+                    )
+                    (if (= tmp-rate max-rate)
+                      (push vertx max-rate-verts))
+                  )
+    
+                  (if (null (group-anchor grpx))
+                    (progn
+                      (setf (group-anchor grpx) (first max-rate-verts)) ; Set first anchor.
+                    )
+                    (progn
+                      (if (< (action-rate-vertex actx (group-anchor grpx)) max-rate)
+                        (setf (group-anchor grpx) (first max-rate-verts))) ; Replace anchor.
                     )
                   )
                 )
-              )
-            ) ; next optx
-            ;(format t "~&number vertices-found: ~D number states: ~D" (length vertices-found) min-states)
-            (let (defvertx deflst tmp-vertices)
-              (when (> (length vertices-found) 0)
-                (setf tmp-vertices (nth (random (length vertices-found)) vertices-found))
 
-                ;; Form defining instances.
-                (loop for defx in (regionstore-regions defining-regions)
-                      for vertx in (reverse (vertexstore-vertices tmp-vertices)) do
-
-                  ;(format t "~&defx: ~A vertx: ~A" (region-str defx) (vertex-str vertx))
-                  (setf defvertx (defining-new defx vertx))
-                  ;(format t "~&defx: ~A" (defining-str defvertx))
-                  (push defvertx deflst)
-                )
-                (setf (action-defining actx) (definingstore-new deflst))
               )
             )
-          )
-        )
-        (when (definingstore-is-not-empty (action-defining actx))
-          (setf needs (needstore-append needs (action-defining-region-virtex-needs actx)))
+          ) ; next regx
+          (setf needs (needstore-append needs (action-defining-region-vertex-needs actx)))
         )
       ) ; end let
     ) ; end when
@@ -1663,11 +1652,6 @@
 ;     (groupstore-print (action-groups actx)))
   (when (not (null (action-logical-structure actx)))
     (format t "~&           calced structure: ~A" (regionstore-str (action-logical-structure actx)))
-    (when (> (regionstore-length (action-logical-structure actx)) 2)
-      (when (definingstore-is-not-empty (action-defining actx))
-        (format t "~&           defining regions: ~A" (definingstore-str (action-defining actx)))
-      )
-    )
   )
 
 ;  (if (> (regionstore-length (action-structure-pairs actx)) 0)
@@ -1708,9 +1692,8 @@
   (let (del-sqrs)
     ;; Find squares that are not needed.
     (loop for sqrx in (squarestore-squares (action-squares actx)) do
-      (if (not (defingstore-state-needed (action-defining actx) (square-state sqrx)))
-        (if (not (groupstore-state-needed (action-groups actx) (square-state sqrx)))
-          (push sqrx del-sqrs)))
+      (if (not (groupstore-state-needed (action-groups actx) (square-state sqrx)))
+        (push sqrx del-sqrs))
     )
     (when del-sqrs
       ;; Remove squares that are not needed.

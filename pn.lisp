@@ -1,4 +1,6 @@
 ;;;; Implement a Pattern Number struct
+;;;;
+;;;; This is implemented as a struct to support serialization.
 
 (defstruct pn
   value

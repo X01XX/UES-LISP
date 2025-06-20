@@ -142,18 +142,6 @@
 (load #p "vertex.lisp")
 (load #p "vertex_t.lisp")
 
-(load #p "vertexstore.lisp")
-(load #p "vertexstore_t.lisp")
-
-(load #p "any1ofeach.lisp")
-(load #p "any1ofeach_t.lisp")
-
-(load #p "defining.lisp")
-(load #p "defining_t.lisp")
-
-(load #p "definingstore.lisp")
-(load #p "definingstore_t.lisp")
-
 (load #p "main_t.lisp")
 
 (defun main (&rest args)
@@ -753,13 +741,8 @@
   (statescorr-tests)
 
   (vertex-tests)
-  (vertexstore-tests)
 
-  (any1ofeach-tests)
   (sessiondata-tests)
-
-  (defining-tests)
-  (definingstore-tests)
 
   (main-tests)
   (pn-tests)

@@ -398,7 +398,7 @@
 )
 
 ;;; Return true if a state is in only one region.
-(defun regionstore-state-in-exactly-one (storex stax) ; -> bool
+(defun regionstore-state-in-one-region (storex stax) ; -> bool
   ;; Check arguments.
   (assert (regionstore-p storex))
   (assert (state-p stax))

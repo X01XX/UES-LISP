@@ -13,6 +13,7 @@
 ;;;; The rules will be a union of the rules of the two squares.
 ;;;;
 (defstruct group
+    anchor    ; A Vertex, or nil.
     region    ; A Region defined by one, or more, states, keys of compatible squares.
     pn        ; A pn struct instance.
     pnc       ; bool.
@@ -48,6 +49,7 @@
           ((group-p ret) ret)
            (t (error "Result is not a group"))))
 )
+
 ;;; group-new no abort (na).
 (defun group-new-na (regx pn pnc rules) ; -> group or err.
   (assert (region-p regx))
@@ -81,7 +83,7 @@
          )
         (t (return-from group-new-na "unrecognized pn value")))
 
-  (make-group :region regx :pn pn :pnc pnc :rules rules)
+  (make-group :region regx :pn pn :pnc pnc :rules rules :anchor nil)
 )
 
 ;;; Return a string representing a group
@@ -99,6 +101,9 @@
           (setf str (concatenate 'string str (format nil " unpredictable")))
           (setf str (concatenate 'string str (format nil " rules ~A" (rulestore-str (group-rules agrp))))))
 
+        (if (group-anchor agrp)
+          (setf str (concatenate 'string str (format nil " anchor ~A" (vertex-str (group-anchor agrp))))))
+    
         (setf str (concatenate 'string str ")"))
         str
     )
@@ -281,15 +286,20 @@
   (if (region-state-needed (group-region grpx) stax)
       (return-from group-state-needed true))
 
-  (let (sta-first x-bit-masks sta-adj)
+  (when (not (null (group-anchor grpx)))
+    (if (vertex-member (group-anchor grpx) stax)
+      (return-from group-state-needed true))
+    
     (when (not (group-makes-predictable-change grpx))
-      (setf sta-first (region-first-state (group-region grpx)))
-      (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
-
-      (loop for maskx in x-bit-masks do
-        (setf sta-adj (state-new-xor sta-first maskx))
-        (if (state-eq sta-adj stax)
-          (return-from group-state-needed true))
+      (let (sta-pin x-bit-masks sta-adj)
+        (setf sta-pin (vertex-pinnacle (group-anchor grpx)))
+        (setf x-bit-masks (mask-split (region-x-mask (group-region grpx))))
+  
+        (loop for maskx in x-bit-masks do
+          (setf sta-adj (state-new-xor sta-pin maskx))
+          (if (state-eq sta-adj stax)
+            (return-from group-state-needed true))
+        )
       )
     )
   )

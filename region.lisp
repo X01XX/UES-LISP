@@ -529,6 +529,7 @@
 ;;; Return true if the first region is a superset of a state.
 (defun region-superset-of-state (regx stax) ; -> bool.
   ;; Check arguments.
+  ;(format t "~&region-superset-of-state: ~A ~A ~A" (type-of regx) (type-of stax) stax)
   (assert (region-p regx))
   (assert (state-p stax))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
@@ -611,21 +612,28 @@
 )
 
 ;;; Return the adjacent external states for a given state, in a region.
-(defun region-adjacent-external-states (regx stax) ; -> statestore
+(defun region-adjacent-external-states (regx stax reachable) ; -> statestore
   ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
+  (assert (regionstore-p reachable))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
   (assert (region-superset-of-state regx stax))
 
   ;; Calc result.
-  (let ((ret (statestore-new nil))
-        (bits (mask-split (region-edge-mask regx))))
+  (loop for regy in (regionstore-regions reachable) do
 
-    (loop for bitx in bits do
-      (statestore-push ret (state-new-xor stax bitx))
+    (when (region-superset-of :sup regy :sub regx)
+      (let ((ret (statestore-new nil))
+            (bits (mask-split (mask-and (region-edge-mask regx) (region-x-mask regy)))))
+    
+        (loop for bitx in bits do
+          (statestore-push ret (state-new-xor stax bitx))
+        )
+        (return-from region-adjacent-external-states ret)
+      )
     )
-    ret
   )
+  (error "Superset reachable region not found?")
 )
 
