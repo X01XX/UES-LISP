@@ -375,7 +375,7 @@
     (setf sta1 (state-from  's1001))
     (assert (state-p sta1))
 
-    (setf ext1 (region-adjacent-external-states reg1 sta1 (regionstore-new (list (region-from 'rxxxx)))))
+    (setf ext1 (region-adjacent-external-states reg1 sta1 (region-from 'rxxxx)))
     (assert (statestore-p ext1))
 
     (assert (= (statestore-length ext1) 2))

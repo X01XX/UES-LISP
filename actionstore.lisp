@@ -100,7 +100,7 @@
   ;(format t "~&actionstore-get-needs: ~A ~A" (type-of actsx) (type-of cur-state))
   (assert (actionstore-p actsx))
   (assert (state-p cur-state))
-  (assert (regionstore-p reachable))
+  (assert (region-p reachable))
 
   (let ((needs (needstore-new nil)))
     (loop for actx in (actionstore-actions actsx) do

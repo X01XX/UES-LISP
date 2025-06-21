@@ -18,7 +18,7 @@
 
     ;(action-print actx)
 
-    (setf needs (action-structure-needs actx (regionstore-from '(rXXXX))))
+    (setf needs (action-structure-needs actx *max-region*))
     ;(format t "~&needs: ~A" (needstore-str needs))
 
     (format t "~&  action-non-adjacent-incompatible-square-needs OK")

@@ -91,7 +91,7 @@
     (assert (domain-p domx))
 
     (format t "~&Domain ~D current-state ~A reachable: ~A" (domain-id domx) (state-str (domain-current-state domx))
-      (regionstore-str (domain-reachable domx)))
+      (region-str (domain-reachable domx)))
 
     (actionstore-print (domain-actions domx))
 )
@@ -510,9 +510,9 @@
    )
 )
 
-;;; Return a regionstore of a region of appalently reachable states from the current state.
+;;; Return a region apparently reachable from the current state.
 ;;; The aggregation of all changes that are possible to the current state.
-(defun domain-reachable (domx) ; -> regionstore.
+(defun domain-reachable (domx) ; -> region.
   (assert (domain-p domx))
 
   (let ((domain-changes (actionstore-changes (domain-actions domx)))
@@ -527,9 +527,7 @@
                   (mask-new-and (domain-current-state domx) (change-m10 domain-changes))
                 )
     )
-    (setf max-region (region-set-to-x max-region xmask))
-
-    (regionstore-new (list max-region))
+    (region-set-to-x max-region xmask)
   )
 )
 

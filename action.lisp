@@ -234,10 +234,9 @@
  ;        *dom-id* (action-id actx) (state-str cur-state) (action-cleanup-flag actx))
   (assert (action-p actx))
   (assert (state-p cur-state))
-  (assert (regionstore-p reachable))
+  (assert (region-p reachable))
   (assert (= (action-num-bits actx) (state-num-bits cur-state)))
-  (assert (or (regionstore-is-empty reachable)
-              (= (action-num-bits actx) (regionstore-num-bits reachable))))
+  (assert (= (action-num-bits actx) (region-num-bits reachable)))
 
   (let ((*act-id* (action-id actx)))
     (let ((needs (needstore-new nil)))
@@ -390,7 +389,7 @@
         (return-from action-get-needs needs))
   
       ;; Check for remainder needs.
-      (let ((remainders reachable))
+      (let ((remainders (regionstore-new (list reachable))))
         (loop for grpx in (groupstore-groups (action-groups actx)) do
           (setf remainders (regionstore-subtract-region remainders (group-region grpx)))
         )
@@ -673,12 +672,9 @@
 ;;; Validate existing defining regions.
 ;;; If valid, return any needs.
 ;;; If invaild, delete them and return the result of action-check-for-defining-regions.
-(defun action-validate-defining-regions (actx reachable) ; -> needstore.
+(defun action-validate-defining-regions (actx) ; -> needstore.
   ;; Check arguments.
   (assert (action-p actx))
-  (assert (regionstore-p reachable))
-  (assert (or (regionstore-is-empty reachable)
-              (= (action-num-bits actx) (regionstore-num-bits reachable))))
 
   (let (invalid sqr-p sqr-e)
     (loop for grpx in (groupstore-groups (action-groups actx)) do
@@ -763,11 +759,10 @@
 (defun action-structure-needs (actx reachable) ; -> needstore
   ;; Check arguments.
   (assert (action-p actx))
-  (assert (regionstore-p reachable))
-  (assert (or (regionstore-is-empty reachable)
-              (= (action-num-bits actx) (regionstore-num-bits reachable))))
+  (assert (region-p reachable))
+  (assert (= (action-num-bits actx) (region-num-bits reachable)))
 
-  (action-validate-defining-regions actx reachable)
+  (action-validate-defining-regions actx)
   (action-check-for-defining-regions actx reachable)
 )
 
@@ -803,13 +798,13 @@
 (defun action-check-for-defining-regions (actx reachable) ; -> needstore.
   ;; Check arguments.
   (assert (action-p actx))
-  (assert (regionstore-p reachable))
+  (assert (region-p reachable))
  
   (let ((pairs (regionstore-new nil))               ; All dissimilar square state pairs, so supersets.
         (adj-pairs (regionstore-new nil))           ; All adjacent dissimilar square state pairs.
         (non-adj-pairs (regionstore-new nil))       ; All non-adjacent dissimilar square state pairs.
         (critical-non-adj-pairs (regionstore-new nil))      ; All non-adjacent dissimilar square state pairs needing more work.
-        (logical-structure reachable)               ; Best guess for logical structure.
+        (logical-structure (regionstore-new (list reachable))) ; Best guess for logical structure.
         (needs (needstore-new nil))                 ; Needstore for adjacent incompatible squares to return.
         (sqrs (squarestore-squares (action-squares actx)))) ; All squares sampled so far.
 
@@ -862,7 +857,6 @@
     ;(format t "~&non-adj-pairs: ~A" (regionstore-str non-adj-pairs))
 
     ;; Calculate structure, based on adjacent pairs.
-    (setf logical-structure reachable)
     (loop for prx in (regionstore-regions adj-pairs) do
       (setf logical-structure (regionstore-intersection logical-structure
          (state-regions-implied-by-dissimilarity (region-first-state prx) (region-second-state prx))))

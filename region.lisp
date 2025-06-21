@@ -616,24 +616,20 @@
   ;; Check arguments.
   (assert (region-p regx))
   (assert (state-p stax))
-  (assert (regionstore-p reachable))
+  (assert (region-p reachable))
   (assert (= (region-num-bits regx) (state-num-bits stax)))
+  (assert (= (region-num-bits regx) (region-num-bits reachable)))
   (assert (region-superset-of-state regx stax))
+  (assert (region-superset-of :sup reachable :sub regx))
 
   ;; Calc result.
-  (loop for regy in (regionstore-regions reachable) do
+  (let ((ret (statestore-new nil))
+        (bits (mask-split (mask-and (region-edge-mask regx) (region-x-mask reachable)))))
 
-    (when (region-superset-of :sup regy :sub regx)
-      (let ((ret (statestore-new nil))
-            (bits (mask-split (mask-and (region-edge-mask regx) (region-x-mask regy)))))
-    
-        (loop for bitx in bits do
-          (statestore-push ret (state-new-xor stax bitx))
-        )
-        (return-from region-adjacent-external-states ret)
-      )
+    (loop for bitx in bits do
+      (statestore-push ret (state-new-xor stax bitx))
     )
+    (return-from region-adjacent-external-states ret)
   )
-  (error "Superset reachable region not found?")
 )
 
