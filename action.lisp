@@ -255,7 +255,7 @@
         )
       )
   
-      ;; Recheck single-square groups.
+      ;; Recheck single-square groups, for possible expansion.
       (let (sqrx sqrs)
         (loop for grpx in (groupstore-groups (action-groups actx)) do
           (when (and (= 1 (region-number-states (group-region grpx))) (group-pnc grpx))
@@ -353,49 +353,29 @@
       (let ((structure-needs (action-structure-needs actx reachable)))
 
         (if (needstore-is-not-empty structure-needs)
-          (setf needs (needstore-append needs structure-needs))
-          ;; else
-          ;; Find defining regions in action-logical-structure, using action-defining.
-          (progn
-            (loop for grpx in (groupstore-groups (action-groups actx)) do
- 
-              (when (not (null (group-anchor grpx)))
- 
-                (if (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle (group-anchor grpx)))
-       
-                  ;; Generate needs for each region.
-                  (setf needs (needstore-append needs (action-structure-group-needs actx grpx 
-                                (vertex-pinnacle (group-anchor grpx)))))
-                  ;; Else
-                  (setf (group-anchor grpx) nil)
-                )
-              )
-            )
-   
-            ;; Check for groups not supported by the logical structure.
-            (when (> (regionstore-length (action-logical-structure actx)) 1)
-              (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
-                (if (groupstore-is-not-empty invalidated-groups)
-                  (action-process-invalidated-groups actx invalidated-groups))
-              )
-            )
-          ) ; end if
-        ) ; end if
-      )
-  
-      ;; Return needs, if any.
-      (when (needstore-is-not-empty needs)
-        (setf (action-cleanup-flag actx) true)
-        (return-from action-get-needs needs))
-  
-      ;; Check for remainder needs.
-      (let ((remainders (regionstore-new (list reachable))))
+          (setf needs (needstore-append needs structure-needs)))
+
         (loop for grpx in (groupstore-groups (action-groups actx)) do
-          (setf remainders (regionstore-subtract-region remainders (group-region grpx)))
+ 
+          (when (not (null (group-anchor grpx)))
+ 
+            (if (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle (group-anchor grpx)))
+   
+              ;; Generate needs for each region.
+              (setf needs (needstore-append needs (action-structure-group-needs actx grpx 
+                            (vertex-pinnacle (group-anchor grpx)))))
+              ;; Else
+              (setf (group-anchor grpx) nil)
+            )
+          )
         )
-        ;(format t "~&remainders: ~A" (regionstore-str remainders))
-        (loop for regx in (regionstore-regions remainders) do
-          (setf needs (needstore-append needs (action-needs-for-region actx regx *state-not-in-group*)))
+ 
+        ;; Check for groups not supported by the logical structure.
+        (when (> (regionstore-length (action-logical-structure actx)) 1)
+          (let ((invalidated-groups (action-groups-invalidated-by-structure actx)))
+            (if (groupstore-is-not-empty invalidated-groups)
+              (action-process-invalidated-groups actx invalidated-groups))
+          )
         )
       )
   
@@ -773,7 +753,9 @@
   (assert (vertex-p vertx))
 
   ;; Basic validity check.
-  (if (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle vertx))
+  (when (not (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle vertx)))
+    ;(format t "~&Dom: ~D Act: ~D state: ~A in ~D regions" *dom-id* *act-id* (state-str (vertex-pinnacle vertx))
+    ;       (groupstore-length (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle vertx))))
     (return-from action-rate-vertex 0))
 
   (let ((ret 1))
@@ -794,7 +776,7 @@
   )
 )
 
-;;; Check dissimilar pairs of squares to develod defining regions and verticies.
+;;; Check dissimilar pairs of squares to develop defining regions and verticies.
 (defun action-check-for-defining-regions (actx reachable) ; -> needstore.
   ;; Check arguments.
   (assert (action-p actx))
@@ -863,9 +845,11 @@
     )
 
     ;; Look for non-adjacent pairs that affect the structure.
-    (loop for prx in (regionstore-regions non-adj-pairs) do
-       (if (= (regionstore-num-superset logical-structure prx) 1)
-          (regionstore-push critical-non-adj-pairs prx))
+    (let ((defining-regions (regionstore-defining-regions logical-structure)))
+      (loop for prx in (regionstore-regions non-adj-pairs) do
+         (if (regionstore-any-superset-of defining-regions prx)
+            (regionstore-push critical-non-adj-pairs prx))
+      )
     )
     ;(format t "~&critical-non-adj-pairs: ~A" (regionstore-str critical-non-adj-pairs))
 
@@ -908,9 +892,6 @@
             grpx             ; Current group being processep.
            )
 
-        ;; Look for a vertexstore that will produce the defining regions.
-        (when (regionstore-is-not-empty defining-regions)
-
           ;; Gather vertices for each defining region.
           (loop for regx in (regionstore-regions defining-regions) do
   
@@ -929,6 +910,11 @@
                   (push (vertex-new stax (region-adjacent-external-states regx stax reachable)) region-vertices)
                 )
               )
+              ;(format t "~&Dom: ~D Act: ~A Group: ~A" *dom-id* *act-id* (region-str (group-region grpx)))
+              ;(loop for vertx in region-vertices do
+              ;  (format t " vert: ~A rate: ~D" (vertex-str vertx) (action-rate-vertex actx vertx))
+              ;)
+              ;(format t "~& ")
   
               (when (not (null region-vertices))
                 (let (max-rate tmp-rate max-rate-verts)
@@ -945,20 +931,24 @@
     
                   (if (null (group-anchor grpx))
                     (progn
+                      ;(format t "~&Dom: ~D Act: ~D action-check-for-defining-regions: setting anchor ~A for group ~A"
+                      ;    *dom-id* *act-id* (vertex-str (first max-rate-verts)) (region-str (group-region grpx)))
                       (setf (group-anchor grpx) (first max-rate-verts)) ; Set first anchor.
                     )
                     (progn
-                      (if (< (action-rate-vertex actx (group-anchor grpx)) max-rate)
+                      (when (< (action-rate-vertex actx (group-anchor grpx)) max-rate)
+                        ;(format t "~&Dom: ~D Act: ~D action-check-for-defining-regions: setting from ~A ~D to ~A ~D for group ~A"
+                        ;   *dom-id* *act-id* (vertex-str (group-anchor grpx))
+                        ;    (action-rate-vertex actx (group-anchor grpx))
+                        ;    (vertex-str (first max-rate-verts)) max-rate (region-str (group-region grpx)))
                         (setf (group-anchor grpx) (first max-rate-verts))) ; Replace anchor.
                     )
                   )
                 )
-
               )
             )
           ) ; next regx
           (setf needs (needstore-append needs (action-defining-region-vertex-needs actx)))
-        )
       ) ; end let
     ) ; end when
 
