@@ -7,13 +7,14 @@
     cant-do         ; A NeedStore of needs that cannot be done.
     selectregions-store ; A SelectRegionsStore.
     selectregions-fragments   ; Selectregions-store split by intersections.
-    le0-levels       ; A list of successively more negative selectregion levels, starting with 0.
-    regionscorrstore-paths ; List of regioncorrstores, for each le0-level.
     cycle-num        ; Current cycle number.
     num-cycles-at    ; Number cycles at the current position.  Used with positive selectregions.
                     ; Stay in a positive selectregion for a number of cycles up to the value of the selectregion,
                     ; if there is another positive selectregion option, else stay in one region.
     previous-position ; Previous cycle position.
+
+    possible-paths  ; A list of increasingly negative-risk regionscorr, the last regionscorr being                                                 
+                    ; all maximum regions.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -36,11 +37,10 @@
                       :cant-do (needstore-new nil)
                       :selectregions-store (selectregionsstore-new nil)
                       :selectregions-fragments (selectregionsstore-new nil)
-                      :le0-levels nil
-                      :regionscorrstore-paths nil
                       :cycle-num 0
                       :num-cycles-at 0
                       :previous-position nil
+                      :possible-paths nil
     )
 )
 
@@ -114,8 +114,6 @@
                                               :cant-do (needstore-new nil)
                                               :selectregions-store (selectregionsstore-new nil)
                                               :selectregions-fragments (selectregionsstore-new nil)
-                                              :le0-levels nil
-                                              :regionscorrstore-paths nil
                                               :cycle-num 0
                                               :num-cycles-at 0
                                               :previous-position (domainstore-all-current-states ds)))
@@ -159,7 +157,7 @@
 )
 
 ;;; Process selectregions, display results.
-(defun sessiondata-process-select-regions (sdx) ; -> side-effect, load selectregions-fragments, le0-levels, regionscorrstore-paths.
+(defun sessiondata-process-select-regions (sdx) ; -> side-effect, load selectregions-fragments, rcsval paths.
   (assert (sessiondata-p sdx))
 
   ;; Check for no selectregions.
@@ -195,39 +193,40 @@
         (push (rate-negative (selectregions-rate selx)) nums))
     )
     (setf nums (sort nums #'>))
-    (setf (sessiondata-le0-levels sdx) nums)
 
     ;; Print LE0 levels.
     (format t "~& ~&LE0-levels: ~A" nums)
 
     ;; Calc regionscorr paths for each le0 level.
-    (setf paths nil)
-    (setf max-regs (sessiondata-domain-max-regions sdx))
-    (push (regionscorrstore-new (list max-regs)) paths)
-
-    (when (> (length nums) 1)
-      (loop for levx in (reverse (butlast nums)) do  ; The last value will be associated with max-regions.
-        ;(format t "~&  levx ~D" levx)
-        (setf next-paths (regionscorrstore-new (list max-regs)))
-
-        (loop for selx in  (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do
-          (setf nrate (rate-negative (selectregions-rate selx)))
-          (when (not (zerop nrate))
-            (if (< nrate levx)
-              (setf next-paths (regionscorrstore-subtract-regionscorr next-paths (selectregions-regionscorr selx))))
+    (let (rcsval-list)
+      (setf max-regs (sessiondata-domain-max-regions sdx))
+      (push (regionscorrstore-new (list max-regs)) paths)
+  
+      (push (rcsval-new (regionscorrstore-new (list max-regs)) (car (last nums))) rcsval-list)
+  
+      (when (> (length nums) 1)
+        (loop for levx in (reverse (butlast nums)) do  ; The last value will be associated with max-regions.
+          ;(format t "~&  levx ~D" levx)
+          (setf next-paths (regionscorrstore-new (list max-regs)))
+  
+          (loop for selx in  (selectregionsstore-selectregions (sessiondata-selectregions-fragments sdx)) do
+            (setf nrate (rate-negative (selectregions-rate selx)))
+            (when (not (zerop nrate))
+              (if (< nrate levx)
+                (setf next-paths (regionscorrstore-subtract-regionscorr next-paths (selectregions-regionscorr selx))))
+            )
           )
+          (push (rcsval-new next-paths levx) rcsval-list)
         )
-        (push next-paths paths)
       )
-    )
 
-    ;; Print and save paths.
-    (format t "~& ~&Levels and paths:")
-    (loop for rcsx in paths
-          for levx in (sessiondata-le0-levels sdx) do
-      (format t "~&   ~d ~a" levx (regionscorrstore-str rcsx))
+      ;; Print and save paths.
+      (format t "~& ~&Levels and paths:")
+      (loop for rcsvalx in rcsval-list do
+        (format t "~&   ~a" (rcsval-str rcsvalx))
+      )
+      (setf (sessiondata-possible-paths sdx) rcsval-list)
     )
-    (setf (sessiondata-regionscorrstore-paths sdx) paths)
   )
 )
 
@@ -438,22 +437,21 @@
 
     ;; Find maximum rate possible by the least rate of the from and to regionscorr.
     (if (selectregionsstore-is-not-empty (sessiondata-selectregions-store sessx))
-      (let (from-rate to-rate le0-position)
+      (let (from-rate to-rate)
         (setf from-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) from-regs))
         (setf to-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) to-regs))
         (setf min-rate (min (rate-negative from-rate) (rate-negative to-rate)))
     
-        ;; Find the rate position in the le0-levels list, and corresponding regionscorrstore-paths list.
-        (setf le0-position (position min-rate (sessiondata-le0-levels sessx)))
-        (if (null le0-position)
-          (error "min-rate not found?"))
-  
-        ;; From the maximum le0 rate, on down, try finding a path.
-        (loop for inx from le0-position below (length (sessiondata-le0-levels sessx))
-              while (null path) do
-    
-          (setf min-rate (nth inx (sessiondata-le0-levels sessx)))
-          (setf path (regionscorrstore-find-path (nth inx (sessiondata-regionscorrstore-paths sessx)) from-regs to-regs))
+        ;; If there is a minimum negative value, due to the from-to regions positions,
+        ;; there is no point in trying to get a path in a more positive set of paths,
+        ;; so start at that value and successively more negative paths.
+        (setf path nil)
+        (loop for rcsvx in (sessiondata-possible-paths sessx)
+          while (null path) do
+
+          (when (<= (rcsval-value rcsvx) min-rate)
+            (setf path (regionscorrstore-find-path (rcsval-regions rcsvx) from-regs to-regs))
+          )
         )
       )
       ;; else 
@@ -491,11 +489,11 @@
     (setf cur-regs (sessiondata-domain-current-regions sessx))
     (setf cur-rate (selectregionsstore-rate (sessiondata-selectregions-store sessx) cur-regs))
 
-    (if (or (zerop (rate-negative cur-rate))  (= (rate-negative cur-rate) (car (sessiondata-le0-levels sessx))))
+    (if (or (zerop (rate-negative cur-rate))  (= (rate-negative cur-rate) (rcsval-value (car (sessiondata-possible-paths sessx)))))
       (return-from sessiondata-move-from-negative-selectregions needs))
 
-    ;; Collect closest regionstorecorrs from least negative in regionscorrstore-paths.
-    (loop for rcsx in (regionscorrstore-regionscorrs (car (sessiondata-regionscorrstore-paths sessx))) do
+    ;; Collect closest regionstorecorrs from least negative in possible-paths.
+    (loop for rcsx in (regionscorrstore-regionscorrs (rcsval-regions (car (sessiondata-possible-paths sessx)))) do
 
       (setf dist (regionscorr-distance rcsx cur-regs))
 
@@ -507,8 +505,8 @@
         (push rcsx close-rcs))
     )
 
-    ;; Collect closest regionstorecorrs from least negative in regionscorrstore-paths.
-    (loop for rcsx in (regionscorrstore-regionscorrs (car (sessiondata-regionscorrstore-paths sessx))) do
+    ;; Collect closest regionstorecorrs from least negative in possible-paths.
+    (loop for rcsx in (regionscorrstore-regionscorrs (rcsval-regions (car (sessiondata-possible-paths sessx)))) do
 
       (setf dist (regionscorr-distance rcsx cur-regs))
 

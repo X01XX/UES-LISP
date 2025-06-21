@@ -41,6 +41,7 @@
 (progn (format t "~& ") (compile-file "tools.lisp"))
 (progn (format t "~& ") (compile-file "vertex.lisp"))
 (progn (format t "~& ") (compile-file "maskstore.lisp"))
+(progn (format t "~& ") (compile-file "rcsval.lisp"))
 
 (progn (format t "~& ") (compile-file "value_t.lisp"))
 (progn (format t "~& ") (compile-file "mask_t.lisp"))

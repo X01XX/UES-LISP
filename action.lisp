@@ -754,7 +754,7 @@
 
   ;; Basic validity check.
   (when (not (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle vertx)))
-    ;(format t "~&Dom: ~D Act: ~D state: ~A in ~D regions" *dom-id* *act-id* (state-str (vertex-pinnacle vertx))
+    ;(format t "~&Dom: ~D Act: ~D action-rate-vertex: state: ~A in ~D regions" *dom-id* *act-id* (state-str (vertex-pinnacle vertx))
     ;       (groupstore-length (groupstore-groups-state-in (action-groups actx) (vertex-pinnacle vertx))))
     (return-from action-rate-vertex 0))
 
@@ -910,7 +910,7 @@
                   (push (vertex-new stax (region-adjacent-external-states regx stax reachable)) region-vertices)
                 )
               )
-              ;(format t "~&Dom: ~D Act: ~A Group: ~A" *dom-id* *act-id* (region-str (group-region grpx)))
+              ;(format t "~&Dom: ~D Act: ~D action-check-for-defining-regions: Group: ~A" *dom-id* *act-id* (region-str (group-region grpx)))
               ;(loop for vertx in region-vertices do
               ;  (format t " vert: ~A rate: ~D" (vertex-str vertx) (action-rate-vertex actx vertx))
               ;)

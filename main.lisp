@@ -144,6 +144,8 @@
 
 (load #p "main_t.lisp")
 
+(load #p "rcsval.lisp")
+
 (defun main (&rest args)
   (apply #'run args) ; run uses &rest also.
 )
