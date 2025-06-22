@@ -44,5 +44,5 @@ I'm using gcl v2.6.14. It has some improvements, though I'm not sure what versio
 A hash table can have equalp as a test, so a struct can be a key.
 There was a version that did not let me give the name "step" to a struct.  I complained about that, the response was kind of "thats the way it is", but v2.6.14 allows it.
 
-A lot can be done with simple structs, compatmentalization of data and code.
+A lot can be done with simple structs, compartmentalization of data and code.
 
