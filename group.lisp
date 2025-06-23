@@ -36,25 +36,22 @@
 ;   (copy-group <instance>) copies a group instance.
 
 ;;; Return a new group.
-(defun group-new (regx pn pnc rules)
-  ;(format t "~&group-new ~A ~A ~A ~A" (region-str regx) (pn-str pn) pnc (rulestore-str rules))
+(defun group-new (regx pn rules)
+  ;(format t "~&group-new ~A ~A ~A ~A" (region-str regx) (pn-str pn) (rulestore-str rules))
   (assert (region-p regx))
   (assert (pn-p pn))
-  (assert (bool-p pnc))
   (assert (rulestore-p rules))
-  (assert (or (< (region-number-states regx) 3) (not pnc)))
 
-  (let ((ret (group-new-na regx pn pnc rules)))
+  (let ((ret (group-new-na regx pn rules)))
     (cond ((err-p ret) (error (err-str ret)))
           ((group-p ret) ret)
            (t (error "Result is not a group"))))
 )
 
 ;;; group-new no abort (na).
-(defun group-new-na (regx pn pnc rules) ; -> group or err.
+(defun group-new-na (regx pn rules) ; -> group or err.
   (assert (region-p regx))
   (assert (pn-p pn))
-  (assert (bool-p pnc))
   (assert (rulestore-p rules))
 
   (cond ((pn-eq pn *pn-one*)
@@ -78,12 +75,10 @@
         ((pn-eq pn *pn-none*)
            (if (/= 0 (rulestore-length rules))
              (return-from group-new-na "Rules length does not match pn value"))
-           (if (< (region-number-states regx) 3)
-             (setf pnc t))
          )
         (t (return-from group-new-na "unrecognized pn value")))
 
-  (make-group :region regx :pn pn :pnc pnc :rules rules :anchor nil)
+  (make-group :region regx :pn pn :pnc nil :rules rules :anchor nil)
 )
 
 ;;; Return a string representing a group
@@ -251,15 +246,22 @@
   (assert (group-p grpx))
   (assert (region-p regx))
   (assert (region-eq regx (group-region grpx)))
+  (assert (or (null (group-anchor grpx)) (state-eq (region-first-state regx) (vertex-pinnacle (group-anchor grpx)))))
 
   (when (or (/= (region-number-states regx) (region-number-states (group-region grpx)))
-            (and (state-ne (region-first-state regx) (region-first-state (group-region grpx)))
-                 (state-ne (region-first-state regx) (region-second-state (group-region grpx)))))
+            (state-ne (region-first-state regx) (region-first-state (group-region grpx))))
 
     (format t "~&Dom: ~D Act: ~D group ~A region changed from ~A to ~A" *dom-id* *act-id* (region-str (group-region grpx))
                                                         (statestore-str (region-states (group-region grpx)))
                                                         (statestore-str (region-states regx)))
+    (if (not (null (group-anchor grpx)))
+      (format t " anchor: ~A" (vertex-str (group-anchor grpx)))
+    )
     (setf (group-region grpx) regx)
+
+    (if (and (group-pnc grpx) (> (region-number-states (group-region grpx)) 2))
+      (setf (group-pnc grpx) nil))
+
     (return-from group-set-region)
   )
   (format t "~&Problem: group-set-region: region not changed?")

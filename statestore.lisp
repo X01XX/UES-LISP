@@ -166,27 +166,36 @@
 )
 
 ;;; Return a statestore with only states required to make a region.
+;;; Maintain the first state if any states need to be removed.
 (defun statestore-remove-unneeded (storex) ; -> statestore.
   ;; Check argument.
   (assert (statestore-p storex))
   (assert (statestore-same-num-bits storex))
 
   (if (< (statestore-length storex) 3)
-    (return-from statestore-remove-unneeded storex)) ; Return empty statestore.
+    (return-from statestore-remove-unneeded storex)) ; Return statestore as-is.
 
-  (let (options (targ-x (statestore-x-mask storex)) opt-x storey)
+  (let (options (targ-x (statestore-x-mask storex)) opt-x storey sta-first sta-rest)
+
+    ;; Separate the first state from the rest.
+    (setf sta-first (statestore-first-state storex))
+    (loop for stax in (statestore-states storex) do
+      (if (not (state-eq stax sta-first))
+        (push stax sta-rest))
+    )
 
     ;; Try combinations of successively more states.
     ;; Return first successful combination.
-    (loop for num from 2 below (statestore-length storex) do
+    (loop for num from 1 below (length sta-rest) do
 
       ;; Get lists of different combinations of num states.
-      (setf options (any-x-of-n num (statestore-states storex)))
+      (setf options (any-x-of-n num sta-rest))
 
       ;; Check each option list.
       (loop for optx in options do
 
         ;; Make statestore from state list.
+        (push sta-first optx)
         (setf storey (statestore-new optx))
 
         ;; Get statestore x-mask.

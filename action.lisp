@@ -8,7 +8,7 @@
   base-memory       ; A list of items corresponding to items in base-rules.
                     ; An item will be an association list for a rulestore with GT 1 rules, otherwise the item will be nil.
   logical-structure ; A regionstore of all possible regions based on close, dissimilar samples.
-  cleanup-flag      ; A Boolean indicator to run square cleanup, if no new needs.
+  cleanup-flag      ; An integer. Cleanup squares after two runs of action-get-needs without a need found.
 )
 ; Functions automatically created by defstruct:
 ;
@@ -65,7 +65,7 @@
                             :base-rules rules
                             :base-memory memory
                             :logical-structure (regionstore-new (list (region-new (list (state-new-high tmp-state) tmp-state))))
-                            :cleanup-flag true
+                            :cleanup-flag 0
                   ))
     ;; Return result.
     actx
@@ -189,45 +189,6 @@
   )
 )
 
-;;; Return a defining groups needs, based on a given vertex-pinnacle state.
-(defun action-structure-group-needs (actx grpx stax) ; -> needstore.
-  ;; Check arguments.
-  (assert (action-p actx))
-  (assert (group-p grpx))
-  (assert (state-p stax))
-
-  ;; Check if group region is already based on the given state.
-  (if (or (state-eq (region-first-state (group-region grpx)) stax)
-          (state-eq (region-second-state (group-region grpx)) stax))
-    (return-from action-structure-group-needs (needstore-new nil)))
-
-  ;; Check for the expected far square.
-  (let ((needs (needstore-new nil)) sta-far sqr-far (*act-id* (action-id actx)) regx)
-
-    ;; Calc far state from stax in group region, find square.
-    (setf sta-far (region-far-state (group-region grpx) stax))
-    (setf regx (region-new (list stax sta-far)))
-
-    (setf sqr-far (action-find-square actx sta-far))
-
-    (if sqr-far
-      (progn
-        (when (square-pnc sqr-far)
-          ;; Alter the group region.
-          (group-set-region grpx regx)
-          (if (not (group-pnc grpx))
-            (group-set-pnc grpx true))
-          (return-from action-structure-group-needs needs)
-        )
-        (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
-      )
-      (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-defining-region* (format nil "defining group ~A implied by calced structure" (region-str regx))))
-    )
-    ;; Return result.
-    needs
-  )
-)
-
 ;;; Return action needs to improve the understanding of the logic behind the samples, so far.
 (defun action-get-needs (actx cur-state reachable) ; -> NeedStore.
  ;(format t "~&action-get-needs: Dom: ~D Act: ~D state ~A cleanup flag: ~A"
@@ -278,6 +239,9 @@
       (let (grp-needs)
         (loop for grpx in (groupstore-groups (action-groups actx)) do
           ;(format t "~&checking group ~A" (region-str (group-region grpx)))
+          (when (group-pnc grpx)
+            (assert (< (region-number-states (group-region grpx)) 3))
+          )
           (when (not (group-pnc grpx))
             ;; Get needs for group, possibly replace group region with one made of two states.
             (setf grp-needs (action-confirm-group-needs actx grpx))
@@ -349,7 +313,7 @@
         ) ; next inx.
       ) ; end let
   
-      ;; Get structure needs.
+      ;; Check structure.
       (let ((structure-needs (action-structure-needs actx reachable)))
 
         (if (needstore-is-not-empty structure-needs)
@@ -359,12 +323,7 @@
  
           (when (not (null (group-anchor grpx)))
  
-            (if (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle (group-anchor grpx)))
-   
-              ;; Generate needs for each region.
-              (setf needs (needstore-append needs (action-structure-group-needs actx grpx 
-                            (vertex-pinnacle (group-anchor grpx)))))
-              ;; Else
+            (if (not (groupstore-state-in-one-group (action-groups actx) (vertex-pinnacle (group-anchor grpx))))
               (setf (group-anchor grpx) nil)
             )
           )
@@ -380,10 +339,18 @@
       )
   
       (if (needstore-is-empty needs)
-        (if (action-cleanup-flag actx)
-          (action-cleanup actx)
+        (cond ((zerop (action-cleanup-flag actx))
+               ;; Wait one more time before doing cleanup.
+               (incf (action-cleanup-flag actx))
+              )
+              ((= (action-cleanup-flag actx) 1)
+               ;; Do cleanup, set flag to stop further cleanups.
+               (action-cleanup actx)
+               (incf (action-cleanup-flag actx))
+              )
         )
-        (setf (action-cleanup-flag actx) true)
+        ;; else, init cleanup-flag.
+        (setf (action-cleanup-flag actx) 0)
       )
       needs
     )
@@ -394,7 +361,7 @@
 (defun action-group-set-pnc (actx grpx) ; -> side-effects, group pnc changed, message printed.
   (assert (action-p actx))
   (assert (group-p grpx))
-  (assert (not (group-pnc grpx)))
+  (assert (and (not (group-pnc grpx)) (< (region-number-states (group-region grpx)))))
 
   ;(format t "~&Dom: ~D Act: ~D Group: ~A, pnc set to true." *dom-id* (action-id actx) (region-str (group-region grpx)))
   (let ((*act-id* (action-id actx)))
@@ -408,80 +375,60 @@
   (assert (action-p actx))
   (assert (group-p grpx))
   (assert (= (action-num-bits actx) (group-num-bits grpx)))
+  (assert (or (not (group-pnc grpx)) (< (region-number-states (group-region grpx) 3))))
+
   ;(format t "~&action-confirm-group-needs: Act: ~D Group: ~A" (action-id actx) (region-str (group-region grpx)))
 
-  (let ((needs (needstore-new nil)) (grp-reg (group-region grpx)) (*act-id* (action-id actx)))
+  (let ((needs (needstore-new nil)) (grp-reg (group-region grpx)) (*act-id* (action-id actx))
+        (sta-first (region-first-state (group-region grpx)))
+       )
 
-    ;; Process a one-state group region.
-    (when (= (region-number-states grp-reg) 1)
+    ;; Check the region first state.
+    (let (sqr-first)
 
-      (let (sta-first sqr-first)
-        ;; Get first state.
-        (setf sta-first (region-first-state grp-reg))
-        ;; Get first square.
-        (setf sqr-first (squarestore-find (action-squares actx) sta-first))
-        (if (null sqr-first)
-          (error "Region first square not found?"))
+      ;; Get first state square.
+      (setf sqr-first (squarestore-find (action-squares actx) sta-first))
+      (if (null sqr-first)
+        (error "Region first square not found?"))
 
-        ;(format t "~&  square ~A found" (square-str sqr-first))
-        ;; Check if more samples needed.
-        (if (square-pnc sqr-first)
-          (if (not (group-pnc grpx)) (group-set-pnc grpx true))
+      (if (square-pnc sqr-first)
+        (progn
+          (when (= (region-number-states grp-reg) 1)
+            (if (not (group-pnc grpx)) (group-set-pnc grpx true))
+            (return-from action-confirm-group-needs needs)
+          )
+        )
+        (progn
           (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
-               (format nil "~A" (region-str grp-reg)))))
+               (format nil "~A" (region-str grp-reg))))
 
-          ;(format t "~&action-confirm-group-needs: return 1 Act: ~D Group: ~A needs: ~A"
-          ;(action-id actx) (region-str (group-region grpx)) (needstore-str needs))
-
-        (return-from action-confirm-group-needs needs)
+          (return-from action-confirm-group-needs needs)
+        )
       )
     )
 
     ;; Process a two-state group region.
     (when (= (region-number-states grp-reg) 2)
 
-      (let (sqr-first sqr-far)
-        (setf sqr-first (squarestore-find (action-squares actx) (region-first-state grp-reg)))
-        (if (null sqr-first)
-          (error "Region first square not found?"))
-
-        ;; Check if more samples needed.
-        (if (not (square-pnc sqr-first))
-          (needstore-push needs (action-get-need-resample-state actx (square-state sqr-first) *confirm-group*
-                (format nil "~A" (region-str grp-reg)))))
+      (let (sqr-far)
 
         (setf sqr-far (squarestore-find (action-squares actx) (region-second-state grp-reg)))
         (if (null sqr-far)
           (error "Region far square not found?"))
 
         ;; Check if more samples needed.
-        (if (not (square-pnc sqr-far))
+        (if (square-pnc sqr-far)
+          (if (not (group-pnc grpx)) (group-set-pnc grpx true))
           (needstore-push needs (action-get-need-resample-state actx (square-state sqr-far) *confirm-group*
-                 (format nil "~A" (region-str grp-reg)))))
-
-        ;(format t "~&action-confirm-group-needs: return 2 Act: ~D Group: ~A needs: ~A"
-        ;    (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
-
-        (if (and (square-pnc sqr-first) (square-pnc sqr-far))
-          (if (not (group-pnc grpx)) (group-set-pnc grpx true)))
+                 (format nil "~A" (region-str grp-reg))))
+        )
 
         (return-from action-confirm-group-needs needs)
       )
     )
 
     ;; Process a GT 2 state region.
-    (let (sta-first sqr-first sta-far sqr-far)
-
-      ;; Check first square.
-      (setf sta-first (region-first-state grp-reg))
-      (setf sqr-first (squarestore-find (action-squares actx) sta-first))
-      (if (null sqr-first)
-        (error "Region first square not found?"))
-
-      ;; Check if more samples needed.
-      (if (not (square-pnc sqr-first))
-        (needstore-push needs (action-get-need-resample-state actx sta-first *confirm-group*
-                  (format nil "~A" (region-str grp-reg)))))
+    (let (sta-far sqr-far)
 
       ;; Calc far state.
       (setf sta-far (region-far-state (group-region grpx) sta-first))
@@ -491,17 +438,12 @@
 
       ;; Generate far sample needs.
       (when sqr-far
-        (if (square-pnc sqr-far)
-          (progn
-            (group-set-region grpx (region-new (list sta-first sta-far)))
-            (return-from action-confirm-group-needs (needstore-new nil))
-          )
+        (group-set-region grpx (region-new (list sta-first sta-far)))
+
+        (if (not (square-pnc sqr-far))
           (needstore-push needs (action-get-need-resample-state actx sta-far *confirm-group*
              (format nil "~A" (region-str grp-reg))))
         )
-
-        ;(format t "~&action-confirm-group-needs: return 3 Act: ~D Group: ~A needs: ~A"
-        ;  (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
 
         (return-from action-confirm-group-needs needs)
       )
@@ -509,9 +451,6 @@
       ;; sqr-far not found.
       (needstore-push needs (action-get-need-sample-state actx sta-far *confirm-group*
           (format nil "~A" (region-str grp-reg))))
-
-      ;(format t "~&action-confirm-group-needs: return 4 Act: ~D Group: ~A needs: ~A"
-      ;      (action-id actx) (region-str (group-region grpx)) (needstore-str needs))
     )
     needs
   )
@@ -558,7 +497,7 @@
 )
 
 ;;; Check for non-adjacent incompatible square pnc needs.
-;;; That is, find samples between them.
+;;; and find samples between them.
 (defun action-non-adjacent-incompatible-square-needs (actx pairs) ; -> needstore.
   (assert (action-p actx))
   (assert (regionstore-p pairs))
@@ -776,6 +715,40 @@
   )
 )
 
+;;; Set a group-anchor, change the group region.
+(defun action-set-group-anchor (actx grpx vertx) ; -> nothing, group changed.
+  ;; Check arguments.
+  (assert (action-p actx))
+  (assert (group-p grpx))
+  (assert (vertex-p vertx))
+
+  ;; Set the group anchor.
+  (setf (group-anchor grpx) vertx)
+
+  ;; Put group region in-sync with anchor, if needed.
+  (let ((grp-reg (group-region grpx)) (vert-sta (vertex-pinnacle vertx)) new-order)
+
+    (when (statestore-member (region-states grp-reg) vert-sta) ;; The vertex pinnacle is already a state used to form the group region.
+
+      (if (state-eq (region-first-state grp-reg) vert-sta) ; No action is needed.
+        (return-from action-set-group-anchor))
+
+      ;; Make the vertex pinnacle the first state.
+      (loop for stax in (statestore-states (region-states grp-reg)) do
+        (if (not (state-eq stax vert-sta))
+          (push stax new-order))
+      )
+      (push vert-sta new-order)
+
+      (group-set-region grpx (region-new new-order))
+      (return-from action-set-group-anchor)
+    )
+
+    ;; Note: region-new uses statestore-remove-unneeded.
+    (group-set-region grpx (region-new (append (list vert-sta) (statestore-states (region-states grp-reg)))))
+  )
+)
+
 ;;; Check dissimilar pairs of squares to develop defining regions and verticies.
 (defun action-check-for-defining-regions (actx reachable) ; -> needstore.
   ;; Check arguments.
@@ -807,18 +780,6 @@
           (when (= (square-compatible sqr-x sqr-y) *not-compatible*)
 
              (regionstore-push-nosups pairs (region-new (list (square-state sqr-x) (square-state sqr-y))))
-
-             ;; Check adjacent dissimilar squares for pnc needs.
-             (when (square-is-adjacent sqr-x sqr-y)
-               (if (not (square-pnc sqr-x))
-                     (needstore-push needs (action-get-need-resample-state actx (square-state sqr-x) *confirm-adj-ip*
-                                             (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-y)))))
-               )
-               (if (not (square-pnc sqr-y))
-                     (needstore-push needs (action-get-need-resample-state actx (square-state sqr-y) *confirm-adj-ip*
-                                             (format nil "for adjacent dissimilar pair with ~A" (state-str (square-state sqr-x)))))
-               )
-             )
           )
         ) ; next iny.
       ) ; next inx.
@@ -863,6 +824,30 @@
     (setf (action-logical-structure actx) logical-structure)
     ;(format t "~&action-logical-structure: ~A" (regionstore-str (action-logical-structure actx)))
 
+
+    ;; Check for adjacent dissimilar needs.
+    (let (sqrx stax sqry stay)
+      (loop for prx in (regionstore-regions adj-pairs) do
+  
+        (setf stax (region-first-state prx))
+        (setf stay (region-second-state prx))
+  
+        (setf sqrx (action-find-square actx stax))
+        ;; Check square for pnc needs.
+        (if (not (square-pnc sqrx))
+          (needstore-push needs (action-get-need-resample-state actx stax *confirm-adj-ip*
+                                (format nil "for adjacent dissimilar pair with ~A" (state-str stay))))
+        )
+
+        (setf sqry (action-find-square actx stay))
+        ;; Check square for pnc needs.
+        (if (not (square-pnc sqry))
+          (needstore-push needs (action-get-need-resample-state actx stay *confirm-adj-ip*
+                                (format nil "for adjacent dissimilar pair with ~A" (state-str stax))))
+        )
+      ) ; next prx
+    )
+  
     ;; If there are adjacent dissimilar pnc needs, return them.
     (if (needstore-is-not-empty needs)
       (return-from action-check-for-defining-regions needs))
@@ -933,7 +918,7 @@
                     (progn
                       ;(format t "~&Dom: ~D Act: ~D action-check-for-defining-regions: setting anchor ~A for group ~A"
                       ;    *dom-id* *act-id* (vertex-str (first max-rate-verts)) (region-str (group-region grpx)))
-                      (setf (group-anchor grpx) (first max-rate-verts)) ; Set first anchor.
+                      (action-set-group-anchor actx grpx (first max-rate-verts)) ; Set first anchor.
                     )
                     (progn
                       (when (< (action-rate-vertex actx (group-anchor grpx)) max-rate)
@@ -941,7 +926,8 @@
                         ;   *dom-id* *act-id* (vertex-str (group-anchor grpx))
                         ;    (action-rate-vertex actx (group-anchor grpx))
                         ;    (vertex-str (first max-rate-verts)) max-rate (region-str (group-region grpx)))
-                        (setf (group-anchor grpx) (first max-rate-verts))) ; Replace anchor.
+                        (action-set-group-anchor actx grpx (first max-rate-verts)) ; Replace anchor.
+                      )
                     )
                   )
                 )
@@ -1581,15 +1567,13 @@
   (assert (action-p actx))
   (assert (and (region-p regx) (= (action-num-bits actx) (region-num-bits regx))))
 
-  (let (pn (pnc (< (region-number-states regx) 3)) sqrx (rules (rulestore-new nil)))
-    ;(format t "~&action-make-group: pnc ~A num states ~D" pnc (region-number-states regx))
+  (let (pn sqrx (rules (rulestore-new nil)))
+    ;(format t "~&action-make-group: num states ~D" (region-number-states regx))
     ;; Check region states.
     (loop for stax in (region-state-list regx) do
        ;; Get square from region state.
        (setf sqrx (action-find-square actx stax))
        (if (null sqrx) (error "Square ~A for region state not found?" (state-str stax)))
-
-       (setf pnc (and pnc (square-pnc sqrx)))
 
        (if pn
           (assert (pn-eq pn (square-pn sqrx)))
@@ -1604,8 +1588,8 @@
        )
     )
 
-    ;(format t "~&action-make-group: Act ~D region ~A returning ~A" (action-id actx) (region-str regx) (group-str (group-new regx pn pnc rules)))
-    (group-new regx pn pnc rules)
+    ;(format t "~&action-make-group: Act ~D region ~A returning ~A" (action-id actx) (region-str regx) (group-str (group-new regx pn rules)))
+    (group-new regx pn rules)
   )
 )
 
@@ -1671,7 +1655,7 @@
 (defun action-cleanup (actx) ; -> side effect some squares deleted.
   (assert (action-p actx))
 
-  (setf (action-cleanup-flag actx) false)
+  (setf (action-cleanup-flag actx) 0)
 
   (let (del-sqrs)
     ;; Find squares that are not needed.

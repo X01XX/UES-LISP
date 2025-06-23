@@ -35,9 +35,7 @@
     (assert (statestore-p str1))
 
     (assert (= (statestore-length str2) 3))
-    (assert (statestore-member str2 (state-from 's0001)))
-    (assert (statestore-member str2 (state-from 's0010)))
-    (assert (statestore-member str2 (state-from 's0111)))
+    (assert (state-eq (statestore-first-state str2) (state-from 's0001)))
 
     (format t "~&  statestore-remove-unneeded OK")
   )
