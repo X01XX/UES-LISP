@@ -46,3 +46,6 @@ There was a version that did not let me give the name "step" to a struct.  I com
 
 A lot can be done with simple structs, compartmentalization of data and code.
 
+This was a 10,000-pipe problem, at least for me.
+
+Dedicated to those who never had a chance, from someone who did.
