@@ -197,22 +197,22 @@
          (decf cnt) ; Decrement cnt.
 
          ; Transate bitval to string.
-         (cond ((= bitval  0) (setf strs (concatenate 'string strs "..")))
+         (cond ((= bitval  0) (setf strs (concatenate 'string strs "0?"))) ; Will fail rule-is-valid-intersection.
                ((= bitval  1) (setf strs (concatenate 'string strs "00")))
                ((= bitval  2) (setf strs (concatenate 'string strs "01")))
-               ((= bitval  3) (setf strs (concatenate 'string strs "0X")))
+               ((= bitval  3) (setf strs (concatenate 'string strs "0X"))) ; Will fail rule-is-valid-union.
                ((= bitval  4) (setf strs (concatenate 'string strs "11")))
                ((= bitval  5) (setf strs (concatenate 'string strs "XX")))
                ((= bitval  6) (setf strs (concatenate 'string strs "X1")))
-               ((= bitval  7) (setf strs (concatenate 'string strs "0X?11")))
+               ((= bitval  7) (setf strs (concatenate 'string strs "3?"))) ; Will fail rule-is-valid-union.
                ((= bitval  8) (setf strs (concatenate 'string strs "10")))
                ((= bitval  9) (setf strs (concatenate 'string strs "X0")))
                ((= bitval 10) (setf strs (concatenate 'string strs "Xx")))
-               ((= bitval 11) (setf strs (concatenate 'string strs "0X?10")))
-               ((= bitval 12) (setf strs (concatenate 'string strs "1X")))
-               ((= bitval 13) (setf strs (concatenate 'string strs "1X?00")))
-               ((= bitval 14) (setf strs (concatenate 'string strs "1X?01")))
-               (t             (setf strs (concatenate 'string strs "1X?0X?")))
+               ((= bitval 11) (setf strs (concatenate 'string strs "3?"))) ; Will fail rule-is-valid-union.
+               ((= bitval 12) (setf strs (concatenate 'string strs "1X"))) ; Will fail rule-is-valid-union.
+               ((= bitval 13) (setf strs (concatenate 'string strs "3?"))) ; Will fail rule-is-valid-union.
+               ((= bitval 14) (setf strs (concatenate 'string strs "3?"))) ; Will fail rule-is-valid-union.
+               (t             (setf strs (concatenate 'string strs "4?"))) ; Will fail rule-is-valid-union.
          )
          (setf bit-pos (mask-shift-right bit-pos))
        ) ; end-while
